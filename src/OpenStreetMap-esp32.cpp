@@ -205,6 +205,10 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
             log_w("Tile (%d, %d) not found in cache", tileX, tileY);
     }
 
+    const char *attribution = " Map data from OpenStreetMap.org ";
+    mapSprite.setTextColor(TFT_WHITE, TFT_BLACK);
+    mapSprite.drawRightString(attribution, mapSprite.width(), mapSprite.height() - 10, &DejaVu9);    
+
     return true;
 }
 
