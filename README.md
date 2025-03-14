@@ -1,16 +1,28 @@
 # OpenStreetMap-esp32
 
-This library provides a OpenStreetMap (OSM) map fetching and caching system for ESP32-based devices.<br>
+## What is this
+
+This library provides a [OpenStreetMap](https://www.openstreetmap.org/) (OSM) map fetching and caching system for ESP32-based devices.<br>
 Under the hood it uses [LovyanGFX](https://github.com/lovyan03/LovyanGFX) and [PNGdec](https://github.com/bitbank2/PNGdec) to do the heavy lifting.
 
 It fetches, decodes and caches OSM tiles, composes a map from these tiles and returns the map as a LGFX sprite.<br>The sprite can be pushed to the screen or used for further composing.<br>Downloaded tiles are cached in psram.
 
 The library should work on any ESP32 type with a bit of psram and a LovyanGFX compatible display.
 
-##### Screenshot of a 480x800 map sprite on a esp32-8048s050 RGB panel
+## Copyright and license of the map data
+
+The OpenstreetMap-esp32 library -this library- is licensed under the [MIT license](/license).<br> The downloaded tile data has a different license than this library.
+
+OpenStreetMap® is open data, licensed under the [Open Data Commons Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/) by the OpenStreetMap Foundation (OSMF).<br>
+Use of any OSMF provided service is governed by the [OSMF Terms of Use](https://osmfoundation.org/wiki/Terms_of_Use).
+
+## Screenshots and example code
+
 ![scaledMap](https://github.com/user-attachments/assets/3c30ae46-e499-4d50-af0f-da4156fe5374)
 
-### Example code returning a default 320x240 map
+Screenshot of a 480x800 map on a esp32-8048s050 RGB panel
+
+### Example code returning the default 320x240 map
 
 ```c++
 #include <Arduino.h>
@@ -55,8 +67,8 @@ void setup()
     // create a sprite to store the map
     LGFX_Sprite map(&display); 
 
-    const bool success = osm.fetchMap(map, longitude, latitude, zoom);
     // returned map is 320px by 240px by default
+    const bool success = osm.fetchMap(map, longitude, latitude, zoom);
 
     if (success)
         map.pushSprite(0, 0);
@@ -123,10 +135,6 @@ void setup()
         // Draw a crosshair on the map
         map.drawLine(0, map.height() / 2, map.width(), map.height() / 2, 0);
         map.drawLine(map.width() / 2, 0, map.width() / 2, map.height(), 0);
-
-        String location = " Map data from OpenStreetMap.org ";
-        map.setTextColor(TFT_WHITE, TFT_BLACK);
-        map.drawRightString(location.c_str(), map.width(), map.height() - 10);
 
         map.pushSprite(0, 0);
     }
