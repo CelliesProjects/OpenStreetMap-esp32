@@ -1,10 +1,9 @@
 # OpenStreetMap-esp32
 
-This library provides a OpenStreetMap (OSM) map fetching and caching system for ESP32-based devices.
-
-It fetches and caches OSM tiles, composes a map from these tiles and returns the map as a LGFX sprite.<br>The sprite can be pushed to the screen or used for further composing.<br>Downloaded tiles are cached in psram.
-
+This library provides a OpenStreetMap (OSM) map fetching and caching system for ESP32-based devices.<br>
 Under the hood it uses [LovyanGFX](https://github.com/lovyan03/LovyanGFX) and [PNGdec](https://github.com/bitbank2/PNGdec) to do the heavy lifting.
+
+It fetches, decodes and caches OSM tiles, composes a map from these tiles and returns the map as a LGFX sprite.<br>The sprite can be pushed to the screen or used for further composing.<br>Downloaded tiles are cached in psram.
 
 The library should work on any ESP32 type with a bit of psram and a LovyanGFX compatible display.
 
