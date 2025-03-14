@@ -4,7 +4,7 @@ This library provides a OpenStreetMap (OSM) map fetching and caching system for 
 
 It fetches and caches OSM tiles, composes a map from these tiles and returns a LGFX sprite.<br>The sprite can be pushed to the screen or used for further composing. Downloaded tiles are cached in psram.
 
-### Screenshot of a 480x800 map sprite on a esp32-804848s050 RGB panel 
+### Screenshot of a 480x800 map sprite on a esp32-8048s050 RGB panel 
 ![scaledMap](https://github.com/user-attachments/assets/3c30ae46-e499-4d50-af0f-da4156fe5374)
 
 ### example code
