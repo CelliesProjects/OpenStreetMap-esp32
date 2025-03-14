@@ -87,6 +87,9 @@ const char *password = "xxx";
 LGFX display;
 OpenStreetMap osm(display);
 
+int mapWidth = 480;
+int mapHeight = 800;
+int cacheSize = 20; // cache size in tiles where each osm tile is 128kB
 double latitude = 52.52;
 double longitude = 13.41;
 int zoom = 14;
@@ -109,8 +112,8 @@ void setup()
     display.setRotation(1);
     display.setBrightness(110);
 
-    osm.resizeTilesCache(20);
-    osm.setResolution(480, 800);
+    osm.resizeTilesCache(cacheSize);
+    osm.setResolution(mapWidth, mapHeight);
 
     LGFX_Sprite map(&display);
 
