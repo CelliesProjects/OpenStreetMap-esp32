@@ -214,9 +214,10 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
 
 bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, int x, int y, int zoom, String &result)
 {
-    String url = "https://a.tile.openstreetmap.org/" + String(zoom) + "/" + String(x) + "/" + String(y) + ".png";
+    String url = "https://tile.openstreetmap.org/" + String(zoom) + "/" + String(x) + "/" + String(y) + ".png";
 
     HTTPClient http;
+    http.setUserAgent("OpenStreetMap-esp32/1.0 (+https://github.com/CelliesProjects/OpenStreetMap-esp32)");
     if (!http.begin(url))
     {
         result = "Failed to initialize HTTP client";
