@@ -4,6 +4,7 @@ This library provides a lightweight OpenStreetMap (OSM) map fetching and caching
 
 It fetches and caches OSM tiles, composes a map from these tiles and returns a LGFX sprite. The sprite can be pushed to the screen or used for further composing.
 
+![scaledMap](https://github.com/user-attachments/assets/772ba198-4602-45fa-a67a-6eb802f22771)
 ### example code
 
 ```c++
