@@ -4,10 +4,11 @@ This library provides a OpenStreetMap (OSM) map fetching and caching system for 
 
 It fetches and caches OSM tiles, composes a map from these tiles and returns the map as a LGFX sprite.<br>The sprite can be pushed to the screen or used for further composing. Downloaded tiles are cached in psram.
 
-### Screenshot of a 480x800 map sprite on a esp32-8048s050 RGB panel 
+### Screenshot of a 480x800 map sprite on a esp32-8048s050 RGB panel
+
 ![scaledMap](https://github.com/user-attachments/assets/3c30ae46-e499-4d50-af0f-da4156fe5374)
 
-### example code
+### Example code returning a default 320x240 map
 
 ```c++
 #include <Arduino.h>
@@ -49,10 +50,11 @@ void setup()
     display.setRotation(1);
     display.setBrightness(110);
 
-    // create a sprite to store the map, default returned size is 320px by 240px
+    // create a sprite to store the map
     LGFX_Sprite map(&display); 
 
     const bool success = osm.fetchMap(map, longitude, latitude, zoom);
+    // returned map is 320px by 240px by default
 
     if (success)
         map.pushSprite(0, 0);
@@ -66,7 +68,7 @@ void loop()
 }
 ```
 
-### example code setting a map size and cache size on RGB panel devices
+### Example code setting map resolution and cache size on RGB panel devices
 
 ```c++
 #include <Arduino.h>
@@ -123,10 +125,20 @@ void setup()
 
         map.pushSprite(0, 0);
     }
+    else
+        Serial.println("Failed to fetch map.");
 }
 
 void loop()
 {
     delay(1000);
 }
+```
+
+### PlatformIO setup
+```bash
+lib_deps =
+    https://github.com/CelliesProjects/OpenStreetMap-esp32
+    lovyan03/LovyanGFX@^1.2.0
+    bitbank2/PNGdec@^1.0.3    
 ```
