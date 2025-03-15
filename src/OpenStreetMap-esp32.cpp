@@ -207,7 +207,7 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
 
     const char *attribution = " Map data from OpenStreetMap.org ";
     mapSprite.setTextColor(TFT_WHITE, TFT_BLACK);
-    mapSprite.drawRightString(attribution, mapSprite.width(), mapSprite.height() - 10, &DejaVu9);    
+    mapSprite.drawRightString(attribution, mapSprite.width(), mapSprite.height() - 10, &DejaVu9);
 
     return true;
 }
@@ -311,7 +311,7 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, int x, int y, int zo
     return true;
 }
 
-bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &sprite, String &result)
+bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &sprite, String &result, uint8_t sdPin)
 {
     log_i("Saving map, this may take a while...");
 
@@ -336,7 +336,7 @@ bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &sprite, String &r
     }
 
     // BMP header (54 bytes)
-    uint16_t bfType = 0x4D42;                                      // "BM"
+    uint16_t bfType = 0x4D42;                                    // "BM"
     uint32_t bfSize = 54 + sprite.width() * sprite.height() * 3; // Header + pixel data (3 bytes per pixel for RGB888)
     uint16_t bfReserved = 0;
     uint32_t bfOffBits = 54; // Offset to pixel data

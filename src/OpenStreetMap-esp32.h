@@ -41,7 +41,7 @@ public:
     void setResolution(int w, int h);
     bool resizeTilesCache(int cacheSize);
     bool fetchMap(LGFX_Sprite &sprite, double longitude, double latitude, int zoom);
-    bool saveMap(const char *filename, LGFX_Sprite &display, String &result);
+    bool saveMap(const char *filename, LGFX_Sprite &display, String &result, uint8_t sdPin = SS);
 
 private:
     static OpenStreetMap *currentInstance;
