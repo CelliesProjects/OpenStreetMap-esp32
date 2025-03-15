@@ -40,7 +40,7 @@ const char *ssid = "xxx";
 const char *password = "xxx";
 
 LGFX display;
-OpenStreetMap osm(display);
+OpenStreetMap osm;
 
 double latitude = 52.52;
 double longitude = 13.41;
@@ -97,7 +97,7 @@ const char *ssid = "xxx";
 const char *password = "xxx";
 
 LGFX display;
-OpenStreetMap osm(display);
+OpenStreetMap osm;
 
 int mapWidth = 480;
 int mapHeight = 800;
