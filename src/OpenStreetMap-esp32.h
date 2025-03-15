@@ -1,5 +1,5 @@
-#ifndef _OPENSTREETMAP_ESP32_H_
-#define _OPENSTREETMAP_ESP32_H_
+#ifndef OPENSTREETMAP_ESP32_H
+#define OPENSTREETMAP_ESP32_H
 
 #include <Arduino.h>
 #include <HTTPClient.h>
@@ -30,8 +30,10 @@ class OpenStreetMap
 
 public:
     OpenStreetMap() = default;
-    OpenStreetMap(const OpenStreetMap &) = delete;            // Delete copy constructor
-    OpenStreetMap &operator=(const OpenStreetMap &) = delete;  
+    OpenStreetMap(const OpenStreetMap &) = delete;
+    OpenStreetMap &operator=(const OpenStreetMap &) = delete;
+    OpenStreetMap(OpenStreetMap &&other) = delete;
+    OpenStreetMap &operator=(OpenStreetMap &&other) = delete;
 
     ~OpenStreetMap();
 
