@@ -16,6 +16,10 @@ The OpenstreetMap-esp32 library -this library- is licensed under the [MIT licens
 OpenStreetMap® is open data, licensed under the [Open Data Commons Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/) by the OpenStreetMap Foundation (OSMF).<br>
 Use of any OSMF provided service is governed by the [OSMF Terms of Use](https://osmfoundation.org/wiki/Terms_of_Use).
 
+## Known issues
+
+- Does not handle wrapping at 180° yet so you will end up with half a map when requesting a map from that area in some cases.
+
 ## Screenshots and example code
 
 ![scaledMap](https://github.com/user-attachments/assets/3c30ae46-e499-4d50-af0f-da4156fe5374)
