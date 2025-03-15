@@ -321,7 +321,7 @@ bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &sprite, String &r
         return false;
     }
 
-    if (!SD.begin(SS))
+    if (!SD.begin(sdPin))
     {
         result = "SD Card mount failed!";
         return false;
