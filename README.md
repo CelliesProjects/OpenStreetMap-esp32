@@ -18,7 +18,7 @@ Use of any OSMF provided service is governed by the [OSMF Terms of Use](https://
 
 ## Known issues
 
-- Does not handle wrapping at 180° yet so you will end up with half a map when requesting a map from that area in some cases.
+- Does not handle wrapping at 180° longitude yet so you will end up with half a map when requesting a map from that area in some cases.
 
 ## Screenshots and example code
 
