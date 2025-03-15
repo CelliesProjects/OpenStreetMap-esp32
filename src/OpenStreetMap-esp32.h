@@ -19,7 +19,6 @@ class OpenStreetMap
     int mapHeight = 240;
 
     std::vector<CachedTile> tilesCache;
-    LGFX_Device &target;
     uint16_t *currentTileBuffer = nullptr;
     PNG png;
 
@@ -30,8 +29,9 @@ class OpenStreetMap
     int startTileIndexY = 0;
 
 public:
-    explicit OpenStreetMap(LGFX_Device &gfx)
-        : target(gfx) {}
+    OpenStreetMap() = default;
+    OpenStreetMap(const OpenStreetMap &) = delete;            // Delete copy constructor
+    OpenStreetMap &operator=(const OpenStreetMap &) = delete;  
 
     ~OpenStreetMap();
 
