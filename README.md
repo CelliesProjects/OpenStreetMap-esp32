@@ -22,9 +22,9 @@ Use of any OSMF provided service is governed by the [OSMF Terms of Use](https://
 
 ## Screenshots and example code
 
-![scaledMap](https://github.com/user-attachments/assets/3c30ae46-e499-4d50-af0f-da4156fe5374)
+![map](https://github.com/user-attachments/assets/bc0534c1-b2e6-4f6e-804f-95b7db00c850)
 
-Screenshot of a 480x800 map on a esp32-8048s050 RGB panel
+Screenshot of a 320x240 map from a esp32-s3-box-lite
 
 ### Example code returning the default 320x240 map
 
@@ -46,9 +46,9 @@ const char *password = "xxx";
 LGFX display;
 OpenStreetMap osm;
 
-double latitude = 52.52;
-double longitude = 13.41;
-int zoom = 14;
+double longitude = 5.9;
+double latitude = 51.5;
+int zoom = 5;
 
 void setup()
 {
@@ -86,6 +86,10 @@ void loop()
 }
 ```
 
+![map](https://github.com/user-attachments/assets/9a92bbff-e96d-444d-8b34-29801744fa80)
+
+Screenshot of a 480x800 map from a esp32-8048s050
+
 ### Example code setting map resolution and cache size on RGB panel devices
 
 ```c++
@@ -106,9 +110,9 @@ OpenStreetMap osm;
 int mapWidth = 480;
 int mapHeight = 800;
 int cacheSize = 20; // cache size in tiles where each osm tile is 128kB
-double latitude = 52.52;
-double longitude = 13.41;
-int zoom = 14;
+double longitude = 5.9;
+double latitude = 51.5;
+int zoom = 5;
 
 void setup()
 {
