@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <HTTPClient.h>
 #include <WiFiClient.h>
+#include <SD.h>
 #include <vector>
 #include <LovyanGFX.hpp>
 #include <PNGdec.h>
@@ -40,6 +41,7 @@ public:
     void setResolution(int w, int h);
     bool resizeTilesCache(int cacheSize);
     bool fetchMap(LGFX_Sprite &sprite, double longitude, double latitude, int zoom);
+    bool saveMap(const char *filename, LGFX_Sprite &display, String &result);
 
 private:
     static OpenStreetMap *currentInstance;

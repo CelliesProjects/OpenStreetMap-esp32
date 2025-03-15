@@ -310,3 +310,84 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, int x, int y, int zo
     result = "Downloaded and decoded: " + url;
     return true;
 }
+
+bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &display, String &result)
+{
+    log_i("Saving map, this may take a while...");
+
+    if (!SD.begin(SS))
+    {
+        result = "SD Card mount failed!";
+        return false;
+    }
+
+    File file = SD.open(filename, FILE_WRITE);
+    if (!file)
+    {
+        result = "Failed to open file!";
+        SD.end();
+        return false;
+    }
+
+    // BMP header (54 bytes)
+    uint16_t bfType = 0x4D42;                                      // "BM"
+    uint32_t bfSize = 54 + display.width() * display.height() * 3; // Header + pixel data (3 bytes per pixel for RGB888)
+    uint16_t bfReserved = 0;
+    uint32_t bfOffBits = 54; // Offset to pixel data
+
+    uint32_t biSize = 40; // Info header size
+    int32_t biWidth = display.width();
+    int32_t biHeight = -display.height(); // Negative to flip vertically
+    uint16_t biPlanes = 1;
+    uint16_t biBitCount = 24; // RGB888 format
+    uint32_t biCompression = 0;
+    uint32_t biSizeImage = display.width() * display.height() * 3; // 3 bytes per pixel
+    int32_t biXPelsPerMeter = 0;
+    int32_t biYPelsPerMeter = 0;
+    uint32_t biClrUsed = 0;
+    uint32_t biClrImportant = 0;
+
+    // Write BMP header
+    file.write((uint8_t *)&bfType, 2);
+    file.write((uint8_t *)&bfSize, 4);
+    file.write((uint8_t *)&bfReserved, 2);
+    file.write((uint8_t *)&bfReserved, 2);
+    file.write((uint8_t *)&bfOffBits, 4);
+
+    file.write((uint8_t *)&biSize, 4);
+    file.write((uint8_t *)&biWidth, 4);
+    file.write((uint8_t *)&biHeight, 4);
+    file.write((uint8_t *)&biPlanes, 2);
+    file.write((uint8_t *)&biBitCount, 2);
+    file.write((uint8_t *)&biCompression, 4);
+    file.write((uint8_t *)&biSizeImage, 4);
+    file.write((uint8_t *)&biXPelsPerMeter, 4);
+    file.write((uint8_t *)&biYPelsPerMeter, 4);
+    file.write((uint8_t *)&biClrUsed, 4);
+    file.write((uint8_t *)&biClrImportant, 4);
+
+    for (int y = 0; y < display.height(); y++)
+    {
+        for (int x = 0; x < display.width(); x++)
+        {
+            uint16_t color = display.readPixel(x, y); // Read pixel color (RGB565 format)
+            uint8_t r = (color >> 11) & 0x1F;
+            uint8_t g = (color >> 5) & 0x3F;
+            uint8_t b = color & 0x1F;
+
+            // Convert RGB565 to RGB888
+            r = (r * 255) / 31;
+            g = (g * 255) / 63;
+            b = (b * 255) / 31;
+
+            file.write(b);
+            file.write(g);
+            file.write(r);
+        }
+    }
+
+    file.close();
+    SD.end();
+    result = "Screenshot saved";
+    return true;
+}
