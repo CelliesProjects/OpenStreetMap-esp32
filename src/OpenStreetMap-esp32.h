@@ -29,6 +29,8 @@ class OpenStreetMap
     int startTileIndexX = 0;
     int startTileIndexY = 0;
 
+    int numberOfColums = 0;
+
 public:
     OpenStreetMap() = default;
     OpenStreetMap(const OpenStreetMap &) = delete;

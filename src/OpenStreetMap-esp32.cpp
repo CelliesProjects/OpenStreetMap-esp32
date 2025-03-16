@@ -57,7 +57,7 @@ void OpenStreetMap::computeRequiredTiles(double longitude, double latitude, int 
     // Compute number of colums required
     const float colsLeft = 1.0 * tilesOffsetX / TILE_SIZE;
     const float colsRight = float(mapWidth - (tilesOffsetX + TILE_SIZE)) / TILE_SIZE;
-    const int numberOfColums = ceil(colsLeft) + 1 + ceil(colsRight);
+    numberOfColums = ceil(colsLeft) + 1 + ceil(colsRight);
 
     startOffsetX = tilesOffsetX - (ceil(colsLeft) * TILE_SIZE);
 
@@ -77,10 +77,23 @@ void OpenStreetMap::computeRequiredTiles(double longitude, double latitude, int 
     log_v("top left tile indices: %i, %i", startTileIndexX, startTileIndexY);
 
     requiredTiles.clear();
+
+    const int worldTileWidth = 1 << zoom;
+
     for (int y = 0; y < numberOfRows; ++y)
     {
         for (int x = 0; x < numberOfColums; ++x)
-            requiredTiles.emplace_back(startTileIndexX + x, startTileIndexY + y);
+        {
+            int tileX = startTileIndexX + x;
+            int tileY = startTileIndexY + y;
+
+            // Apply modulo wrapping for tileX
+            tileX = tileX % worldTileWidth;
+            if (tileX < 0)
+                tileX += worldTileWidth;
+
+            requiredTiles.emplace_back(tileX, tileY);
+        }
     }
 }
 
@@ -187,10 +200,11 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
         return false;
     }
 
+    int tileIndex = 0;
     for (const auto &[tileX, tileY] : requiredTiles)
     {
-        int drawX = startOffsetX + (tileX - startTileIndexX) * TILE_SIZE;
-        int drawY = startOffsetY + (tileY - startTileIndexY) * TILE_SIZE;
+        int drawX = startOffsetX + (tileIndex % numberOfColums) * TILE_SIZE;
+        int drawY = startOffsetY + (tileIndex / numberOfColums) * TILE_SIZE;
 
         auto it = std::find_if(tilesCache.begin(), tilesCache.end(),
                                [&](const CachedTile &tile)
@@ -203,6 +217,8 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
 
         else
             log_w("Tile (%d, %d) not found in cache", tileX, tileY);
+
+        tileIndex++;
     }
 
     const char *attribution = " Map data from OpenStreetMap.org ";
