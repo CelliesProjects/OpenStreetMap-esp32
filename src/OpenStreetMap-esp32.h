@@ -12,12 +12,12 @@
 #include "CachedTile.h"
 #include "MemoryBuffer.h"
 
-constexpr int TILE_SIZE = 256;
+constexpr int OSM_TILESIZE = 256;
 
 class OpenStreetMap
 {
-    int mapWidth = 320;
-    int mapHeight = 240;
+    uint16_t mapWidth = 320;
+    uint16_t mapHeight = 240;
 
     std::vector<CachedTile> tilesCache;
     uint16_t *currentTileBuffer = nullptr;
@@ -40,8 +40,9 @@ public:
 
     ~OpenStreetMap();
 
-    void setResolution(int w, int h);
-    bool resizeTilesCache(int cacheSize);
+    void setResolution(uint16_t w, uint16_t h);
+    bool resizeTilesCache(uint8_t cacheSize);
+    void freeTilesCache();
     bool fetchMap(LGFX_Sprite &sprite, double longitude, double latitude, int zoom);
     bool saveMap(const char *filename, LGFX_Sprite &display, String &result, uint8_t sdPin = SS);
 
@@ -53,7 +54,6 @@ private:
     void computeRequiredTiles(double longitude, double latitude, int zoom, std::vector<std::pair<int, int>> &requiredTiles);
     CachedTile *findUnusedTile(const std::vector<std::pair<int, int>> &requiredTiles, int zoom);
     bool isTileCached(int x, int y, int z);
-    void freeTilesCache();
     bool downloadAndDecodeTile(CachedTile &tile, int x, int y, int zoom, String &result);
 };
 

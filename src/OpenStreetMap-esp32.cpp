@@ -5,7 +5,7 @@ OpenStreetMap::~OpenStreetMap()
     freeTilesCache();
 }
 
-void OpenStreetMap::setResolution(int w, int h)
+void OpenStreetMap::setResolution(uint16_t w, uint16_t h)
 {
     mapWidth = w;
     mapHeight = h;
@@ -47,26 +47,26 @@ void OpenStreetMap::computeRequiredTiles(double longitude, double latitude, int 
     const int targetTileY = static_cast<int>(exactTileY);
 
     // Compute the offset inside the tile for the given coordinates
-    const int targetOffsetX = (exactTileX - targetTileX) * TILE_SIZE;
-    const int targetOffsetY = (exactTileY - targetTileY) * TILE_SIZE;
+    const int targetOffsetX = (exactTileX - targetTileX) * OSM_TILESIZE;
+    const int targetOffsetY = (exactTileY - targetTileY) * OSM_TILESIZE;
 
     // Compute the offset for tiles covering the map area to keep the location centered
     const int tilesOffsetX = mapWidth / 2 - targetOffsetX;
     const int tilesOffsetY = mapHeight / 2 - targetOffsetY;
 
     // Compute number of colums required
-    const float colsLeft = 1.0 * tilesOffsetX / TILE_SIZE;
-    const float colsRight = float(mapWidth - (tilesOffsetX + TILE_SIZE)) / TILE_SIZE;
+    const float colsLeft = 1.0 * tilesOffsetX / OSM_TILESIZE;
+    const float colsRight = float(mapWidth - (tilesOffsetX + OSM_TILESIZE)) / OSM_TILESIZE;
     numberOfColums = ceil(colsLeft) + 1 + ceil(colsRight);
 
-    startOffsetX = tilesOffsetX - (ceil(colsLeft) * TILE_SIZE);
+    startOffsetX = tilesOffsetX - (ceil(colsLeft) * OSM_TILESIZE);
 
     // Compute number of rows required
-    const float rowsTop = 1.0 * tilesOffsetY / TILE_SIZE;
-    const float rowsBottom = float(mapHeight - (tilesOffsetY + TILE_SIZE)) / TILE_SIZE;
+    const float rowsTop = 1.0 * tilesOffsetY / OSM_TILESIZE;
+    const float rowsBottom = float(mapHeight - (tilesOffsetY + OSM_TILESIZE)) / OSM_TILESIZE;
     const int numberOfRows = ceil(rowsTop) + 1 + ceil(rowsBottom);
 
-    startOffsetY = tilesOffsetY - (ceil(rowsTop) * TILE_SIZE);
+    startOffsetY = tilesOffsetY - (ceil(rowsTop) * OSM_TILESIZE);
 
     log_v(" Need %i * %i tiles. First tile offset is %i,%i",
           numberOfColums, numberOfRows, startOffsetX, startOffsetY);
@@ -135,8 +135,14 @@ void OpenStreetMap::freeTilesCache()
     tilesCache.clear();
 }
 
-bool OpenStreetMap::resizeTilesCache(int cacheSize)
+bool OpenStreetMap::resizeTilesCache(uint8_t cacheSize)
 {
+    if (cacheSize == 0)
+    {
+        log_e("Invalid cache size: %d", cacheSize);
+        return false;
+    }
+
     if (tilesCache.size() == cacheSize)
         return true;
 
@@ -157,11 +163,27 @@ bool OpenStreetMap::resizeTilesCache(int cacheSize)
 
 bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double latitude, int zoom)
 {
+    if (zoom < 0 || zoom > 20)
+    {
+        log_e("Invalid zoom level: %d", zoom);
+        return false;
+    }
+
+    if (!mapWidth || !mapHeight)
+    {
+        log_e("Invalid map dimensions: width=%d, height=%d", mapWidth, mapHeight);
+        return false;
+    }
+
     if (!tilesCache.capacity())
     {
         log_w("Cache not initialized, setting up a default cache...");
         resizeTilesCache(10);
     }
+
+    // normalize the input
+    longitude = fmod(longitude + 180.0, 360.0) - 180.0;
+    latitude = std::clamp(latitude, -90.0, 90.0);
 
     std::vector<std::pair<int, int>> requiredTiles;
     computeRequiredTiles(longitude, latitude, zoom, requiredTiles);
@@ -203,8 +225,8 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
     int tileIndex = 0;
     for (const auto &[tileX, tileY] : requiredTiles)
     {
-        int drawX = startOffsetX + (tileIndex % numberOfColums) * TILE_SIZE;
-        int drawY = startOffsetY + (tileIndex / numberOfColums) * TILE_SIZE;
+        int drawX = startOffsetX + (tileIndex % numberOfColums) * OSM_TILESIZE;
+        int drawY = startOffsetY + (tileIndex / numberOfColums) * OSM_TILESIZE;
 
         auto it = std::find_if(tilesCache.begin(), tilesCache.end(),
                                [&](const CachedTile &tile)
@@ -213,7 +235,7 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
                                });
 
         if (it != tilesCache.end())
-            mapSprite.pushImage(drawX, drawY, TILE_SIZE, TILE_SIZE, it->buffer);
+            mapSprite.pushImage(drawX, drawY, OSM_TILESIZE, OSM_TILESIZE, it->buffer);
 
         else
             log_w("Tile (%d, %d) not found in cache", tileX, tileY);
