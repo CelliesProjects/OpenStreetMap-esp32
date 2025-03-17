@@ -392,41 +392,40 @@ bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &sprite, String &r
     uint32_t biClrImportant = 0;
 
     // Write BMP header
-    file.write((uint8_t *)&bfType, 2);
-    file.write((uint8_t *)&bfSize, 4);
-    file.write((uint8_t *)&bfReserved, 2);
-    file.write((uint8_t *)&bfReserved, 2);
-    file.write((uint8_t *)&bfOffBits, 4);
+    file.write(reinterpret_cast<const uint8_t*>(&bfType), sizeof(bfType));
+    file.write(reinterpret_cast<const uint8_t*>(&bfSize), sizeof(bfSize));
+    file.write(reinterpret_cast<const uint8_t*>(&bfReserved), sizeof(bfReserved));
+    file.write(reinterpret_cast<const uint8_t*>(&bfOffBits), sizeof(bfOffBits));
 
-    file.write((uint8_t *)&biSize, 4);
-    file.write((uint8_t *)&biWidth, 4);
-    file.write((uint8_t *)&biHeight, 4);
-    file.write((uint8_t *)&biPlanes, 2);
-    file.write((uint8_t *)&biBitCount, 2);
-    file.write((uint8_t *)&biCompression, 4);
-    file.write((uint8_t *)&biSizeImage, 4);
-    file.write((uint8_t *)&biXPelsPerMeter, 4);
-    file.write((uint8_t *)&biYPelsPerMeter, 4);
-    file.write((uint8_t *)&biClrUsed, 4);
-    file.write((uint8_t *)&biClrImportant, 4);
+    file.write(reinterpret_cast<const uint8_t*>(&biSize), sizeof(biSize));
+    file.write(reinterpret_cast<const uint8_t*>(&biWidth), sizeof(biWidth));
+    file.write(reinterpret_cast<const uint8_t*>(&biHeight), sizeof(biHeight));
+    file.write(reinterpret_cast<const uint8_t*>(&biPlanes), sizeof(biPlanes));
+    file.write(reinterpret_cast<const uint8_t*>(&biBitCount), sizeof(biBitCount));
+    file.write(reinterpret_cast<const uint8_t*>(&biCompression), sizeof(biCompression));
+    file.write(reinterpret_cast<const uint8_t*>(&biSizeImage), sizeof(biSizeImage));
+    file.write(reinterpret_cast<const uint8_t*>(&biXPelsPerMeter), sizeof(biXPelsPerMeter));
+    file.write(reinterpret_cast<const uint8_t*>(&biYPelsPerMeter), sizeof(biYPelsPerMeter));
+    file.write(reinterpret_cast<const uint8_t*>(&biClrUsed), sizeof(biClrUsed));
+    file.write(reinterpret_cast<const uint8_t*>(&biClrImportant), sizeof(biClrImportant));
 
     for (int y = 0; y < sprite.height(); y++)
     {
         for (int x = 0; x < sprite.width(); x++)
         {
-            uint16_t color = sprite.readPixel(x, y); // Read pixel color (RGB565 format)
-            uint8_t r = (color >> 11) & 0x1F;
-            uint8_t g = (color >> 5) & 0x3F;
-            uint8_t b = color & 0x1F;
+            uint16_t rgb565Color = sprite.readPixel(x, y); // Read pixel color (RGB565 format)
+            uint8_t red5 = (rgb565Color >> 11) & 0x1F;
+            uint8_t green6 = (rgb565Color >> 5) & 0x3F;
+            uint8_t blue5 = rgb565Color & 0x1F;
 
             // Convert RGB565 to RGB888
-            r = (r * 255) / 31;
-            g = (g * 255) / 63;
-            b = (b * 255) / 31;
+            uint8_t red8 = (red5 * 255) / 31;
+            uint8_t green8 = (green6 * 255) / 63;
+            uint8_t blue8 = (blue5 * 255) / 31;
 
-            file.write(b);
-            file.write(g);
-            file.write(r);
+            file.write(blue8);
+            file.write(green8);
+            file.write(red8);
         }
     }
 
