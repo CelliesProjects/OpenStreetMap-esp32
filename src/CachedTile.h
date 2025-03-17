@@ -6,7 +6,8 @@
 struct CachedTile
 {
     uint16_t *buffer;
-    int z, x, y;
+    uint32_t x, y;
+    uint8_t z;
     bool valid;
 
     CachedTile() : buffer(nullptr), valid(false) {}

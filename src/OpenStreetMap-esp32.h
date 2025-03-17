@@ -12,7 +12,7 @@
 #include "CachedTile.h"
 #include "MemoryBuffer.h"
 
-constexpr int OSM_TILESIZE = 256;
+constexpr int16_t OSM_TILESIZE = 256;
 
 class OpenStreetMap
 {
@@ -23,13 +23,13 @@ class OpenStreetMap
     uint16_t *currentTileBuffer = nullptr;
     PNG png;
 
-    int startOffsetX = 0;
-    int startOffsetY = 0;
+    int16_t startOffsetX = 0;
+    int16_t startOffsetY = 0;
 
-    int startTileIndexX = 0;
-    int startTileIndexY = 0;
+    int32_t startTileIndexX = 0;
+    int32_t startTileIndexY = 0;
 
-    int numberOfColums = 0;
+    uint16_t numberOfColums = 0;
 
 public:
     OpenStreetMap() = default;
@@ -43,18 +43,18 @@ public:
     void setResolution(uint16_t w, uint16_t h);
     bool resizeTilesCache(uint8_t cacheSize);
     void freeTilesCache();
-    bool fetchMap(LGFX_Sprite &sprite, double longitude, double latitude, int zoom);
+    bool fetchMap(LGFX_Sprite &sprite, double longitude, double latitude, uint8_t zoom);
     bool saveMap(const char *filename, LGFX_Sprite &display, String &result, uint8_t sdPin = SS);
 
 private:
     static OpenStreetMap *currentInstance;
     static void PNGDraw(PNGDRAW *pDraw);
-    double lon2tile(double lon, int zoom);
-    double lat2tile(double lat, int zoom);
-    void computeRequiredTiles(double longitude, double latitude, int zoom, std::vector<std::pair<int, int>> &requiredTiles);
-    CachedTile *findUnusedTile(const std::vector<std::pair<int, int>> &requiredTiles, int zoom);
-    bool isTileCached(int x, int y, int z);
-    bool downloadAndDecodeTile(CachedTile &tile, int x, int y, int zoom, String &result);
+    double lon2tile(double lon, uint8_t zoom);
+    double lat2tile(double lat, uint8_t zoom);
+    void computeRequiredTiles(double longitude, double latitude, uint8_t zoom, std::vector<std::pair<int32_t, int32_t>> &requiredTiles);
+    CachedTile *findUnusedTile(const std::vector<std::pair<int32_t, int32_t>> &requiredTiles, uint8_t zoom);
+    bool isTileCached(uint32_t x, uint32_t y, uint8_t z);
+    bool downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result);
 };
 
 #endif

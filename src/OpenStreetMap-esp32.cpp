@@ -11,12 +11,12 @@ void OpenStreetMap::setResolution(uint16_t w, uint16_t h)
     mapHeight = h;
 }
 
-double OpenStreetMap::lon2tile(double lon, int zoom)
+double OpenStreetMap::lon2tile(double lon, uint8_t zoom)
 {
     return (lon + 180.0) / 360.0 * (1 << zoom);
 }
 
-double OpenStreetMap::lat2tile(double lat, int zoom)
+double OpenStreetMap::lat2tile(double lat, uint8_t zoom)
 {
     double latRad = lat * M_PI / 180.0;
     return (1.0 - log(tan(latRad) + 1.0 / cos(latRad)) / M_PI) / 2.0 * (1 << zoom);
@@ -36,23 +36,23 @@ void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
     currentInstance->png.getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, 0x0000);
 }
 
-void OpenStreetMap::computeRequiredTiles(double longitude, double latitude, int zoom, std::vector<std::pair<int, int>> &requiredTiles)
+void OpenStreetMap::computeRequiredTiles(double longitude, double latitude, uint8_t zoom, std::vector<std::pair<int32_t, int32_t>> &requiredTiles)
 {
     // Compute exact tile coordinates
     const double exactTileX = lon2tile(longitude, zoom);
     const double exactTileY = lat2tile(latitude, zoom);
 
     // Determine the integer tile indices
-    const int targetTileX = static_cast<int>(exactTileX);
-    const int targetTileY = static_cast<int>(exactTileY);
+    const int32_t targetTileX = static_cast<int32_t>(exactTileX);
+    const int32_t targetTileY = static_cast<int32_t>(exactTileY);
 
     // Compute the offset inside the tile for the given coordinates
-    const int targetOffsetX = (exactTileX - targetTileX) * OSM_TILESIZE;
-    const int targetOffsetY = (exactTileY - targetTileY) * OSM_TILESIZE;
+    const int16_t targetOffsetX = (exactTileX - targetTileX) * OSM_TILESIZE;
+    const int16_t targetOffsetY = (exactTileY - targetTileY) * OSM_TILESIZE;
 
     // Compute the offset for tiles covering the map area to keep the location centered
-    const int tilesOffsetX = mapWidth / 2 - targetOffsetX;
-    const int tilesOffsetY = mapHeight / 2 - targetOffsetY;
+    const int16_t tilesOffsetX = mapWidth / 2 - targetOffsetX;
+    const int16_t tilesOffsetY = mapHeight / 2 - targetOffsetY;
 
     // Compute number of colums required
     const float colsLeft = 1.0 * tilesOffsetX / OSM_TILESIZE;
@@ -64,28 +64,28 @@ void OpenStreetMap::computeRequiredTiles(double longitude, double latitude, int 
     // Compute number of rows required
     const float rowsTop = 1.0 * tilesOffsetY / OSM_TILESIZE;
     const float rowsBottom = float(mapHeight - (tilesOffsetY + OSM_TILESIZE)) / OSM_TILESIZE;
-    const int numberOfRows = ceil(rowsTop) + 1 + ceil(rowsBottom);
+    const uint32_t numberOfRows = ceil(rowsTop) + 1 + ceil(rowsBottom);
 
     startOffsetY = tilesOffsetY - (ceil(rowsTop) * OSM_TILESIZE);
 
-    log_v(" Need %i * %i tiles. First tile offset is %i,%i",
+    log_v(" Need %i * %i tiles. First tile offset is %d,%d",
           numberOfColums, numberOfRows, startOffsetX, startOffsetY);
 
     startTileIndexX = targetTileX - ceil(colsLeft);
     startTileIndexY = targetTileY - ceil(rowsTop);
 
-    log_v("top left tile indices: %i, %i", startTileIndexX, startTileIndexY);
+    log_v("top left tile indices: %d, %d", startTileIndexX, startTileIndexY);
 
     requiredTiles.clear();
 
-    const int worldTileWidth = 1 << zoom;
+    const int32_t worldTileWidth = 1 << zoom;
 
-    for (int y = 0; y < numberOfRows; ++y)
+    for (int32_t y = 0; y < numberOfRows; ++y)
     {
-        for (int x = 0; x < numberOfColums; ++x)
+        for (int32_t x = 0; x < numberOfColums; ++x)
         {
-            int tileX = startTileIndexX + x;
-            int tileY = startTileIndexY + y;
+            int32_t tileX = startTileIndexX + x;
+            int32_t tileY = startTileIndexY + y;
 
             // Apply modulo wrapping for tileX
             tileX = tileX % worldTileWidth;
@@ -97,7 +97,7 @@ void OpenStreetMap::computeRequiredTiles(double longitude, double latitude, int 
     }
 }
 
-bool OpenStreetMap::isTileCached(int x, int y, int z)
+bool OpenStreetMap::isTileCached(uint32_t x, uint32_t y, uint8_t z)
 {
     for (const auto &tile : tilesCache)
         if (tile.valid && tile.x == x && tile.y == y && tile.z == z)
@@ -106,7 +106,7 @@ bool OpenStreetMap::isTileCached(int x, int y, int z)
     return false;
 }
 
-CachedTile *OpenStreetMap::findUnusedTile(const std::vector<std::pair<int, int>> &requiredTiles, int zoom)
+CachedTile *OpenStreetMap::findUnusedTile(const std::vector<std::pair<int32_t, int32_t>> &requiredTiles, uint8_t zoom)
 {
     for (auto &tile : tilesCache)
     {
@@ -161,9 +161,9 @@ bool OpenStreetMap::resizeTilesCache(uint8_t cacheSize)
     return true;
 }
 
-bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double latitude, int zoom)
+bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double latitude, uint8_t zoom)
 {
-    if (zoom < 0 || zoom > 20)
+    if (!zoom || zoom > 18)
     {
         log_e("Invalid zoom level: %d", zoom);
         return false;
@@ -181,11 +181,11 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
         resizeTilesCache(10);
     }
 
-    // normalize the input
+    // normalize the coordinates
     longitude = fmod(longitude + 180.0, 360.0) - 180.0;
     latitude = std::clamp(latitude, -90.0, 90.0);
 
-    std::vector<std::pair<int, int>> requiredTiles;
+    std::vector<std::pair<int32_t, int32_t>> requiredTiles;
     computeRequiredTiles(longitude, latitude, zoom, requiredTiles);
 
     if (tilesCache.capacity() < requiredTiles.size())
@@ -250,9 +250,9 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
     return true;
 }
 
-bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, int x, int y, int zoom, String &result)
+bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result)
 {
-    String url = "https://tile.openstreetmap.org/" + String(zoom) + "/" + String(x) + "/" + String(y) + ".png";
+    const String url = "https://tile.openstreetmap.org/" + String(zoom) + "/" + String(x) + "/" + String(y) + ".png";
 
     HTTPClient http;
     http.setUserAgent("OpenStreetMap-esp32/1.0 (+https://github.com/CelliesProjects/OpenStreetMap-esp32)");
@@ -262,7 +262,7 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, int x, int y, int zo
         return false;
     }
 
-    int httpCode = http.GET();
+    const int httpCode = http.GET();
     if (httpCode != HTTP_CODE_OK)
     {
         http.end();
