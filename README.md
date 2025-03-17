@@ -1,4 +1,5 @@
 # OpenStreetMap-esp32
+
 ## What is this
 
 This library provides a [OpenStreetMap](https://www.openstreetmap.org/) (OSM) map fetching and tile caching system for ESP32-based devices.  
@@ -28,6 +29,7 @@ OpenStreetMap® is open data, licensed under the [Open Data Commons Open Databas
 Use of any OSMF provided service is governed by the [OSMF Terms of Use](https://osmfoundation.org/wiki/Terms_of_Use).
 
 ## Example code
+
 ### Example returning the default 320x240 map
 
 ```c++
@@ -155,7 +157,9 @@ void loop()
 ```
 ![map](https://github.com/user-attachments/assets/9a92bbff-e96d-444d-8b34-29801744fa80)  
 Screenshot of a 480x800 map from a esp32-8048s050
-### PlatformIO setup
+
+### PlatformIO setup\
+
 ```bash
 lib_deps =
     https://github.com/CelliesProjects/OpenStreetMap-esp32
