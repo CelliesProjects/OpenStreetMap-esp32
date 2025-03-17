@@ -36,7 +36,7 @@ void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
     currentInstance->png.getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, 0x0000);
 }
 
-void OpenStreetMap::computeRequiredTiles(double longitude, double latitude, uint8_t zoom, std::vector<std::pair<int32_t, int32_t>> &requiredTiles)
+void OpenStreetMap::computeRequiredTiles(double longitude, double latitude, uint8_t zoom, std::vector<std::pair<uint32_t, uint32_t>> &requiredTiles)
 {
     // Compute exact tile coordinates
     const double exactTileX = lon2tile(longitude, zoom);
@@ -106,7 +106,7 @@ bool OpenStreetMap::isTileCached(uint32_t x, uint32_t y, uint8_t z)
     return false;
 }
 
-CachedTile *OpenStreetMap::findUnusedTile(const std::vector<std::pair<int32_t, int32_t>> &requiredTiles, uint8_t zoom)
+CachedTile *OpenStreetMap::findUnusedTile(const std::vector<std::pair<uint32_t, uint32_t>> &requiredTiles, uint8_t zoom)
 {
     for (auto &tile : tilesCache)
     {
@@ -185,7 +185,7 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
     longitude = fmod(longitude + 180.0, 360.0) - 180.0;
     latitude = std::clamp(latitude, -90.0, 90.0);
 
-    std::vector<std::pair<int32_t, int32_t>> requiredTiles;
+    std::vector<std::pair<uint32_t, uint32_t>> requiredTiles;
     computeRequiredTiles(longitude, latitude, zoom, requiredTiles);
 
     if (tilesCache.capacity() < requiredTiles.size())

@@ -51,8 +51,8 @@ private:
     static void PNGDraw(PNGDRAW *pDraw);
     double lon2tile(double lon, uint8_t zoom);
     double lat2tile(double lat, uint8_t zoom);
-    void computeRequiredTiles(double longitude, double latitude, uint8_t zoom, std::vector<std::pair<int32_t, int32_t>> &requiredTiles);
-    CachedTile *findUnusedTile(const std::vector<std::pair<int32_t, int32_t>> &requiredTiles, uint8_t zoom);
+    void computeRequiredTiles(double longitude, double latitude, uint8_t zoom, std::vector<std::pair<uint32_t, uint32_t>> &requiredTiles);
+    CachedTile *findUnusedTile(const std::vector<std::pair<uint32_t, uint32_t>> &requiredTiles, uint8_t zoom);
     bool isTileCached(uint32_t x, uint32_t y, uint8_t z);
     bool downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result);
 };
