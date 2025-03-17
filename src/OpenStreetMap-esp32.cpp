@@ -36,7 +36,7 @@ void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
     currentInstance->png.getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, 0x0000);
 }
 
-void OpenStreetMap::computeRequiredTiles(double longitude, double latitude, uint8_t zoom, std::vector<std::pair<uint32_t, uint32_t>> &requiredTiles)
+void OpenStreetMap::computeRequiredTiles(double longitude, double latitude, uint8_t zoom, tileVector &requiredTiles)
 {
     // Compute exact tile coordinates
     const double exactTileX = lon2tile(longitude, zoom);
@@ -106,7 +106,7 @@ bool OpenStreetMap::isTileCached(uint32_t x, uint32_t y, uint8_t z)
     return false;
 }
 
-CachedTile *OpenStreetMap::findUnusedTile(const std::vector<std::pair<uint32_t, uint32_t>> &requiredTiles, uint8_t zoom)
+CachedTile *OpenStreetMap::findUnusedTile(const tileVector &requiredTiles, uint8_t zoom)
 {
     for (auto &tile : tilesCache)
     {
@@ -161,6 +161,23 @@ bool OpenStreetMap::resizeTilesCache(uint8_t cacheSize)
     return true;
 }
 
+void OpenStreetMap::updateCache(tileVector &requiredTiles, uint8_t zoom)
+{
+    for (const auto &[x, y] : requiredTiles)
+    {
+        if (!isTileCached(x, y, zoom))
+        {
+            CachedTile *tileToReplace = findUnusedTile(requiredTiles, zoom);
+            String result;
+            const bool success = downloadAndDecodeTile(*tileToReplace, x, y, zoom, result);
+            if (!success)
+                log_e("%s", result.c_str());
+
+            log_i("%s", result.c_str());
+        }
+    }    
+}
+
 bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double latitude, uint8_t zoom)
 {
     if (!zoom || zoom > 18)
@@ -185,7 +202,7 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
     longitude = fmod(longitude + 180.0, 360.0) - 180.0;
     latitude = std::clamp(latitude, -90.0, 90.0);
 
-    std::vector<std::pair<uint32_t, uint32_t>> requiredTiles;
+    tileVector requiredTiles;
     computeRequiredTiles(longitude, latitude, zoom, requiredTiles);
 
     if (tilesCache.capacity() < requiredTiles.size())
