@@ -11,7 +11,7 @@ struct CachedTile
     bool valid;
     uint16_t *buffer;
 
-    CachedTile() : buffer(nullptr), valid(false) {}
+    CachedTile() : valid(false), buffer(nullptr) {}
 
     bool allocate()
     {
