@@ -5,10 +5,11 @@
 
 struct CachedTile
 {
-    uint16_t *buffer;
-    uint32_t x, y;
+    uint32_t x;
+    uint32_t y;
     uint8_t z;
     bool valid;
+    uint16_t *buffer;
 
     CachedTile() : buffer(nullptr), valid(false) {}
 
