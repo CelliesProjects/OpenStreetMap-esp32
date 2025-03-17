@@ -5,7 +5,7 @@ MemoryBuffer::MemoryBuffer(size_t size) : size_(size), buffer_(nullptr)
 {
     if (size_ > 0)
     {
-        buffer_ = (uint8_t *)malloc(size_);
+        buffer_ = static_cast<uint8_t*>(malloc(size_));
         if (buffer_ == nullptr)
         {
             log_e("Memory allocation failed!");
