@@ -16,7 +16,7 @@ The downloaded tile cache gets large very quickly -128kB per tile- so a ESP32 wi
 ![map](https://github.com/user-attachments/assets/bc0534c1-b2e6-4f6e-804f-95b7db00c850)  
 An example 320px by 240px map
 
-## License differences between this library and the map data
+### License differences between this library and the map data
 
 #### This library has a MIT license
 
@@ -28,9 +28,9 @@ OpenStreetMap® is open data, licensed under the [Open Data Commons Open Databas
 
 Use of any OSMF provided service is governed by the [OSMF Terms of Use](https://osmfoundation.org/wiki/Terms_of_Use).
 
-## Example code
+### Example code
 
-### Example returning the default 320x240 map
+#### Example returning the default 320x240 map
 
 ```c++
 #include <Arduino.h>
