@@ -1,28 +1,34 @@
 # OpenStreetMap-esp32
-
 ## What is this
 
-This library provides a [OpenStreetMap](https://www.openstreetmap.org/) (OSM) map fetching and caching system for ESP32-based devices.<br>
+This library provides a [OpenStreetMap](https://www.openstreetmap.org/) (OSM) map fetching and tile caching system for ESP32-based devices.  
 Under the hood it uses [LovyanGFX](https://github.com/lovyan03/LovyanGFX) and [PNGdec](https://github.com/bitbank2/PNGdec) to do the heavy lifting.
 
-It fetches, decodes and caches OSM tiles, composes a map from these tiles and returns the map as a LGFX sprite.<br>The sprite can be pushed to the screen or used for further composing.<br>Downloaded tiles are cached in psram.
+A map is composed from downloaded OSM tiles and returned as a LGFX sprite.  
+The sprite can be pushed to the screen or used for further composing.  
+Downloaded tiles are cached in psram for reuse.
 
-The library should work on any ESP32 type with a bit of psram and a LovyanGFX compatible display.
+The library should work on any ESP32 type with psram and a LovyanGFX compatible display.
 
-## Copyright and license of the map data
+The downloaded tile cache gets large very quickly -128kB per tile- so a ESP32 with psram is required.
 
-The OpenstreetMap-esp32 library -this library- is licensed under the [MIT license](/license).<br> The downloaded tile data has a different license than this library.
+![map](https://github.com/user-attachments/assets/bc0534c1-b2e6-4f6e-804f-95b7db00c850)  
+An example 320px by 240px map
 
-OpenStreetMap® is open data, licensed under the [Open Data Commons Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/) by the OpenStreetMap Foundation (OSMF).<br>
+## License differences between this library and the map data
+
+#### This library has a MIT license
+
+The `OpenstreetMap-esp32` library -this library- is licensed under the [MIT license](/LICENSE).  
+
+#### The downloaded tile data has a Open Data Commons Open Database License (ODbL)
+
+OpenStreetMap® is open data, licensed under the [Open Data Commons Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/) by the OpenStreetMap Foundation (OSMF).
+
 Use of any OSMF provided service is governed by the [OSMF Terms of Use](https://osmfoundation.org/wiki/Terms_of_Use).
 
-## Screenshots and example code
-
-![map](https://github.com/user-attachments/assets/bc0534c1-b2e6-4f6e-804f-95b7db00c850)
-
-Screenshot of a 320x240 map from a esp32-s3-box-lite
-
-### Example code returning the default 320x240 map
+## Example code
+### Example returning the default 320x240 map
 
 ```c++
 #include <Arduino.h>
@@ -82,11 +88,7 @@ void loop()
 }
 ```
 
-![map](https://github.com/user-attachments/assets/9a92bbff-e96d-444d-8b34-29801744fa80)
-
-Screenshot of a 480x800 map from a esp32-8048s050
-
-### Example code setting map resolution and cache size on RGB panel devices
+### Example setting map resolution and cache size on RGB panel devices
 
 ```c++
 #include <Arduino.h>
@@ -151,7 +153,8 @@ void loop()
     delay(1000);
 }
 ```
-
+![map](https://github.com/user-attachments/assets/9a92bbff-e96d-444d-8b34-29801744fa80)  
+Screenshot of a 480x800 map from a esp32-8048s050
 ### PlatformIO setup
 ```bash
 lib_deps =
