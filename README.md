@@ -1,5 +1,7 @@
 # OpenStreetMap-esp32
 
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/0961fc2320cd495a9411eb391d5791ca)](https://app.codacy.com/gh/CelliesProjects/OpenStreetMap-esp32/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
+
 ## What is this
 
 This library provides a [OpenStreetMap](https://www.openstreetmap.org/) (OSM) map fetching and tile caching system for ESP32-based devices.  
