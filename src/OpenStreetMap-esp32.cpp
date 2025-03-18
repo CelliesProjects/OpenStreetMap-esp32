@@ -87,10 +87,9 @@ void OpenStreetMap::computeRequiredTiles(double longitude, double latitude, uint
             int32_t tileX = startTileIndexX + x;
             int32_t tileY = startTileIndexY + y;
 
-            // Apply modulo wrapping for tileX
-            tileX = tileX % worldTileWidth;
-            if (tileX < 0)
-                tileX += worldTileWidth;
+            // Apply modulo wrapping for tileX 
+            // see https://godbolt.org/z/96e1x7j7r
+            tileX = (tileX % worldTileWidth + worldTileWidth) % worldTileWidth;
 
             requiredTiles.emplace_back(tileX, tileY);
         }
