@@ -183,7 +183,7 @@ bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, tileList &requiredTiles, 
         mapSprite.setPsram(true);
         mapSprite.setColorDepth(lgfx::rgb565_2Byte);
         mapSprite.createSprite(mapWidth, mapHeight);
-        if (mapSprite.getBuffer() == nullptr)
+        if (!mapSprite.getBuffer())
         {
             log_e("could not allocate");
             return false;
@@ -311,7 +311,7 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
         return false;
     }
 
-    constexpr unsigned long TIMEOUT_MS = 500;
+    constexpr unsigned long TIMEOUT_MS = 900;
     size_t readSize = 0;
     unsigned long lastReadTime = millis();
 
