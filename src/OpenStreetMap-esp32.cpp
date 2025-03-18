@@ -266,6 +266,13 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
 
 bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result)
 {
+    const uint32_t worldTileWidth = 1 << zoom;
+    if (x >= worldTileWidth || y >= worldTileWidth) {
+        log_w("Out of range tile coordinates: (%u, %u, %u)", x, y, zoom);
+        result = "Out of range tile coordinates";
+        return false;
+    }
+
     const String url = "https://tile.openstreetmap.org/" + String(zoom) + "/" + String(x) + "/" + String(y) + ".png";
 
     HTTPClient http;
