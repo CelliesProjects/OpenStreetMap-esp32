@@ -199,7 +199,7 @@ bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, tileList &requiredTiles, 
         auto it = std::find_if(tilesCache.begin(), tilesCache.end(),
                                [&](const CachedTile &tile)
                                {
-                                   return tile.valid && tile.x == tileX && tile.y == tileY && tile.z == zoom;
+                                   return tile.x == tileX && tile.y == tileY && tile.z == zoom && tile.valid;
                                });
 
         if (it != tilesCache.end())
