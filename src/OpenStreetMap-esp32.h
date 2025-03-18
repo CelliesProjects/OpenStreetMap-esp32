@@ -19,6 +19,33 @@ using tileList = std::vector<std::pair<uint32_t, uint32_t>>;
 
 class OpenStreetMap
 {
+public:
+    OpenStreetMap() = default;
+    OpenStreetMap(const OpenStreetMap &) = delete;
+    OpenStreetMap &operator=(const OpenStreetMap &) = delete;
+    OpenStreetMap(OpenStreetMap &&other) = delete;
+    OpenStreetMap &operator=(OpenStreetMap &&other) = delete;
+
+    ~OpenStreetMap();
+
+    void setResolution(uint16_t w, uint16_t h);
+    bool resizeTilesCache(uint8_t cacheSize);
+    void freeTilesCache();
+    bool fetchMap(LGFX_Sprite &sprite, double longitude, double latitude, uint8_t zoom);
+    bool saveMap(const char *filename, LGFX_Sprite &display, String &result, uint8_t sdPin = SS);
+
+private:
+    static OpenStreetMap *currentInstance;
+    static void PNGDraw(PNGDRAW *pDraw);
+    double lon2tile(double lon, uint8_t zoom);
+    double lat2tile(double lat, uint8_t zoom);
+    void computeRequiredTiles(double longitude, double latitude, uint8_t zoom, tileList &requiredTiles);
+    void updateCache(tileList &requiredTiles, uint8_t zoom);
+    bool isTileCached(uint32_t x, uint32_t y, uint8_t z);
+    CachedTile *findUnusedTile(const tileList &requiredTiles, uint8_t zoom);
+    bool downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result);
+    bool composeMap(LGFX_Sprite &mapSprite, tileList &requiredTiles, uint8_t zoom);
+
     uint16_t mapWidth = 320;
     uint16_t mapHeight = 240;
 
@@ -32,34 +59,7 @@ class OpenStreetMap
     int32_t startTileIndexX = 0;
     int32_t startTileIndexY = 0;
 
-    uint16_t numberOfColums = 0;
-
-public:
-    OpenStreetMap() = default;
-    OpenStreetMap(const OpenStreetMap &) = delete;
-    OpenStreetMap &operator=(const OpenStreetMap &) = delete;
-    OpenStreetMap(OpenStreetMap &&other) = delete;
-    OpenStreetMap &operator=(OpenStreetMap &&other) = delete;
-
-    ~OpenStreetMap();
-
-    void setResolution(uint16_t w, uint16_t h);
-    bool resizeTilesCache(uint8_t cacheSize);
-    void updateCache(tileList &requiredTiles, uint8_t zoom);
-    void freeTilesCache();
-    bool fetchMap(LGFX_Sprite &sprite, double longitude, double latitude, uint8_t zoom);
-    bool saveMap(const char *filename, LGFX_Sprite &display, String &result, uint8_t sdPin = SS);
-
-private:
-    static OpenStreetMap *currentInstance;
-    static void PNGDraw(PNGDRAW *pDraw);
-    double lon2tile(double lon, uint8_t zoom);
-    double lat2tile(double lat, uint8_t zoom);
-    void computeRequiredTiles(double longitude, double latitude, uint8_t zoom, tileList &requiredTiles);
-    CachedTile *findUnusedTile(const tileList &requiredTiles, uint8_t zoom);
-    bool isTileCached(uint32_t x, uint32_t y, uint8_t z);
-    bool downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result);
-    bool composeMap(LGFX_Sprite &mapSprite, tileList &requiredTiles, uint8_t zoom);
+    uint16_t numberOfColums = 0;    
 };
 
 #endif
