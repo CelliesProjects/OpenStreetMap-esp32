@@ -87,7 +87,7 @@ void OpenStreetMap::computeRequiredTiles(double longitude, double latitude, uint
             int32_t tileX = startTileIndexX + x;
             int32_t tileY = startTileIndexY + y;
 
-            // Apply modulo wrapping for tileX 
+            // Apply modulo wrapping for tileX
             // see https://godbolt.org/z/96e1x7j7r
             tileX = (tileX % worldTileWidth + worldTileWidth) % worldTileWidth;
 
@@ -134,19 +134,19 @@ void OpenStreetMap::freeTilesCache()
     tilesCache.clear();
 }
 
-bool OpenStreetMap::resizeTilesCache(uint8_t cacheSize)
+bool OpenStreetMap::resizeTilesCache(uint8_t numberOfTiles)
 {
-    if (cacheSize == 0)
+    if (tilesCache.size() == numberOfTiles)
+        return true;
+
+    if (!numberOfTiles)
     {
-        log_e("Invalid cache size: %d", cacheSize);
+        log_e("Invalid cache size: %d", numberOfTiles);
         return false;
     }
 
-    if (tilesCache.size() == cacheSize)
-        return true;
-
     freeTilesCache();
-    tilesCache.resize(cacheSize);
+    tilesCache.resize(numberOfTiles);
 
     for (auto &tile : tilesCache)
     {
@@ -170,6 +170,8 @@ void OpenStreetMap::updateCache(tileList &requiredTiles, uint8_t zoom)
             String result;
             if (!downloadAndDecodeTile(*tileToReplace, x, y, zoom, result))
                 log_e("%s", result.c_str());
+            else
+                log_i("%s", result.c_str());
         }
     }
 }
@@ -204,7 +206,7 @@ bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, tileList &requiredTiles, 
         if (it != tilesCache.end())
             mapSprite.pushImage(drawX, drawY, OSM_TILESIZE, OSM_TILESIZE, it->buffer);
         else
-            log_w("Tile (%d, %d) not found in cache", tileX, tileY);
+            log_w("Tile (%d, %d, %d) not found in cache", tileX, tileY, zoom);
 
         tileIndex++;
     }
@@ -247,6 +249,15 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
     tileList requiredTiles;
     computeRequiredTiles(longitude, latitude, zoom, requiredTiles);
 
+#define SHOW_REQUIRED_TILES false
+#if defined(SHOW_REQUIRED_TILES) && (SHOW_REQUIRED_TILES == true)
+    log_i("Required Tiles:");
+    for (size_t i = 0; i < requiredTiles.size(); ++i)
+    {
+        log_i("    Tile [%zu]: X=%d, Y=%d", i, requiredTiles[i].first, requiredTiles[i].second);
+    }
+#endif
+
     if (tilesCache.capacity() < requiredTiles.size())
     {
         log_e("Caching error: Need %i cache slots, but only %i are provided", requiredTiles.size(), tilesCache.capacity());
@@ -267,10 +278,28 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
 bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result)
 {
     const uint32_t worldTileWidth = 1 << zoom;
-    if (x >= worldTileWidth || y >= worldTileWidth) {
+    if (x >= worldTileWidth || y >= worldTileWidth)
+    {
         log_w("Out of range tile coordinates: (%u, %u, %u)", x, y, zoom);
         result = "Out of range tile coordinates";
         return false;
+    }
+
+    using TileKey = std::tuple<uint32_t, uint32_t, uint8_t>;
+    static std::vector<TileKey> nonRetryableTiles;
+    static const size_t maxCapacity = 100;
+
+    TileKey tileKey = std::make_tuple(x, y, zoom);
+
+    // Check if tile is in the vector
+    for (const auto &cachedTile : nonRetryableTiles)
+    {
+        if (cachedTile == tileKey)
+        {
+            log_i("Tile (%u, %u, %u) is marked as non-retryable", x, y, zoom);
+            result = "Tile marked as non-retryable";
+            return false;
+        }
     }
 
     const String url = "https://tile.openstreetmap.org/" + String(zoom) + "/" + String(x) + "/" + String(y) + ".png";
@@ -287,6 +316,18 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
     if (httpCode != HTTP_CODE_OK)
     {
         http.end();
+
+        if (httpCode == HTTP_CODE_NOT_FOUND)
+        {
+            // Mark tile as non-retryable
+            nonRetryableTiles.push_back(tileKey);
+            if (nonRetryableTiles.size() > maxCapacity)
+                nonRetryableTiles.erase(nonRetryableTiles.begin()); // Remove oldest
+
+            result = "HTTP Error 404 - not found tile " + String(x) + "," + String(y) + "," + String(zoom);
+            return false;
+        }
+
         result = "HTTP Error: " + String(httpCode);
         return false;
     }
@@ -317,7 +358,7 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
         return false;
     }
 
-    constexpr unsigned long TIMEOUT_MS = 900;
+    constexpr unsigned long TIMEOUT_MS = 1900;
     size_t readSize = 0;
     unsigned long lastReadTime = millis();
 
