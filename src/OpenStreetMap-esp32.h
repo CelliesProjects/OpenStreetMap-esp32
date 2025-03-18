@@ -13,6 +13,7 @@
 #include "MemoryBuffer.h"
 
 constexpr int16_t OSM_TILESIZE = 256;
+constexpr uint8_t OSM_DEFAULT_CACHE_ITEMS = 10;
 
 using tileList = std::vector<std::pair<uint32_t, uint32_t>>;
 
@@ -58,6 +59,7 @@ private:
     CachedTile *findUnusedTile(const tileList &requiredTiles, uint8_t zoom);
     bool isTileCached(uint32_t x, uint32_t y, uint8_t z);
     bool downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result);
+    bool composeMap(LGFX_Sprite &mapSprite, tileList &requiredTiles, uint8_t zoom);
 };
 
 #endif

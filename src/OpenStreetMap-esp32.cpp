@@ -169,13 +169,52 @@ void OpenStreetMap::updateCache(tileList &requiredTiles, uint8_t zoom)
         {
             CachedTile *tileToReplace = findUnusedTile(requiredTiles, zoom);
             String result;
-            const bool success = downloadAndDecodeTile(*tileToReplace, x, y, zoom, result);
-            if (!success)
+            if (!downloadAndDecodeTile(*tileToReplace, x, y, zoom, result))
                 log_e("%s", result.c_str());
-
-            log_i("%s", result.c_str());
         }
     }
+}
+
+bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, tileList &requiredTiles, uint8_t zoom)
+{
+    if (mapSprite.width() != mapWidth || mapSprite.height() != mapHeight)
+    {
+        mapSprite.deleteSprite();
+        mapSprite.setPsram(true);
+        mapSprite.setColorDepth(lgfx::rgb565_2Byte);
+        mapSprite.createSprite(mapWidth, mapHeight);
+        if (mapSprite.getBuffer() == nullptr)
+        {
+            log_e("could not allocate");
+            return false;
+        }
+    }
+
+    int tileIndex = 0;
+    for (const auto &[tileX, tileY] : requiredTiles)
+    {
+        int drawX = startOffsetX + (tileIndex % numberOfColums) * OSM_TILESIZE;
+        int drawY = startOffsetY + (tileIndex / numberOfColums) * OSM_TILESIZE;
+
+        auto it = std::find_if(tilesCache.begin(), tilesCache.end(),
+                               [&](const CachedTile &tile)
+                               {
+                                   return tile.valid && tile.x == tileX && tile.y == tileY && tile.z == zoom;
+                               });
+
+        if (it != tilesCache.end())
+            mapSprite.pushImage(drawX, drawY, OSM_TILESIZE, OSM_TILESIZE, it->buffer);
+        else
+            log_w("Tile (%d, %d) not found in cache", tileX, tileY);
+
+        tileIndex++;
+    }
+
+    const char *attribution = " Map data from OpenStreetMap.org ";
+    mapSprite.setTextColor(TFT_WHITE, TFT_BLACK);
+    mapSprite.drawRightString(attribution, mapSprite.width(), mapSprite.height() - 10, &DejaVu9);
+
+    return true;
 }
 
 bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double latitude, uint8_t zoom)
@@ -188,14 +227,18 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
 
     if (!mapWidth || !mapHeight)
     {
-        log_e("Invalid map dimensions: width=%d, height=%d", mapWidth, mapHeight);
+        log_e("Invalid map dimension");
         return false;
     }
 
     if (!tilesCache.capacity())
     {
         log_w("Cache not initialized, setting up a default cache...");
-        resizeTilesCache(10);
+        if (!resizeTilesCache(OSM_DEFAULT_CACHE_ITEMS))
+        {
+            log_e("Could not allocate cache");
+            return false;
+        }
     }
 
     // normalize the coordinates
@@ -213,44 +256,11 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
 
     updateCache(requiredTiles, zoom);
 
-    if (mapSprite.width() != mapWidth || mapSprite.height() != mapHeight)
+    if (!composeMap(mapSprite, requiredTiles, zoom))
     {
-        mapSprite.deleteSprite();
-        mapSprite.setPsram(true);
-        mapSprite.setColorDepth(lgfx::rgb565_2Byte);
-        mapSprite.createSprite(mapWidth, mapHeight);
-    }
-
-    if (mapSprite.getBuffer() == nullptr)
-    {
-        log_e("could not allocate");
+        log_e("Failed to compose map");
         return false;
     }
-
-    int tileIndex = 0;
-    for (const auto &[tileX, tileY] : requiredTiles)
-    {
-        int drawX = startOffsetX + (tileIndex % numberOfColums) * OSM_TILESIZE;
-        int drawY = startOffsetY + (tileIndex / numberOfColums) * OSM_TILESIZE;
-
-        auto it = std::find_if(tilesCache.begin(), tilesCache.end(),
-                               [&](const CachedTile &tile)
-                               {
-                                   return tile.valid && tile.x == tileX && tile.y == tileY && tile.z == zoom;
-                               });
-
-        if (it != tilesCache.end())
-            mapSprite.pushImage(drawX, drawY, OSM_TILESIZE, OSM_TILESIZE, it->buffer);
-
-        else
-            log_w("Tile (%d, %d) not found in cache", tileX, tileY);
-
-        tileIndex++;
-    }
-
-    const char *attribution = " Map data from OpenStreetMap.org ";
-    mapSprite.setTextColor(TFT_WHITE, TFT_BLACK);
-    mapSprite.drawRightString(attribution, mapSprite.width(), mapSprite.height() - 10, &DejaVu9);
 
     return true;
 }
