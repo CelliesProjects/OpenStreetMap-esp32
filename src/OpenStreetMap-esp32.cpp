@@ -36,7 +36,7 @@ void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
     currentInstance->png.getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, 0x0000);
 }
 
-void OpenStreetMap::computeRequiredTiles(double longitude, double latitude, uint8_t zoom, tileVector &requiredTiles)
+void OpenStreetMap::computeRequiredTiles(double longitude, double latitude, uint8_t zoom, tileList &requiredTiles)
 {
     // Compute exact tile coordinates
     const double exactTileX = lon2tile(longitude, zoom);
@@ -100,13 +100,13 @@ void OpenStreetMap::computeRequiredTiles(double longitude, double latitude, uint
 bool OpenStreetMap::isTileCached(uint32_t x, uint32_t y, uint8_t z)
 {
     for (const auto &tile : tilesCache)
-        if (tile.valid && tile.x == x && tile.y == y && tile.z == z)
+        if (tile.x == x && tile.y == y && tile.z == z && tile.valid)
             return true;
 
     return false;
 }
 
-CachedTile *OpenStreetMap::findUnusedTile(const tileVector &requiredTiles, uint8_t zoom)
+CachedTile *OpenStreetMap::findUnusedTile(const tileList &requiredTiles, uint8_t zoom)
 {
     for (auto &tile : tilesCache)
     {
@@ -114,7 +114,7 @@ CachedTile *OpenStreetMap::findUnusedTile(const tileVector &requiredTiles, uint8
         bool needed = false;
         for (const auto &[x, y] : requiredTiles)
         {
-            if (tile.valid && tile.x == x && tile.y == y && tile.z == zoom)
+            if (tile.x == x && tile.y == y && tile.z == zoom && tile.valid)
             {
                 needed = true;
                 break;
@@ -161,7 +161,7 @@ bool OpenStreetMap::resizeTilesCache(uint8_t cacheSize)
     return true;
 }
 
-void OpenStreetMap::updateCache(tileVector &requiredTiles, uint8_t zoom)
+void OpenStreetMap::updateCache(tileList &requiredTiles, uint8_t zoom)
 {
     for (const auto &[x, y] : requiredTiles)
     {
@@ -169,74 +169,25 @@ void OpenStreetMap::updateCache(tileVector &requiredTiles, uint8_t zoom)
         {
             CachedTile *tileToReplace = findUnusedTile(requiredTiles, zoom);
             String result;
-            const bool success = downloadAndDecodeTile(*tileToReplace, x, y, zoom, result);
-            if (!success)
+            if (!downloadAndDecodeTile(*tileToReplace, x, y, zoom, result))
                 log_e("%s", result.c_str());
-
-            log_i("%s", result.c_str());
         }
-    }    
+    }
 }
 
-bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double latitude, uint8_t zoom)
+bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, tileList &requiredTiles, uint8_t zoom)
 {
-    if (!zoom || zoom > 18)
-    {
-        log_e("Invalid zoom level: %d", zoom);
-        return false;
-    }
-
-    if (!mapWidth || !mapHeight)
-    {
-        log_e("Invalid map dimensions: width=%d, height=%d", mapWidth, mapHeight);
-        return false;
-    }
-
-    if (!tilesCache.capacity())
-    {
-        log_w("Cache not initialized, setting up a default cache...");
-        resizeTilesCache(10);
-    }
-
-    // normalize the coordinates
-    longitude = fmod(longitude + 180.0, 360.0) - 180.0;
-    latitude = std::clamp(latitude, -90.0, 90.0);
-
-    tileVector requiredTiles;
-    computeRequiredTiles(longitude, latitude, zoom, requiredTiles);
-
-    if (tilesCache.capacity() < requiredTiles.size())
-    {
-        log_e("Caching error: Need %i cache slots, but only %i are provided", requiredTiles.size(), tilesCache.capacity());
-        return false;
-    }
-
-    for (const auto &[x, y] : requiredTiles)
-    {
-        if (!isTileCached(x, y, zoom))
-        {
-            CachedTile *tileToReplace = findUnusedTile(requiredTiles, zoom);
-            String result;
-            const bool success = downloadAndDecodeTile(*tileToReplace, x, y, zoom, result);
-            if (!success)
-                log_e("%s", result.c_str());
-
-            log_i("%s", result.c_str());
-        }
-    }
-
     if (mapSprite.width() != mapWidth || mapSprite.height() != mapHeight)
     {
         mapSprite.deleteSprite();
         mapSprite.setPsram(true);
         mapSprite.setColorDepth(lgfx::rgb565_2Byte);
         mapSprite.createSprite(mapWidth, mapHeight);
-    }
-
-    if (mapSprite.getBuffer() == nullptr)
-    {
-        log_e("could not allocate");
-        return false;
+        if (!mapSprite.getBuffer())
+        {
+            log_e("could not allocate");
+            return false;
+        }
     }
 
     int tileIndex = 0;
@@ -253,7 +204,6 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
 
         if (it != tilesCache.end())
             mapSprite.pushImage(drawX, drawY, OSM_TILESIZE, OSM_TILESIZE, it->buffer);
-
         else
             log_w("Tile (%d, %d) not found in cache", tileX, tileY);
 
@@ -263,6 +213,54 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
     const char *attribution = " Map data from OpenStreetMap.org ";
     mapSprite.setTextColor(TFT_WHITE, TFT_BLACK);
     mapSprite.drawRightString(attribution, mapSprite.width(), mapSprite.height() - 10, &DejaVu9);
+
+    return true;
+}
+
+bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double latitude, uint8_t zoom)
+{
+    if (!zoom || zoom > 18)
+    {
+        log_e("Invalid zoom level: %d", zoom);
+        return false;
+    }
+
+    if (!mapWidth || !mapHeight)
+    {
+        log_e("Invalid map dimension");
+        return false;
+    }
+
+    if (!tilesCache.capacity())
+    {
+        log_w("Cache not initialized, setting up a default cache...");
+        if (!resizeTilesCache(OSM_DEFAULT_CACHE_ITEMS))
+        {
+            log_e("Could not allocate cache");
+            return false;
+        }
+    }
+
+    // normalize the coordinates
+    longitude = fmod(longitude + 180.0, 360.0) - 180.0;
+    latitude = std::clamp(latitude, -90.0, 90.0);
+
+    tileList requiredTiles;
+    computeRequiredTiles(longitude, latitude, zoom, requiredTiles);
+
+    if (tilesCache.capacity() < requiredTiles.size())
+    {
+        log_e("Caching error: Need %i cache slots, but only %i are provided", requiredTiles.size(), tilesCache.capacity());
+        return false;
+    }
+
+    updateCache(requiredTiles, zoom);
+
+    if (!composeMap(mapSprite, requiredTiles, zoom))
+    {
+        log_e("Failed to compose map");
+        return false;
+    }
 
     return true;
 }
@@ -313,7 +311,7 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
         return false;
     }
 
-    constexpr unsigned long TIMEOUT_MS = 500;
+    constexpr unsigned long TIMEOUT_MS = 900;
     size_t readSize = 0;
     unsigned long lastReadTime = millis();
 
@@ -409,22 +407,22 @@ bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &sprite, String &r
     uint32_t biClrImportant = 0;
 
     // Write BMP header
-    file.write(reinterpret_cast<const uint8_t*>(&bfType), sizeof(bfType));
-    file.write(reinterpret_cast<const uint8_t*>(&bfSize), sizeof(bfSize));
-    file.write(reinterpret_cast<const uint8_t*>(&bfReserved), sizeof(bfReserved));
-    file.write(reinterpret_cast<const uint8_t*>(&bfOffBits), sizeof(bfOffBits));
+    file.write(reinterpret_cast<const uint8_t *>(&bfType), sizeof(bfType));
+    file.write(reinterpret_cast<const uint8_t *>(&bfSize), sizeof(bfSize));
+    file.write(reinterpret_cast<const uint8_t *>(&bfReserved), sizeof(bfReserved));
+    file.write(reinterpret_cast<const uint8_t *>(&bfOffBits), sizeof(bfOffBits));
 
-    file.write(reinterpret_cast<const uint8_t*>(&biSize), sizeof(biSize));
-    file.write(reinterpret_cast<const uint8_t*>(&biWidth), sizeof(biWidth));
-    file.write(reinterpret_cast<const uint8_t*>(&biHeight), sizeof(biHeight));
-    file.write(reinterpret_cast<const uint8_t*>(&biPlanes), sizeof(biPlanes));
-    file.write(reinterpret_cast<const uint8_t*>(&biBitCount), sizeof(biBitCount));
-    file.write(reinterpret_cast<const uint8_t*>(&biCompression), sizeof(biCompression));
-    file.write(reinterpret_cast<const uint8_t*>(&biSizeImage), sizeof(biSizeImage));
-    file.write(reinterpret_cast<const uint8_t*>(&biXPelsPerMeter), sizeof(biXPelsPerMeter));
-    file.write(reinterpret_cast<const uint8_t*>(&biYPelsPerMeter), sizeof(biYPelsPerMeter));
-    file.write(reinterpret_cast<const uint8_t*>(&biClrUsed), sizeof(biClrUsed));
-    file.write(reinterpret_cast<const uint8_t*>(&biClrImportant), sizeof(biClrImportant));
+    file.write(reinterpret_cast<const uint8_t *>(&biSize), sizeof(biSize));
+    file.write(reinterpret_cast<const uint8_t *>(&biWidth), sizeof(biWidth));
+    file.write(reinterpret_cast<const uint8_t *>(&biHeight), sizeof(biHeight));
+    file.write(reinterpret_cast<const uint8_t *>(&biPlanes), sizeof(biPlanes));
+    file.write(reinterpret_cast<const uint8_t *>(&biBitCount), sizeof(biBitCount));
+    file.write(reinterpret_cast<const uint8_t *>(&biCompression), sizeof(biCompression));
+    file.write(reinterpret_cast<const uint8_t *>(&biSizeImage), sizeof(biSizeImage));
+    file.write(reinterpret_cast<const uint8_t *>(&biXPelsPerMeter), sizeof(biXPelsPerMeter));
+    file.write(reinterpret_cast<const uint8_t *>(&biYPelsPerMeter), sizeof(biYPelsPerMeter));
+    file.write(reinterpret_cast<const uint8_t *>(&biClrUsed), sizeof(biClrUsed));
+    file.write(reinterpret_cast<const uint8_t *>(&biClrImportant), sizeof(biClrImportant));
 
     for (int y = 0; y < sprite.height(); y++)
     {
