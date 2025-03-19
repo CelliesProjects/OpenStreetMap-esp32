@@ -392,11 +392,11 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
 
     currentInstance = this;
     currentTileBuffer = tile.buffer;
-    const int decodeResult = png.decode(0, 0);
+    const int decodeResult = png.decode(0, PNG_FAST_PALETTE);
     currentTileBuffer = nullptr;
     currentInstance = nullptr;
 
-    if (decodeResult != PNG_SUCCESS)
+    if (decodeResult >= PNG_DECODE_ERROR)
     {
         result = "Decode failed with code: " + String(decodeResult);
         tile.valid = false;
