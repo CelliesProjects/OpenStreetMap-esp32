@@ -40,18 +40,18 @@ private:
     double lon2tile(double lon, uint8_t zoom);
     double lat2tile(double lat, uint8_t zoom);
     void computeRequiredTiles(double longitude, double latitude, uint8_t zoom, tileList &requiredTiles);
-    void updateCache(tileList &requiredTiles, uint8_t zoom);
+    void updateCache(const tileList &requiredTiles, uint8_t zoom);
     bool isTileCached(uint32_t x, uint32_t y, uint8_t z);
     CachedTile *findUnusedTile(const tileList &requiredTiles, uint8_t zoom);
     bool downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result);
-    bool composeMap(LGFX_Sprite &mapSprite, tileList &requiredTiles, uint8_t zoom);
-
-    uint16_t mapWidth = 320;
-    uint16_t mapHeight = 240;
+    bool composeMap(LGFX_Sprite &mapSprite, const tileList &requiredTiles, uint8_t zoom);
 
     std::vector<CachedTile> tilesCache;
     uint16_t *currentTileBuffer = nullptr;
     PNG png;
+
+    uint16_t mapWidth = 320;
+    uint16_t mapHeight = 240;
 
     int16_t startOffsetX = 0;
     int16_t startOffsetY = 0;

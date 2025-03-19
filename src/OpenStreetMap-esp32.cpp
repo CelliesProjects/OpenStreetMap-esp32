@@ -160,7 +160,7 @@ bool OpenStreetMap::resizeTilesCache(uint8_t numberOfTiles)
     return true;
 }
 
-void OpenStreetMap::updateCache(tileList &requiredTiles, uint8_t zoom)
+void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
 {
     for (const auto &[x, y] : requiredTiles)
     {
@@ -176,7 +176,7 @@ void OpenStreetMap::updateCache(tileList &requiredTiles, uint8_t zoom)
     }
 }
 
-bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, tileList &requiredTiles, uint8_t zoom)
+bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, const tileList &requiredTiles, uint8_t zoom)
 {
     if (mapSprite.width() != mapWidth || mapSprite.height() != mapHeight)
     {
@@ -237,7 +237,7 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
         log_w("Cache not initialized, setting up a default cache...");
         if (!resizeTilesCache(OSM_DEFAULT_CACHE_ITEMS))
         {
-            log_e("Could not allocate cache");
+            log_e("Could not allocate tile cache");
             return false;
         }
     }
@@ -285,23 +285,6 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
         return false;
     }
 
-    using TileKey = std::tuple<uint32_t, uint32_t, uint8_t>;
-    static std::vector<TileKey> nonRetryableTiles;
-    static const size_t maxCapacity = 100;
-
-    TileKey tileKey = std::make_tuple(x, y, zoom);
-
-    // Check if tile is in the vector
-    for (const auto &cachedTile : nonRetryableTiles)
-    {
-        if (cachedTile == tileKey)
-        {
-            log_i("Tile (%u, %u, %u) is marked as non-retryable", x, y, zoom);
-            result = "Tile marked as non-retryable";
-            return false;
-        }
-    }
-
     const String url = "https://tile.openstreetmap.org/" + String(zoom) + "/" + String(x) + "/" + String(y) + ".png";
 
     HTTPClient http;
@@ -319,11 +302,6 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
 
         if (httpCode == HTTP_CODE_NOT_FOUND)
         {
-            // Mark tile as non-retryable
-            nonRetryableTiles.push_back(tileKey);
-            if (nonRetryableTiles.size() > maxCapacity)
-                nonRetryableTiles.erase(nonRetryableTiles.begin()); // Remove oldest
-
             result = "HTTP Error 404 - not found tile " + String(x) + "," + String(y) + "," + String(zoom);
             return false;
         }
@@ -346,7 +324,7 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
     if (!stream)
     {
         http.end();
-        result = "Failed to get HTTP stream.";
+        result = "Failed to get HTTP stream";
         return false;
     }
 
@@ -354,7 +332,7 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
     if (!buffer.isAllocated())
     {
         http.end();
-        result = "Failed to allocate buffer.";
+        result = "Failed to allocate buffer";
         return false;
     }
 
