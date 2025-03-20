@@ -50,10 +50,8 @@ OpenStreetMap *OpenStreetMap::currentInstance = nullptr;
 void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
 {
     if (!currentInstance || !currentInstance->currentTileBuffer)
-    {
-        log_e("PNGDraw called with null buffer or instance!");
         return;
-    }
+
     uint16_t *destRow = currentInstance->currentTileBuffer + (pDraw->y * 256);
     currentInstance->png.getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, 0xffffffff);
 }
@@ -208,7 +206,7 @@ bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, const tileList &requiredT
         mapSprite.createSprite(mapWidth, mapHeight);
         if (!mapSprite.getBuffer())
         {
-            log_e("could not allocate");
+            log_e("could not allocate map");
             return false;
         }
     }
@@ -228,14 +226,13 @@ bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, const tileList &requiredT
         if (it != tilesCache.end())
             mapSprite.pushImage(drawX, drawY, OSM_TILESIZE, OSM_TILESIZE, it->buffer);
         else
-            log_w("Tile (%d, %d, %d) not found in cache", tileX, tileY, zoom);
+            log_w("Tile (z=%d, x=%d, y=%d) not found in cache", zoom, tileX, tileY);
 
         tileIndex++;
     }
 
-    const char *attribution = " Map data from OpenStreetMap.org ";
-    mapSprite.setTextColor(TFT_WHITE, TFT_BLACK);
-    mapSprite.drawRightString(attribution, mapSprite.width(), mapSprite.height() - 10, &DejaVu9);
+    mapSprite.drawRightString(" Map data from OpenStreetMap.org ",
+                              mapSprite.width(), mapSprite.height() - 10, &DejaVu9);
 
     return true;
 }
@@ -308,7 +305,6 @@ bool OpenStreetMap::readTileDataToBuffer(WiFiClient *stream, MemoryBuffer &buffe
         {
             int bytesRead = stream->readBytes(buffer.get() + readSize, availableData);
             readSize += bytesRead;
-            log_d("Read %d bytes, total %d bytes", bytesRead, readSize);
             lastReadTime = millis();
         }
         else if (millis() - lastReadTime >= OSM_TILE_TIMEOUT_MS)
@@ -325,7 +321,6 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
     const uint32_t worldTileWidth = 1 << zoom;
     if (x >= worldTileWidth || y >= worldTileWidth)
     {
-        log_w("Out of range tile coordinates: (%u, %u, %u)", x, y, zoom);
         result = "Out of range tile coordinates";
         return false;
     }
@@ -362,8 +357,6 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
         result = "Empty or chunked response";
         return false;
     }
-
-    log_v("Content size: %u bytes", contentSize);
 
     WiFiClient *stream = http.getStreamPtr();
     if (!stream)
@@ -415,7 +408,7 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
     tile.z = zoom;
     tile.valid = true;
 
-    result = "Downloaded and decoded: " + url;
+    result = "Added: " + url;
     return true;
 }
 
