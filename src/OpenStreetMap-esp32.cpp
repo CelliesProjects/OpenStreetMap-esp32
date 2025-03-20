@@ -54,8 +54,16 @@ void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
         log_e("PNGDraw called with null buffer or instance!");
         return;
     }
+    if (pDraw->y == 0)
+    {
+        log_v("Start PNG decode");
+    }
+    else if (pDraw->y == 255)
+    {
+        log_v("Finish PNG decode");
+    }
     uint16_t *destRow = currentInstance->currentTileBuffer + (pDraw->y * 256);
-    currentInstance->png.getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, -1);
+    currentInstance->png.getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, 0xffffffff);
 }
 
 void OpenStreetMap::computeRequiredTiles(double longitude, double latitude, uint8_t zoom, tileList &requiredTiles)
@@ -198,19 +206,12 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
     }
 }
 
-bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, const tileList &requiredTiles, uint8_t zoom)
+bool OpenStreetMap::composeMap(BB_SPI_LCD *mapSprite, const tileList &requiredTiles, uint8_t zoom)
 {
-    if (mapSprite.width() != mapWidth || mapSprite.height() != mapHeight)
+    if (!mapSprite->getBuffer() || mapSprite->width() != mapWidth || mapSprite->height() != mapHeight)
     {
-        mapSprite.deleteSprite();
-        mapSprite.setPsram(true);
-        mapSprite.setColorDepth(lgfx::rgb565_2Byte);
-        mapSprite.createSprite(mapWidth, mapHeight);
-        if (!mapSprite.getBuffer())
-        {
-            log_e("could not allocate");
-            return false;
-        }
+        log_e("could not allocate");
+        return false;
     }
 
     int tileIndex = 0;
@@ -226,21 +227,26 @@ bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, const tileList &requiredT
                                });
 
         if (it != tilesCache.end())
-            mapSprite.pushImage(drawX, drawY, OSM_TILESIZE, OSM_TILESIZE, it->buffer);
+        {
+            mapSprite->pushImage(drawX, drawY, OSM_TILESIZE, OSM_TILESIZE, it->buffer);
+        }
         else
+        {
             log_w("Tile (%d, %d, %d) not found in cache", tileX, tileY, zoom);
+        }
 
         tileIndex++;
     }
 
     const char *attribution = " Map data from OpenStreetMap.org ";
-    mapSprite.setTextColor(TFT_WHITE, TFT_BLACK);
-    mapSprite.drawRightString(attribution, mapSprite.width(), mapSprite.height() - 10, &DejaVu9);
+    mapSprite->setTextColor(TFT_WHITE, TFT_BLACK);
+    // DEBUG
+    //mapSprite->drawRightString(attribution, mapSprite->width(), mapSprite->height() - 10, );
 
     return true;
 }
 
-bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double latitude, uint8_t zoom)
+bool OpenStreetMap::fetchMap(BB_SPI_LCD *mapSprite, double longitude, double latitude, uint8_t zoom)
 {
     if (!zoom || zoom > 18)
     {
@@ -369,7 +375,7 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
         {
             int bytesRead = stream->readBytes(buffer.get() + readSize, availableData);
             readSize += bytesRead;
-            log_d("Read %d bytes, total %d bytes", bytesRead, readSize);
+            //    log_d("Read %d bytes, total %d bytes", bytesRead, readSize);
             lastReadTime = millis();
         }
         else if (millis() - lastReadTime >= TIMEOUT_MS)
@@ -381,7 +387,7 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
     }
 
     http.end();
-
+    log_d("Finished downloading %d bytes", readSize);
     const int16_t rc = png.openRAM(buffer.get(), contentSize, PNGDraw);
     if (rc != PNG_SUCCESS)
     {
@@ -391,13 +397,13 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
 
     currentInstance = this;
     currentTileBuffer = tile.buffer;
-    const int decodeResult = png.decode(0, PNG_FAST_PALETTE);
+    const int decodeResult = png.decode(0, 0);
     currentTileBuffer = nullptr;
     currentInstance = nullptr;
 
     if (decodeResult != PNG_SUCCESS)
     {
-        result = "Decoding " + url + " failed with code: " + String(decodeResult);
+        result = "Decode failed with code: " + String(decodeResult);
         tile.valid = false;
         return false;
     }
@@ -409,13 +415,13 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
 
     result = "Downloaded and decoded: " + url;
     return true;
-}
+} /* downloadAndDecodeTile() */
 
-bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &sprite, String &result, uint8_t sdPin)
+bool OpenStreetMap::saveMap(const char *filename, BB_SPI_LCD *sprite, String &result, uint8_t sdPin)
 {
     log_i("Saving map, this may take a while...");
 
-    if (!sprite.getBuffer())
+    if (!sprite->getBuffer())
     {
         result = "No data in map!";
         return false;
@@ -436,18 +442,18 @@ bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &sprite, String &r
     }
 
     // BMP header (54 bytes)
-    uint16_t bfType = 0x4D42;                                    // "BM"
-    uint32_t bfSize = 54 + sprite.width() * sprite.height() * 3; // Header + pixel data (3 bytes per pixel for RGB888)
+    uint16_t bfType = 0x4D42;                                      // "BM"
+    uint32_t bfSize = 54 + sprite->width() * sprite->height() * 3; // Header + pixel data (3 bytes per pixel for RGB888)
     uint16_t bfReserved = 0;
     uint32_t bfOffBits = 54; // Offset to pixel data
 
     uint32_t biSize = 40; // Info header size
-    int32_t biWidth = sprite.width();
-    int32_t biHeight = -sprite.height(); // Negative to flip vertically
+    int32_t biWidth = sprite->width();
+    int32_t biHeight = -sprite->height(); // Negative to flip vertically
     uint16_t biPlanes = 1;
     uint16_t biBitCount = 24; // RGB888 format
     uint32_t biCompression = 0;
-    uint32_t biSizeImage = sprite.width() * sprite.height() * 3; // 3 bytes per pixel
+    uint32_t biSizeImage = sprite->width() * sprite->height() * 3; // 3 bytes per pixel
     int32_t biXPelsPerMeter = 0;
     int32_t biYPelsPerMeter = 0;
     uint32_t biClrUsed = 0;
@@ -471,11 +477,11 @@ bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &sprite, String &r
     file.write(reinterpret_cast<const uint8_t *>(&biClrUsed), sizeof(biClrUsed));
     file.write(reinterpret_cast<const uint8_t *>(&biClrImportant), sizeof(biClrImportant));
 
-    for (int y = 0; y < sprite.height(); y++)
+    for (int y = 0; y < sprite->height(); y++)
     {
-        for (int x = 0; x < sprite.width(); x++)
+        for (int x = 0; x < sprite->width(); x++)
         {
-            uint16_t rgb565Color = sprite.readPixel(x, y); // Read pixel color (RGB565 format)
+            uint16_t rgb565Color = 0; // sprite->getPixel(x, y); // Read pixel color (RGB565 format)
             uint8_t red5 = (rgb565Color >> 11) & 0x1F;
             uint8_t green6 = (rgb565Color >> 5) & 0x3F;
             uint8_t blue5 = rgb565Color & 0x1F;
