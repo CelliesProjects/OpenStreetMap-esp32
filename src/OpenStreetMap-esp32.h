@@ -29,7 +29,7 @@
 #include <WiFiClient.h>
 #include <SD.h>
 #include <vector>
-#include <LovyanGFX.hpp>
+#include <bb_spi_lcd.h>
 #include <PNGdec.h>
 
 #include "CachedTile.h"
@@ -54,8 +54,8 @@ public:
     void setResolution(uint16_t w, uint16_t h);
     bool resizeTilesCache(uint8_t numberOfTiles);
     void freeTilesCache();
-    bool fetchMap(LGFX_Sprite &sprite, double longitude, double latitude, uint8_t zoom);
-    bool saveMap(const char *filename, LGFX_Sprite &display, String &result, uint8_t sdPin = SS);
+    bool fetchMap(BB_SPI_LCD *sprite, double longitude, double latitude, uint8_t zoom);
+    bool saveMap(const char *filename, BB_SPI_LCD *display, String &result, uint8_t sdPin = SS);
 
 private:
     static OpenStreetMap *currentInstance;
@@ -67,7 +67,7 @@ private:
     bool isTileCached(uint32_t x, uint32_t y, uint8_t z);
     CachedTile *findUnusedTile(const tileList &requiredTiles, uint8_t zoom);
     bool downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result);
-    bool composeMap(LGFX_Sprite &mapSprite, const tileList &requiredTiles, uint8_t zoom);
+    bool composeMap(BB_SPI_LCD *mapSprite, const tileList &requiredTiles, uint8_t zoom);
 
     std::vector<CachedTile> tilesCache;
     uint16_t *currentTileBuffer = nullptr;
