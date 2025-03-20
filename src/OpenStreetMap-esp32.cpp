@@ -297,6 +297,29 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
     return true;
 }
 
+bool OpenStreetMap::readTileDataToBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t contentSize, String &result)
+{
+    size_t readSize = 0;
+    unsigned long lastReadTime = millis();
+    while (readSize < contentSize)
+    {
+        int availableData = stream->available();
+        if (availableData > 0)
+        {
+            int bytesRead = stream->readBytes(buffer.get() + readSize, availableData);
+            readSize += bytesRead;
+            log_d("Read %d bytes, total %d bytes", bytesRead, readSize);
+            lastReadTime = millis();
+        }
+        else if (millis() - lastReadTime >= OSM_TILE_TIMEOUT_MS)
+        {
+            result = "Timeout: No data received within " + String(OSM_TILE_TIMEOUT_MS) + " ms";
+            return false;
+        }
+    }
+    return true;
+}
+
 bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result)
 {
     const uint32_t worldTileWidth = 1 << zoom;
@@ -358,26 +381,11 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
         return false;
     }
 
-    constexpr unsigned long TIMEOUT_MS = 1900;
-    size_t readSize = 0;
-    unsigned long lastReadTime = millis();
-
-    while (readSize < contentSize)
+    if (!readTileDataToBuffer(stream, buffer, contentSize, result))
     {
-        int availableData = stream->available();
-        if (availableData > 0)
-        {
-            int bytesRead = stream->readBytes(buffer.get() + readSize, availableData);
-            readSize += bytesRead;
-            log_d("Read %d bytes, total %d bytes", bytesRead, readSize);
-            lastReadTime = millis();
-        }
-        else if (millis() - lastReadTime >= TIMEOUT_MS)
-        {
-            http.end();
-            result = "Timeout: No data received within " + String(TIMEOUT_MS) + " ms";
-            return false;
-        }
+        http.end();
+        log_e("%s", result);
+        return false;
     }
 
     http.end();

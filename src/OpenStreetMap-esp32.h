@@ -35,8 +35,9 @@
 #include "CachedTile.h"
 #include "MemoryBuffer.h"
 
-constexpr int16_t OSM_TILESIZE = 256;
-constexpr uint8_t OSM_DEFAULT_CACHE_ITEMS = 10;
+constexpr uint16_t OSM_TILESIZE = 256;
+constexpr uint16_t OSM_TILE_TIMEOUT_MS = 500;
+constexpr uint16_t OSM_DEFAULT_CACHE_ITEMS = 10;
 
 using tileList = std::vector<std::pair<uint32_t, uint32_t>>;
 
@@ -67,6 +68,7 @@ private:
     bool isTileCached(uint32_t x, uint32_t y, uint8_t z);
     CachedTile *findUnusedTile(const tileList &requiredTiles, uint8_t zoom);
     bool downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result);
+    bool readTileDataToBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t contentSize, String &result);
     bool composeMap(LGFX_Sprite &mapSprite, const tileList &requiredTiles, uint8_t zoom);
 
     std::vector<CachedTile> tilesCache;
