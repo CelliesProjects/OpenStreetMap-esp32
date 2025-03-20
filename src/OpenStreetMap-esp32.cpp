@@ -55,7 +55,7 @@ void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
         return;
     }
     uint16_t *destRow = currentInstance->currentTileBuffer + (pDraw->y * 256);
-    currentInstance->png.getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, -1);
+    currentInstance->png.getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, 0xffffffff);
 }
 
 void OpenStreetMap::computeRequiredTiles(double longitude, double latitude, uint8_t zoom, tileList &requiredTiles)
