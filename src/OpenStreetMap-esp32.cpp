@@ -54,9 +54,8 @@ void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
         log_e("PNGDraw called with null buffer or instance!");
         return;
     }
-    log_v("Decoding line: %d", pDraw->y);
     uint16_t *destRow = currentInstance->currentTileBuffer + (pDraw->y * 256);
-    currentInstance->png.getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, 0x0000);
+    currentInstance->png.getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, -1);
 }
 
 void OpenStreetMap::computeRequiredTiles(double longitude, double latitude, uint8_t zoom, tileList &requiredTiles)
@@ -396,9 +395,9 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
     currentTileBuffer = nullptr;
     currentInstance = nullptr;
 
-    if (decodeResult >= PNG_DECODE_ERROR)
+    if (decodeResult != PNG_SUCCESS)
     {
-        result = "Decode failed with code: " + String(decodeResult);
+        result = "Decoding " + url + " failed with code: " + String(decodeResult);
         tile.valid = false;
         return false;
     }
