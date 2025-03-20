@@ -20,21 +20,26 @@ The downloaded tile cache gets large very quickly -128kB per tile- so a ESP32 wi
 ### Functions
 
 #### Set map resolution
+
 ```c++
 void setResolution(uint16_t w, uint16_t h);
 ```
 
 #### Resize cache 
+
 ```c++
 bool resizeTilesCache(uint8_t numberOfTiles); 
 ```
 **Note**: Each tile is 128 kB.
 
 #### Free the memory used by the tile cache
+
 ```c++
 void freeTilesCache();
 ```
-#### Fetch a map 
+
+#### Fetch a map
+
 ```c++
 bool fetchMap(LGFX_Sprite &map, double longitude, double latitude, uint8_t zoom);
 ```

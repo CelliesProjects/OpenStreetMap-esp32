@@ -412,11 +412,11 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
     return true;
 }
 
-bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &sprite, String &result, uint8_t sdPin)
+bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &result, uint8_t sdPin)
 {
     log_i("Saving map, this may take a while...");
 
-    if (!sprite.getBuffer())
+    if (!map.getBuffer())
     {
         result = "No data in map!";
         return false;
@@ -438,17 +438,17 @@ bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &sprite, String &r
 
     // BMP header (54 bytes)
     uint16_t bfType = 0x4D42;                                    // "BM"
-    uint32_t bfSize = 54 + sprite.width() * sprite.height() * 3; // Header + pixel data (3 bytes per pixel for RGB888)
+    uint32_t bfSize = 54 + map.width() * map.height() * 3; // Header + pixel data (3 bytes per pixel for RGB888)
     uint16_t bfReserved = 0;
     uint32_t bfOffBits = 54; // Offset to pixel data
 
     uint32_t biSize = 40; // Info header size
-    int32_t biWidth = sprite.width();
-    int32_t biHeight = -sprite.height(); // Negative to flip vertically
+    int32_t biWidth = map.width();
+    int32_t biHeight = -map.height(); // Negative to flip vertically
     uint16_t biPlanes = 1;
     uint16_t biBitCount = 24; // RGB888 format
     uint32_t biCompression = 0;
-    uint32_t biSizeImage = sprite.width() * sprite.height() * 3; // 3 bytes per pixel
+    uint32_t biSizeImage = map.width() * map.height() * 3; // 3 bytes per pixel
     int32_t biXPelsPerMeter = 0;
     int32_t biYPelsPerMeter = 0;
     uint32_t biClrUsed = 0;
@@ -472,11 +472,11 @@ bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &sprite, String &r
     file.write(reinterpret_cast<const uint8_t *>(&biClrUsed), sizeof(biClrUsed));
     file.write(reinterpret_cast<const uint8_t *>(&biClrImportant), sizeof(biClrImportant));
 
-    for (int y = 0; y < sprite.height(); y++)
+    for (int y = 0; y < map.height(); y++)
     {
-        for (int x = 0; x < sprite.width(); x++)
+        for (int x = 0; x < map.width(); x++)
         {
-            uint16_t rgb565Color = sprite.readPixel(x, y); // Read pixel color (RGB565 format)
+            uint16_t rgb565Color = map.readPixel(x, y); // Read pixel color (RGB565 format)
             uint8_t red5 = (rgb565Color >> 11) & 0x1F;
             uint8_t green6 = (rgb565Color >> 5) & 0x3F;
             uint8_t blue5 = rgb565Color & 0x1F;
