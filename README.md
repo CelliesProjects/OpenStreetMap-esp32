@@ -1,38 +1,69 @@
-# OpenStreetMap-esp32
+## OpenStreetMap-esp32
 
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/0961fc2320cd495a9411eb391d5791ca)](https://app.codacy.com/gh/CelliesProjects/OpenStreetMap-esp32/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 
-## What is this
+### What is this
 
-This library provides a [OpenStreetMap](https://www.openstreetmap.org/) (OSM) map fetching and tile caching system for ESP32-based devices.  
+This library provides a [OpenStreetMap](https://www.openstreetmap.org/) (OSM) map fetching and tile caching system for ESP32-based devices.
 Under the hood it uses [LovyanGFX](https://github.com/lovyan03/LovyanGFX) and [PNGdec](https://github.com/bitbank2/PNGdec) to do the heavy lifting.
 
-A map is composed from downloaded OSM tiles and returned as a LGFX sprite.  
-The sprite can be pushed to the screen or used for further composing.  
+![map](https://github.com/user-attachments/assets/bc0534c1-b2e6-4f6e-804f-95b7db00c850)
+
+A map is composed from downloaded OSM tiles and returned as a LGFX sprite.
+The sprite can be pushed to the screen or used for further composing.
 Downloaded tiles are cached in psram for reuse.
 
 The library should work on any ESP32 type with psram and a LovyanGFX compatible display.
 
 The downloaded tile cache gets large very quickly -128kB per tile- so a ESP32 with psram is required.
 
-![map](https://github.com/user-attachments/assets/bc0534c1-b2e6-4f6e-804f-95b7db00c850)  
-An example 320px by 240px map
+### Functions
 
-### License differences between this library and the map data
+#### Set map resolution
+```c++
+void setResolution(uint16_t w, uint16_t h);
+```
 
-#### This library has a MIT license
+#### Resize cache 
+```c++
+bool resizeTilesCache(uint8_t numberOfTiles); 
+```
+**Note**: Each tile is 128 kB.
+
+#### Free the memory used by the tile cache
+```c++
+void freeTilesCache();
+```
+#### Fetch a map 
+```c++
+bool fetchMap(LGFX_Sprite &map, double longitude, double latitude, uint8_t zoom);
+```
+
+#### Save a map to SD card
+
+```c++
+bool saveMap(const char *filename, LGFX_Sprite &display, String &result, uint8_t sdPin = SS)
+```
+`filename` should start with `/` for example `/map.bmp`  
+`sdPin` is optional and used to set a `SS/CS` pin for the SD slot.  
+`result` returns something like `SD Card mount failed!` or `Screenshot saved`.
+
+## License differences between this library and the map data
+
+### This library has a MIT license
 
 The `OpenstreetMap-esp32` library -this library- is licensed under the [MIT license](/LICENSE).  
+This project is not endorsed by or affiliated with the OpenStreetMap Foundation.
 
-#### The downloaded tile data has a Open Data Commons Open Database License (ODbL)
+### The downloaded tile data has a Open Data Commons Open Database License (ODbL)
 
 OpenStreetMap® is open data, licensed under the [Open Data Commons Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/) by the OpenStreetMap Foundation (OSMF).
 
 Use of any OSMF provided service is governed by the [OSMF Terms of Use](https://osmfoundation.org/wiki/Terms_of_Use).
 
-### Example code
+## Example code
 
-#### Example returning the default 320x240 map
+### Example returning the default 320x240 map
 
 ```c++
 #include <Arduino.h>
@@ -157,14 +188,16 @@ void loop()
     delay(1000);
 }
 ```
-![map](https://github.com/user-attachments/assets/9a92bbff-e96d-444d-8b34-29801744fa80)  
-Screenshot of a 480x800 map from a esp32-8048s050
 
-### PlatformIO setup\
+### Screenshot of a 480x800 map from a esp32-8048s050
+
+![map](https://github.com/user-attachments/assets/9a92bbff-e96d-444d-8b34-29801744fa80)
+
+### PlatformIO setup
 
 ```bash
 lib_deps =
     https://github.com/CelliesProjects/OpenStreetMap-esp32
     lovyan03/LovyanGFX@^1.2.0
-    bitbank2/PNGdec@^1.0.3    
+    bitbank2/PNGdec@^1.0.3  
 ```
