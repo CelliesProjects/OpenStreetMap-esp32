@@ -455,7 +455,8 @@ bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &resu
 
     // Write BMP header (Ensuring little-endian format)
     auto writeLE = [&](uint32_t value, uint8_t size) {
-        file.write((uint8_t *)&value, size);
+        for (uint8_t i = 0; i < size; i++)
+            file.write(static_cast<uint8_t>(value >> (8 * i)));
     };
 
     writeLE(bfType, 2);
