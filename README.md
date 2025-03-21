@@ -48,6 +48,9 @@ void freeTilesCache();
 bool fetchMap(LGFX_Sprite &map, double longitude, double latitude, uint8_t zoom);
 ```
 
+- Valid range for the `zoom` level is 0-18.
+- `longitude` and `latitude` are normalized to valid coordinates.
+
 #### Save a map to SD card
 
 ```c++
@@ -57,8 +60,8 @@ bool saveMap(const char *filename, LGFX_Sprite &map, String &result,
 
 - `filename` should start with `/` for example `/map.bmp` or `/images/map.bmp` 
 - `result` returns something like `SD Card mount failed` or `Screenshot saved`.
-- `sdPin` is optional and used to set a `SS/CS` pin for the SD slot.
-- `frequency` is optional and used to set the SD speed.
+- `sdPin` is **optional** and used to set a `SS/CS` pin for the SD slot.
+- `frequency` is **optional** and used to set the SD speed.
 
 ## License differences between this library and the map data
 
