@@ -48,7 +48,7 @@ void freeTilesCache();
 bool fetchMap(LGFX_Sprite &map, double longitude, double latitude, uint8_t zoom);
 ```
 
-- Valid range for the `zoom` level is 0-18.
+- Valid range for the `zoom` level is 1-18.
 - `longitude` and `latitude` are normalized to valid coordinates.
 
 #### Save a map to SD card
