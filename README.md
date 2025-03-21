@@ -7,7 +7,7 @@
 This library provides a [OpenStreetMap](https://www.openstreetmap.org/) (OSM) map fetching and tile caching system for ESP32-based devices.
 Under the hood it uses [LovyanGFX](https://github.com/lovyan03/LovyanGFX) and [PNGdec](https://github.com/bitbank2/PNGdec) to do the heavy lifting.
 
-![map](https://github.com/user-attachments/assets/bc0534c1-b2e6-4f6e-804f-95b7db00c850)
+![map](https://github.com/user-attachments/assets/39a7f287-c59d-4365-888a-d4c3f77a1dd1)
 
 A map is composed from downloaded OSM tiles and returned as a LGFX sprite.
 The sprite can be pushed to the screen or used for further composing.
@@ -48,8 +48,8 @@ void freeTilesCache();
 bool fetchMap(LGFX_Sprite &map, double longitude, double latitude, uint8_t zoom);
 ```
 
-- Valid range for the `zoom` level is 1-18.
 - `longitude` and `latitude` are normalized to valid coordinates.
+- Valid range for the `zoom` level is 1-18.
 
 #### Save a map to SD card
 
@@ -58,7 +58,7 @@ bool saveMap(const char *filename, LGFX_Sprite &map, String &result,
              uint8_t sdPin = SS, uint32_t frequency = 4000000)
 ```
 
-- `filename` should start with `/` for example `/map.bmp` or `/images/map.bmp` 
+- `filename` must start with `/` for example `/map.bmp` or `/images/map.bmp` 
 - `result` returns something like `SD Card mount failed` or `Screenshot saved`.
 - `sdPin` is **optional** and used to set a `SS/CS` pin for the SD slot.
 - `frequency` is **optional** and used to set the SD speed.
