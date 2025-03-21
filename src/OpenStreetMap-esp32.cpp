@@ -414,11 +414,18 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
 
 bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &result, uint8_t sdPin, uint32_t frequency)
 {
-    log_i("Saving map, this may take a while...");
+    log_i("Saving map as %s", filename);
 
     if (!map.getBuffer())
     {
         result = "No data in map";
+        return false;
+    }
+
+    MemoryBuffer rowBuffer(map.width() * 3);
+    if (!rowBuffer.isAllocated())
+    {
+        result = "Row buffer allocation failed";
         return false;
     }
 
@@ -478,15 +485,6 @@ bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &resu
     writeLE(biClrUsed, 4);
     writeLE(biClrImportant, 4);
 
-    MemoryBuffer rowBuffer(map.width() * 3);
-    if (!rowBuffer.isAllocated())
-    {
-        result = "Row buffer allocation failed";
-        file.close();
-        SD.end();
-        return false;
-    }
-
     uint8_t *buf = rowBuffer.get();
     for (uint16_t y = 0; y < map.height(); y++)
     {
@@ -506,6 +504,6 @@ bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &resu
 
     file.close();
     SD.end();
-    result = "Screenshot saved";
+    result = "Map saved as " + String(filename);
     return true;
 }
