@@ -488,9 +488,9 @@ bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &resu
     }
 
     uint8_t *buf = rowBuffer.get();
-    for (int y = 0; y < map.height(); y++)
+    for (uint16_t y = 0; y < map.height(); y++)
     {
-        for (int x = 0; x < map.width(); x++)
+        for (uint16_t x = 0; x < map.width(); x++)
         {
             uint16_t rgb565Color = map.readPixel(x, y);
             uint8_t red8 = ((rgb565Color >> 11) & 0x1F) * 255 / 31;
@@ -501,7 +501,7 @@ bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &resu
             buf[x * 3 + 1] = green8;
             buf[x * 3 + 2] = red8;
         }
-        file.write(buf, rowBuffer.size()); // Write entire row at once
+        file.write(buf, rowBuffer.size());
     }
 
     file.close();
