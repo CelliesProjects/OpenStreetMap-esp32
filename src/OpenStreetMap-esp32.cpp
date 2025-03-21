@@ -437,10 +437,10 @@ bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &resu
     }
 
     // BMP Header (54 bytes)
-    uint16_t bfType = 0x4D42; // "BM"
+    uint16_t bfType = 0x4D42;                              // "BM"
     uint32_t biSizeImage = map.width() * map.height() * 3; // 3 bytes per pixel (RGB888)
-    uint32_t bfSize = 54 + biSizeImage; // Total file size
-    uint32_t bfOffBits = 54; // Offset to pixel data
+    uint32_t bfSize = 54 + biSizeImage;                    // Total file size
+    uint32_t bfOffBits = 54;                               // Offset to pixel data
 
     uint32_t biSize = 40; // Info header size
     int32_t biWidth = map.width();
@@ -454,7 +454,8 @@ bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &resu
     uint32_t biClrImportant = 0;
 
     // Write BMP header (Ensuring little-endian format)
-    auto writeLE = [&](uint32_t value, uint8_t size) {
+    auto writeLE = [&](uint32_t value, uint8_t size)
+    {
         for (uint8_t i = 0; i < size; i++)
             file.write(static_cast<uint8_t>(value >> (8 * i)));
     };
@@ -477,11 +478,17 @@ bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &resu
     writeLE(biClrUsed, 4);
     writeLE(biClrImportant, 4);
 
-    // Buffer to store one row of pixel data
-    uint8_t rowBuffer[map.width() * 3];
+    MemoryBuffer rowBuffer(map.width() * 3);
+    if (!rowBuffer.isAllocated())
+    {
+        result = "Memory allocation failed";
+        file.close();
+        SD.end();
+        return false;
+    }
 
-    // Write pixel data (BMP stores bottom-to-top, so we iterate from last row)
-    for (int y = map.height() - 1; y >= 0; y--)
+    uint8_t *buf = rowBuffer.get();
+    for (int y = 0; y < map.height(); y++)
     {
         for (int x = 0; x < map.width(); x++)
         {
@@ -490,11 +497,11 @@ bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &resu
             uint8_t green8 = ((rgb565Color >> 5) & 0x3F) * 255 / 63;
             uint8_t blue8 = (rgb565Color & 0x1F) * 255 / 31;
 
-            rowBuffer[x * 3] = blue8;
-            rowBuffer[x * 3 + 1] = green8;
-            rowBuffer[x * 3 + 2] = red8;
+            buf[x * 3] = blue8;
+            buf[x * 3 + 1] = green8;
+            buf[x * 3 + 2] = red8;
         }
-        file.write(rowBuffer, sizeof(rowBuffer)); // Write the entire row at once
+        file.write(buf, rowBuffer.size()); // Write entire row at once
     }
 
     file.close();
