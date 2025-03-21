@@ -13,9 +13,10 @@ A map is composed from downloaded OSM tiles and returned as a LGFX sprite.
 The sprite can be pushed to the screen or used for further composing.
 Downloaded tiles are cached in psram for reuse.
 
-The library should work on any ESP32 type with psram and a LovyanGFX compatible display.
+This library should work on any ESP32 type with psram and a LovyanGFX compatible display.  
+The downloaded tile cache gets large very quickly -128kB per tile- so psram is required.
 
-The downloaded tile cache gets large very quickly -128kB per tile- so a ESP32 with psram is required.
+This project is not endorsed by or affiliated with the OpenStreetMap Foundation.
 
 ### Functions
 
@@ -63,12 +64,14 @@ bool saveMap(const char *filename, LGFX_Sprite &map, String &result,
 - `sdPin` is **optional** and used to set a `SS/CS` pin for the SD slot.
 - `frequency` is **optional** and used to set the SD speed.
 
+**Note**: The SD card is managed from `begin()` to `end()` inside the `saveMap()` function.  
+Do not mount the SD card before this function but unmount if it is mounted else memory will be leaked.
+
 ## License differences between this library and the map data
 
 ### This library has a MIT license
 
 The `OpenstreetMap-esp32` library -this library- is licensed under the [MIT license](/LICENSE).  
-This project is not endorsed by or affiliated with the OpenStreetMap Foundation.
 
 ### The downloaded tile data has a Open Data Commons Open Database License (ODbL)
 
