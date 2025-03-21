@@ -56,7 +56,7 @@ public:
     bool resizeTilesCache(uint8_t numberOfTiles);
     void freeTilesCache();
     bool fetchMap(LGFX_Sprite &sprite, double longitude, double latitude, uint8_t zoom);
-    bool saveMap(const char *filename, LGFX_Sprite &map, String &result, uint8_t sdPin = SS);
+    bool saveMap(const char *filename, LGFX_Sprite &map, String &result, uint8_t sdPin = SS, uint32_t frequency = 4000000);
 
 private:
     static OpenStreetMap *currentInstance;

@@ -24,13 +24,15 @@ The downloaded tile cache gets large very quickly -128kB per tile- so a ESP32 wi
 ```c++
 void setResolution(uint16_t w, uint16_t h);
 ```
+-  If no resolution is set, a 320 by 240 map will be returned by `fetchMap`.
 
 #### Resize cache 
 
 ```c++
 bool resizeTilesCache(uint8_t numberOfTiles); 
 ```
-**Note**: Each tile is 128 kB.
+-  The cache is cleared before resizing.
+-  Each tile is 128 kB.
 
 #### Free the memory used by the tile cache
 
@@ -47,11 +49,13 @@ bool fetchMap(LGFX_Sprite &map, double longitude, double latitude, uint8_t zoom)
 #### Save a map to SD card
 
 ```c++
-bool saveMap(const char *filename, LGFX_Sprite &display, String &result, uint8_t sdPin = SS)
+bool saveMap(const char *filename, LGFX_Sprite &map, String &result, 
+             uint8_t sdPin = SS, uint32_t frequency = 4000000)
 ```
-`filename` should start with `/` for example `/map.bmp`  
-`sdPin` is optional and used to set a `SS/CS` pin for the SD slot.  
-`result` returns something like `SD Card mount failed!` or `Screenshot saved`.
+-  `filename` should start with `/` for example `/map.bmp` or `/images/map.bmp` 
+-  `result` returns something like `SD Card mount failed` or `Screenshot saved`.
+-  `sdPin` is optional and used to set a `SS/CS` pin for the SD slot.
+-  `frequency` is optional and used to set the SD speed.
 
 ## License differences between this library and the map data
 

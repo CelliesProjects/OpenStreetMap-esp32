@@ -412,7 +412,7 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
     return true;
 }
 
-bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &result, uint8_t sdPin)
+bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &result, uint8_t sdPin, uint32_t frequency)
 {
     log_i("Saving map, this may take a while...");
 
@@ -422,7 +422,7 @@ bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &resu
         return false;
     }
 
-    if (!SD.begin(sdPin))
+    if (!SD.begin(sdPin, SPI, frequency))
     {
         result = "SD Card mount failed";
         return false;
