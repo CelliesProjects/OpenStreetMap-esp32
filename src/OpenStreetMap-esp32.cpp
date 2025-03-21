@@ -412,84 +412,96 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
     return true;
 }
 
-bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &result, uint8_t sdPin)
+bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &result, uint8_t sdPin, uint32_t frequency)
 {
     log_i("Saving map, this may take a while...");
 
     if (!map.getBuffer())
     {
-        result = "No data in map!";
+        result = "No data in map";
         return false;
     }
 
-    if (!SD.begin(sdPin))
+    if (!SD.begin(sdPin, SPI, frequency))
     {
-        result = "SD Card mount failed!";
+        result = "SD Card mount failed";
         return false;
     }
 
     File file = SD.open(filename, FILE_WRITE);
     if (!file)
     {
-        result = "Failed to open file!";
+        result = "Failed to open file";
         SD.end();
         return false;
     }
 
-    // BMP header (54 bytes)
-    uint16_t bfType = 0x4D42;                                    // "BM"
-    uint32_t bfSize = 54 + map.width() * map.height() * 3; // Header + pixel data (3 bytes per pixel for RGB888)
-    uint16_t bfReserved = 0;
-    uint32_t bfOffBits = 54; // Offset to pixel data
+    // BMP Header (54 bytes)
+    uint16_t bfType = 0x4D42;                              // "BM"
+    uint32_t biSizeImage = map.width() * map.height() * 3; // 3 bytes per pixel (RGB888)
+    uint32_t bfSize = 54 + biSizeImage;                    // Total file size
+    uint32_t bfOffBits = 54;                               // Offset to pixel data
 
     uint32_t biSize = 40; // Info header size
     int32_t biWidth = map.width();
-    int32_t biHeight = -map.height(); // Negative to flip vertically
+    int32_t biHeight = -map.height(); // Negative to store in top-down order
     uint16_t biPlanes = 1;
     uint16_t biBitCount = 24; // RGB888 format
     uint32_t biCompression = 0;
-    uint32_t biSizeImage = map.width() * map.height() * 3; // 3 bytes per pixel
     int32_t biXPelsPerMeter = 0;
     int32_t biYPelsPerMeter = 0;
     uint32_t biClrUsed = 0;
     uint32_t biClrImportant = 0;
 
-    // Write BMP header
-    file.write(reinterpret_cast<const uint8_t *>(&bfType), sizeof(bfType));
-    file.write(reinterpret_cast<const uint8_t *>(&bfSize), sizeof(bfSize));
-    file.write(reinterpret_cast<const uint8_t *>(&bfReserved), sizeof(bfReserved));
-    file.write(reinterpret_cast<const uint8_t *>(&bfOffBits), sizeof(bfOffBits));
+    // Write BMP header (Ensuring little-endian format)
+    auto writeLE = [&](uint32_t value, uint8_t size)
+    {
+        for (uint8_t i = 0; i < size; i++)
+            file.write(static_cast<uint8_t>(value >> (8 * i)));
+    };
 
-    file.write(reinterpret_cast<const uint8_t *>(&biSize), sizeof(biSize));
-    file.write(reinterpret_cast<const uint8_t *>(&biWidth), sizeof(biWidth));
-    file.write(reinterpret_cast<const uint8_t *>(&biHeight), sizeof(biHeight));
-    file.write(reinterpret_cast<const uint8_t *>(&biPlanes), sizeof(biPlanes));
-    file.write(reinterpret_cast<const uint8_t *>(&biBitCount), sizeof(biBitCount));
-    file.write(reinterpret_cast<const uint8_t *>(&biCompression), sizeof(biCompression));
-    file.write(reinterpret_cast<const uint8_t *>(&biSizeImage), sizeof(biSizeImage));
-    file.write(reinterpret_cast<const uint8_t *>(&biXPelsPerMeter), sizeof(biXPelsPerMeter));
-    file.write(reinterpret_cast<const uint8_t *>(&biYPelsPerMeter), sizeof(biYPelsPerMeter));
-    file.write(reinterpret_cast<const uint8_t *>(&biClrUsed), sizeof(biClrUsed));
-    file.write(reinterpret_cast<const uint8_t *>(&biClrImportant), sizeof(biClrImportant));
+    writeLE(bfType, 2);
+    writeLE(bfSize, 4);
+    writeLE(0, 2); // bfReserved
+    writeLE(0, 2);
+    writeLE(bfOffBits, 4);
 
+    writeLE(biSize, 4);
+    writeLE(biWidth, 4);
+    writeLE(biHeight, 4);
+    writeLE(biPlanes, 2);
+    writeLE(biBitCount, 2);
+    writeLE(biCompression, 4);
+    writeLE(biSizeImage, 4);
+    writeLE(biXPelsPerMeter, 4);
+    writeLE(biYPelsPerMeter, 4);
+    writeLE(biClrUsed, 4);
+    writeLE(biClrImportant, 4);
+
+    MemoryBuffer rowBuffer(map.width() * 3);
+    if (!rowBuffer.isAllocated())
+    {
+        result = "Row buffer allocation failed";
+        file.close();
+        SD.end();
+        return false;
+    }
+
+    uint8_t *buf = rowBuffer.get();
     for (int y = 0; y < map.height(); y++)
     {
         for (int x = 0; x < map.width(); x++)
         {
-            uint16_t rgb565Color = map.readPixel(x, y); // Read pixel color (RGB565 format)
-            uint8_t red5 = (rgb565Color >> 11) & 0x1F;
-            uint8_t green6 = (rgb565Color >> 5) & 0x3F;
-            uint8_t blue5 = rgb565Color & 0x1F;
+            uint16_t rgb565Color = map.readPixel(x, y);
+            uint8_t red8 = ((rgb565Color >> 11) & 0x1F) * 255 / 31;
+            uint8_t green8 = ((rgb565Color >> 5) & 0x3F) * 255 / 63;
+            uint8_t blue8 = (rgb565Color & 0x1F) * 255 / 31;
 
-            // Convert RGB565 to RGB888
-            uint8_t red8 = (red5 * 255) / 31;
-            uint8_t green8 = (green6 * 255) / 63;
-            uint8_t blue8 = (blue5 * 255) / 31;
-
-            file.write(blue8);
-            file.write(green8);
-            file.write(red8);
+            buf[x * 3] = blue8;
+            buf[x * 3 + 1] = green8;
+            buf[x * 3 + 2] = red8;
         }
+        file.write(buf, rowBuffer.size()); // Write entire row at once
     }
 
     file.close();
