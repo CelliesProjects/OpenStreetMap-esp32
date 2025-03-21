@@ -54,6 +54,7 @@ bool fetchMap(LGFX_Sprite &map, double longitude, double latitude, uint8_t zoom)
 bool saveMap(const char *filename, LGFX_Sprite &map, String &result, 
              uint8_t sdPin = SS, uint32_t frequency = 4000000)
 ```
+
 - `filename` should start with `/` for example `/map.bmp` or `/images/map.bmp` 
 - `result` returns something like `SD Card mount failed` or `Screenshot saved`.
 - `sdPin` is optional and used to set a `SS/CS` pin for the SD slot.
