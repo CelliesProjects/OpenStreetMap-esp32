@@ -418,20 +418,20 @@ bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &resu
 
     if (!map.getBuffer())
     {
-        result = "No data in map!";
+        result = "No data in map";
         return false;
     }
 
     if (!SD.begin(sdPin))
     {
-        result = "SD Card mount failed!";
+        result = "SD Card mount failed";
         return false;
     }
 
     File file = SD.open(filename, FILE_WRITE);
     if (!file)
     {
-        result = "Failed to open file!";
+        result = "Failed to open file";
         SD.end();
         return false;
     }
@@ -481,7 +481,7 @@ bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &resu
     MemoryBuffer rowBuffer(map.width() * 3);
     if (!rowBuffer.isAllocated())
     {
-        result = "Memory allocation failed";
+        result = "Row buffer allocation failed";
         file.close();
         SD.end();
         return false;
