@@ -330,13 +330,6 @@ std::optional<std::unique_ptr<MemoryBuffer>> OpenStreetMap::downloadTile(const S
     if (httpCode != HTTP_CODE_OK)
     {
         http.end();
-
-        if (httpCode == HTTP_CODE_NOT_FOUND)
-        {
-            result = "HTTP Error 404 - not found " + url;
-            return std::nullopt;
-        }
-
         result = "HTTP Error: " + String(httpCode);
         return std::nullopt;
     }
