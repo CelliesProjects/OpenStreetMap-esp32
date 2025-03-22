@@ -412,7 +412,7 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
     return true;
 }
 
-bool writeHeader(File &file, LGFX_Sprite &map)
+bool OpenStreetMap::writeHeader(const LGFX_Sprite &map, File &file)
 {
     // BMP Header (54 bytes)
     uint16_t bfType = 0x4D42;                              // "BM"
@@ -459,6 +459,27 @@ bool writeHeader(File &file, LGFX_Sprite &map)
     return true;
 }
 
+bool OpenStreetMap::writeMap(LGFX_Sprite &map, File &file, MemoryBuffer &buffer)
+{
+    uint8_t *buf = buffer.get();
+    for (uint16_t y = 0; y < map.height(); y++)
+    {
+        for (uint16_t x = 0; x < map.width(); x++)
+        {
+            uint16_t rgb565Color = map.readPixel(x, y);
+            uint8_t red8 = ((rgb565Color >> 11) & 0x1F) * 255 / 31;
+            uint8_t green8 = ((rgb565Color >> 5) & 0x3F) * 255 / 63;
+            uint8_t blue8 = (rgb565Color & 0x1F) * 255 / 31;
+
+            buf[x * 3] = blue8;
+            buf[x * 3 + 1] = green8;
+            buf[x * 3 + 2] = red8;
+        }
+        file.write(buffer.get(), buffer.size());
+    }  
+    return true;  
+}
+
 bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &result, uint8_t sdPin, uint32_t frequency)
 {
     log_i("Saving map as %s", filename);
@@ -490,24 +511,21 @@ bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &resu
         return false;
     }
 
-    writeHeader(file, map);
-
-    uint8_t *buf = rowBuffer.get();
-    for (uint16_t y = 0; y < map.height(); y++)
+    if (!writeHeader(map, file))
     {
-        for (uint16_t x = 0; x < map.width(); x++)
-        {
-            uint16_t rgb565Color = map.readPixel(x, y);
-            uint8_t red8 = ((rgb565Color >> 11) & 0x1F) * 255 / 31;
-            uint8_t green8 = ((rgb565Color >> 5) & 0x3F) * 255 / 63;
-            uint8_t blue8 = (rgb565Color & 0x1F) * 255 / 31;
-
-            buf[x * 3] = blue8;
-            buf[x * 3 + 1] = green8;
-            buf[x * 3 + 2] = red8;
-        }
-        file.write(buf, rowBuffer.size());
+        result = "Failed to write bmp header";
+        file.close();
+        SD.end();
+        return false;        
     }
+
+    if (!writeMap(map, file, rowBuffer))
+    {
+        result = "Failed to write map data";
+        file.close();
+        SD.end();
+        return false;        
+    }    
 
     file.close();
     SD.end();
