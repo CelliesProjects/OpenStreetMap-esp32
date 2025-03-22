@@ -261,22 +261,11 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
         }
     }
 
-    // normalize the coordinates
     longitude = fmod(longitude + 180.0, 360.0) - 180.0;
     latitude = std::clamp(latitude, -90.0, 90.0);
 
     tileList requiredTiles;
     computeRequiredTiles(longitude, latitude, zoom, requiredTiles);
-
-#define SHOW_REQUIRED_TILES false
-#if defined(SHOW_REQUIRED_TILES) && (SHOW_REQUIRED_TILES == true)
-    log_i("Required Tiles:");
-    for (size_t i = 0; i < requiredTiles.size(); ++i)
-    {
-        log_i("    Tile [%zu]: X=%d, Y=%d", i, requiredTiles[i].first, requiredTiles[i].second);
-    }
-#endif
-
     if (tilesCache.capacity() < requiredTiles.size())
     {
         log_e("Caching error: Need %i cache slots, but only %i are provided", requiredTiles.size(), tilesCache.capacity());
@@ -361,7 +350,6 @@ std::optional<std::unique_ptr<MemoryBuffer>> OpenStreetMap::downloadTile(const S
     if (!readTileDataToBuffer(stream, *buffer, contentSize, result))
     {
         http.end();
-        log_e("%s", result.c_str());
         return std::nullopt;
     }
 
