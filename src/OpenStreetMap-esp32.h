@@ -70,6 +70,8 @@ private:
     bool downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result);
     bool readTileDataToBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t contentSize, String &result);
     bool composeMap(LGFX_Sprite &mapSprite, const tileList &requiredTiles, uint8_t zoom);
+    bool writeHeader(const LGFX_Sprite &map, File &file);
+    bool writeMap(LGFX_Sprite &map, File &file, MemoryBuffer &buffer);
 
     std::vector<CachedTile> tilesCache;
     uint16_t *currentTileBuffer = nullptr;
@@ -84,7 +86,7 @@ private:
     int32_t startTileIndexX = 0;
     int32_t startTileIndexY = 0;
 
-    uint16_t numberOfColums = 0;    
+    uint16_t numberOfColums = 0;
 };
 
 #endif
