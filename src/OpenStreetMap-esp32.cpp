@@ -390,6 +390,12 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
         return false;
     }
 
+    if (png.getWidth() != OSM_TILESIZE || png.getHeight() != OSM_TILESIZE)
+    {
+        result = "Unexpected tile size: w=" + String(png.getWidth()) + " h=" + String(png.getWidth());
+        return false;
+    }
+
     currentInstance = this;
     currentTileBuffer = tile.buffer;
     const int decodeResult = png.decode(0, PNG_FAST_PALETTE);
