@@ -390,34 +390,36 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
     const String url = "https://tile.openstreetmap.org/" + String(zoom) + "/" + String(x) + "/" + String(y) + ".png";
     size_t contentSize;
 
-    auto buffer = downloadTile(url, result, contentSize);
-    if (!buffer)
-        return false;
-
-    const int16_t rc = png.openRAM(buffer.value()->get(), contentSize, PNGDraw);
-    if (rc != PNG_SUCCESS)
     {
-        result = "PNG Decoder Error: " + String(rc);
-        return false;
-    }
+        auto buffer = downloadTile(url, result, contentSize);
+        if (!buffer)
+            return false;
 
-    if (png.getWidth() != OSM_TILESIZE || png.getHeight() != OSM_TILESIZE)
-    {
-        result = "Unexpected tile size: w=" + String(png.getWidth()) + " h=" + String(png.getWidth());
-        return false;
-    }
+        const int16_t rc = png.openRAM(buffer.value()->get(), contentSize, PNGDraw);
+        if (rc != PNG_SUCCESS)
+        {
+            result = "PNG Decoder Error: " + String(rc);
+            return false;
+        }
 
-    currentInstance = this;
-    currentTileBuffer = tile.buffer;
-    const int decodeResult = png.decode(0, PNG_FAST_PALETTE);
-    currentTileBuffer = nullptr;
-    currentInstance = nullptr;
+        if (png.getWidth() != OSM_TILESIZE || png.getHeight() != OSM_TILESIZE)
+        {
+            result = "Unexpected tile size: w=" + String(png.getWidth()) + " h=" + String(png.getWidth());
+            return false;
+        }
 
-    if (decodeResult != PNG_SUCCESS)
-    {
-        result = "Decoding " + url + " failed with code: " + String(decodeResult);
-        tile.valid = false;
-        return false;
+        currentInstance = this;
+        currentTileBuffer = tile.buffer;
+        const int decodeResult = png.decode(0, PNG_FAST_PALETTE);
+        currentTileBuffer = nullptr;
+        currentInstance = nullptr;
+
+        if (decodeResult != PNG_SUCCESS)
+        {
+            result = "Decoding " + url + " failed with code: " + String(decodeResult);
+            tile.valid = false;
+            return false;
+        }
     }
 
     tile.x = x;
