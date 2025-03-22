@@ -462,6 +462,7 @@ bool OpenStreetMap::writeHeader(const LGFX_Sprite &map, File &file)
 bool OpenStreetMap::writeMap(LGFX_Sprite &map, File &file, MemoryBuffer &buffer)
 {
     uint8_t *buf = buffer.get();
+    const size_t size = buffer.size();
     for (uint16_t y = 0; y < map.height(); y++)
     {
         for (uint16_t x = 0; x < map.width(); x++)
@@ -475,9 +476,10 @@ bool OpenStreetMap::writeMap(LGFX_Sprite &map, File &file, MemoryBuffer &buffer)
             buf[x * 3 + 1] = green8;
             buf[x * 3 + 2] = red8;
         }
-        file.write(buffer.get(), buffer.size());
-    }  
-    return true;  
+        if (file.write(buf, size) != size)
+            return false;
+    }
+    return true;
 }
 
 bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &result, uint8_t sdPin, uint32_t frequency)
@@ -516,7 +518,7 @@ bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &resu
         result = "Failed to write bmp header";
         file.close();
         SD.end();
-        return false;        
+        return false;
     }
 
     if (!writeMap(map, file, rowBuffer))
@@ -524,8 +526,8 @@ bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &resu
         result = "Failed to write map data";
         file.close();
         SD.end();
-        return false;        
-    }    
+        return false;
+    }
 
     file.close();
     SD.end();
