@@ -377,7 +377,7 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
     if (!readTileDataToBuffer(stream, buffer, contentSize, result))
     {
         http.end();
-        log_e("%s", result);
+        log_e("%s", result.c_str());
         return false;
     }
 
@@ -412,37 +412,8 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
     return true;
 }
 
-bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &result, uint8_t sdPin, uint32_t frequency)
+bool writeHeader(File &file, LGFX_Sprite &map)
 {
-    log_i("Saving map as %s", filename);
-
-    if (!map.getBuffer())
-    {
-        result = "No data in map";
-        return false;
-    }
-
-    MemoryBuffer rowBuffer(map.width() * 3);
-    if (!rowBuffer.isAllocated())
-    {
-        result = "Row buffer allocation failed";
-        return false;
-    }
-
-    if (!SD.begin(sdPin, SPI, frequency))
-    {
-        result = "SD Card mount failed";
-        return false;
-    }
-
-    File file = SD.open(filename, FILE_WRITE);
-    if (!file)
-    {
-        result = "Failed to open file";
-        SD.end();
-        return false;
-    }
-
     // BMP Header (54 bytes)
     uint16_t bfType = 0x4D42;                              // "BM"
     uint32_t biSizeImage = map.width() * map.height() * 3; // 3 bytes per pixel (RGB888)
@@ -484,6 +455,42 @@ bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &resu
     writeLE(biYPelsPerMeter, 4);
     writeLE(biClrUsed, 4);
     writeLE(biClrImportant, 4);
+
+    return true;
+}
+
+bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &result, uint8_t sdPin, uint32_t frequency)
+{
+    log_i("Saving map as %s", filename);
+
+    if (!map.getBuffer())
+    {
+        result = "No data in map";
+        return false;
+    }
+
+    MemoryBuffer rowBuffer(map.width() * 3);
+    if (!rowBuffer.isAllocated())
+    {
+        result = "Row buffer allocation failed";
+        return false;
+    }
+
+    if (!SD.begin(sdPin, SPI, frequency))
+    {
+        result = "SD Card mount failed";
+        return false;
+    }
+
+    File file = SD.open(filename, FILE_WRITE);
+    if (!file)
+    {
+        result = "Failed to open file";
+        SD.end();
+        return false;
+    }
+
+    writeHeader(file, map);
 
     uint8_t *buf = rowBuffer.get();
     for (uint16_t y = 0; y < map.height(); y++)
