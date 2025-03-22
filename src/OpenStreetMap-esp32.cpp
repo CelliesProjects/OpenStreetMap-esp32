@@ -377,7 +377,7 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
     if (!readTileDataToBuffer(stream, buffer, contentSize, result))
     {
         http.end();
-        log_e("%s", result);
+        log_e("%s", result.c_str());
         return false;
     }
 
@@ -418,6 +418,95 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
     return true;
 }
 
+bool OpenStreetMap::writeHeader(const LGFX_Sprite &map, File &file)
+{
+    // BMP Header (54 bytes)
+    uint16_t bfType = 0x4D42;                              // "BM"
+    uint32_t biSizeImage = map.width() * map.height() * 3; // 3 bytes per pixel (RGB888)
+    uint32_t bfSize = 54 + biSizeImage;                    // Total file size
+    uint32_t bfOffBits = 54;                               // Offset to pixel data
+
+    uint32_t biSize = 40; // Info header size
+    int32_t biWidth = map.width();
+    int32_t biHeight = -map.height(); // Negative to store in top-down order
+    uint16_t biPlanes = 1;
+    uint16_t biBitCount = 24; // RGB888 format
+    uint32_t biCompression = 0;
+    int32_t biXPelsPerMeter = 0;
+    int32_t biYPelsPerMeter = 0;
+    uint32_t biClrUsed = 0;
+    uint32_t biClrImportant = 0;
+
+    auto writeLE = [&](uint32_t value, uint8_t size) -> bool
+    {
+        for (uint8_t i = 0; i < size; i++)
+            if (file.write(static_cast<uint8_t>(value >> (8 * i))) != 1)
+                return false;
+
+        return true;
+    };
+
+    bool success = true;
+
+    if (!(success &= writeLE(bfType, 2)))
+        return false;
+    if (!(success &= writeLE(bfSize, 4)))
+        return false;
+    if (!(success &= writeLE(0, 2)))
+        return false;
+    if (!(success &= writeLE(0, 2)))
+        return false;
+    if (!(success &= writeLE(bfOffBits, 4)))
+        return false;
+    if (!(success &= writeLE(biSize, 4)))
+        return false;
+    if (!(success &= writeLE(biWidth, 4)))
+        return false;
+    if (!(success &= writeLE(biHeight, 4)))
+        return false;
+    if (!(success &= writeLE(biPlanes, 2)))
+        return false;
+    if (!(success &= writeLE(biBitCount, 2)))
+        return false;
+    if (!(success &= writeLE(biCompression, 4)))
+        return false;
+    if (!(success &= writeLE(biSizeImage, 4)))
+        return false;
+    if (!(success &= writeLE(biXPelsPerMeter, 4)))
+        return false;
+    if (!(success &= writeLE(biYPelsPerMeter, 4)))
+        return false;
+    if (!(success &= writeLE(biClrUsed, 4)))
+        return false;
+    if (!(success &= writeLE(biClrImportant, 4)))
+        return false;
+
+    return success;
+}
+
+bool OpenStreetMap::writeMap(LGFX_Sprite &map, File &file, MemoryBuffer &buffer)
+{
+    uint8_t *buf = buffer.get();
+    const size_t size = buffer.size();
+    for (uint16_t y = 0; y < map.height(); y++)
+    {
+        for (uint16_t x = 0; x < map.width(); x++)
+        {
+            uint16_t rgb565Color = map.readPixel(x, y);
+            uint8_t red8 = ((rgb565Color >> 11) & 0x1F) * 255 / 31;
+            uint8_t green8 = ((rgb565Color >> 5) & 0x3F) * 255 / 63;
+            uint8_t blue8 = (rgb565Color & 0x1F) * 255 / 31;
+
+            buf[x * 3] = blue8;
+            buf[x * 3 + 1] = green8;
+            buf[x * 3 + 2] = red8;
+        }
+        if (file.write(buf, size) != size)
+            return false;
+    }
+    return true;
+}
+
 bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &result, uint8_t sdPin, uint32_t frequency)
 {
     log_i("Saving map as %s", filename);
@@ -449,63 +538,20 @@ bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &resu
         return false;
     }
 
-    // BMP Header (54 bytes)
-    uint16_t bfType = 0x4D42;                              // "BM"
-    uint32_t biSizeImage = map.width() * map.height() * 3; // 3 bytes per pixel (RGB888)
-    uint32_t bfSize = 54 + biSizeImage;                    // Total file size
-    uint32_t bfOffBits = 54;                               // Offset to pixel data
-
-    uint32_t biSize = 40; // Info header size
-    int32_t biWidth = map.width();
-    int32_t biHeight = -map.height(); // Negative to store in top-down order
-    uint16_t biPlanes = 1;
-    uint16_t biBitCount = 24; // RGB888 format
-    uint32_t biCompression = 0;
-    int32_t biXPelsPerMeter = 0;
-    int32_t biYPelsPerMeter = 0;
-    uint32_t biClrUsed = 0;
-    uint32_t biClrImportant = 0;
-
-    // Write BMP header (Ensuring little-endian format)
-    auto writeLE = [&](uint32_t value, uint8_t size)
+    if (!writeHeader(map, file))
     {
-        for (uint8_t i = 0; i < size; i++)
-            file.write(static_cast<uint8_t>(value >> (8 * i)));
-    };
+        result = "Failed to write bmp header";
+        file.close();
+        SD.end();
+        return false;
+    }
 
-    writeLE(bfType, 2);
-    writeLE(bfSize, 4);
-    writeLE(0, 2); // bfReserved
-    writeLE(0, 2);
-    writeLE(bfOffBits, 4);
-
-    writeLE(biSize, 4);
-    writeLE(biWidth, 4);
-    writeLE(biHeight, 4);
-    writeLE(biPlanes, 2);
-    writeLE(biBitCount, 2);
-    writeLE(biCompression, 4);
-    writeLE(biSizeImage, 4);
-    writeLE(biXPelsPerMeter, 4);
-    writeLE(biYPelsPerMeter, 4);
-    writeLE(biClrUsed, 4);
-    writeLE(biClrImportant, 4);
-
-    uint8_t *buf = rowBuffer.get();
-    for (uint16_t y = 0; y < map.height(); y++)
+    if (!writeMap(map, file, rowBuffer))
     {
-        for (uint16_t x = 0; x < map.width(); x++)
-        {
-            uint16_t rgb565Color = map.readPixel(x, y);
-            uint8_t red8 = ((rgb565Color >> 11) & 0x1F) * 255 / 31;
-            uint8_t green8 = ((rgb565Color >> 5) & 0x3F) * 255 / 63;
-            uint8_t blue8 = (rgb565Color & 0x1F) * 255 / 31;
-
-            buf[x * 3] = blue8;
-            buf[x * 3 + 1] = green8;
-            buf[x * 3 + 2] = red8;
-        }
-        file.write(buf, rowBuffer.size());
+        result = "Failed to write map data";
+        file.close();
+        SD.end();
+        return false;
     }
 
     file.close();
