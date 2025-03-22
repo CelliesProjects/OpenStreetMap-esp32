@@ -381,9 +381,9 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
     }
 
     const String url = "https://tile.openstreetmap.org/" + String(zoom) + "/" + String(x) + "/" + String(y) + ".png";
-    size_t contentSize;
 
     {
+        size_t contentSize;
         auto buffer = downloadTile(url, result, contentSize);
         if (!buffer)
             return false;
