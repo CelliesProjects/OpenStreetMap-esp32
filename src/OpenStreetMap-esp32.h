@@ -29,6 +29,8 @@
 #include <WiFiClient.h>
 #include <SD.h>
 #include <vector>
+#include <optional>
+#include <memory>
 #include <LovyanGFX.hpp>
 #include <PNGdec.h>
 
@@ -72,7 +74,7 @@ private:
     bool composeMap(LGFX_Sprite &mapSprite, const tileList &requiredTiles, uint8_t zoom);
     bool writeHeader(const LGFX_Sprite &map, File &file);
     bool writeMap(LGFX_Sprite &map, File &file, MemoryBuffer &buffer);
-
+    std::optional<std::unique_ptr<MemoryBuffer>> downloadTile(const String &url, String &result, size_t &size);
     std::vector<CachedTile> tilesCache;
     uint16_t *currentTileBuffer = nullptr;
     PNG png;
