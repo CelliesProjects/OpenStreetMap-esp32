@@ -419,7 +419,6 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
     tile.y = y;
     tile.z = zoom;
     tile.valid = true;
-
     result = "Added: " + url;
     return true;
 }

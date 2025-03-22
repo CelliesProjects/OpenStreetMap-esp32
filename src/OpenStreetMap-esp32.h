@@ -75,6 +75,7 @@ private:
     bool writeHeader(const LGFX_Sprite &map, File &file);
     bool writeMap(LGFX_Sprite &map, File &file, MemoryBuffer &buffer);
     std::optional<std::unique_ptr<MemoryBuffer>> downloadTile(const String &url, String &result, size_t &size);
+
     std::vector<CachedTile> tilesCache;
     uint16_t *currentTileBuffer = nullptr;
     PNG png;
