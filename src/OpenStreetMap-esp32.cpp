@@ -434,12 +434,9 @@ bool OpenStreetMap::writeHeader(const LGFX_Sprite &map, File &file)
     auto writeLE = [&](uint32_t value, uint8_t size) -> bool
     {
         for (uint8_t i = 0; i < size; i++)
-        {
             if (file.write(static_cast<uint8_t>(value >> (8 * i))) != 1)
-            {
                 return false;
-            }
-        }
+
         return true;
     };
 
@@ -450,7 +447,7 @@ bool OpenStreetMap::writeHeader(const LGFX_Sprite &map, File &file)
     if (!(success &= writeLE(bfSize, 4)))
         return false;
     if (!(success &= writeLE(0, 2)))
-        return false; // bfReserved
+        return false;
     if (!(success &= writeLE(0, 2)))
         return false;
     if (!(success &= writeLE(bfOffBits, 4)))
