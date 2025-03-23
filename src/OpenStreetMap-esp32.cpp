@@ -188,7 +188,7 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
         {
             CachedTile *tileToReplace = findUnusedTile(requiredTiles, zoom);
             String result;
-            if (!downloadAndDecodeTile(*tileToReplace, x, y, zoom, result))
+            if (!fetchTile(*tileToReplace, x, y, zoom, result))
                 log_e("%s", result.c_str());
             else
                 log_i("%s", result.c_str());
@@ -359,7 +359,7 @@ std::optional<std::unique_ptr<MemoryBuffer>> OpenStreetMap::downloadTile(const S
     return buffer;
 }
 
-bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result)
+bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result)
 {
     const uint32_t worldTileWidth = 1 << zoom;
     if (x >= worldTileWidth || y >= worldTileWidth)
