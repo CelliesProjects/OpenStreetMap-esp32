@@ -484,8 +484,6 @@ bool OpenStreetMap::writeMap(LGFX_Sprite &map, File &file, MemoryBuffer &buffer)
 
 bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &result, uint8_t sdPin, uint32_t frequency)
 {
-    log_i("Saving map as %s", filename);
-
     if (!map.getBuffer())
     {
         result = "No data in map";
