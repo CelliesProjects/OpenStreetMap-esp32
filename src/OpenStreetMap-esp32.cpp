@@ -54,15 +54,6 @@ void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
 
     uint16_t *destRow = currentInstance->currentTileBuffer + (pDraw->y * OSM_TILESIZE);
     currentInstance->png.getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, 0xffffffff);
-
-    constexpr uint16_t YIELD_DELAY_MS = 20;
-    static unsigned long lastYieldTime = 0;
-    unsigned long currentTime = millis();
-    if (currentTime - lastYieldTime >= YIELD_DELAY_MS)
-    {
-        yield();
-        lastYieldTime = currentTime;
-    }
 }
 
 void OpenStreetMap::computeRequiredTiles(double longitude, double latitude, uint8_t zoom, tileList &requiredTiles)
