@@ -52,8 +52,17 @@ void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
     if (!currentInstance || !currentInstance->currentTileBuffer)
         return;
 
-    uint16_t *destRow = currentInstance->currentTileBuffer + (pDraw->y * 256);
+    uint16_t *destRow = currentInstance->currentTileBuffer + (pDraw->y * OSM_TILESIZE);
     currentInstance->png.getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, 0xffffffff);
+
+    constexpr uint16_t YIELD_DELAY_MS = 20;
+    static unsigned long lastYieldTime = 0;
+    unsigned long currentTime = millis();
+    if (currentTime - lastYieldTime >= YIELD_DELAY_MS)
+    {
+        yield();
+        lastYieldTime = currentTime;
+    }
 }
 
 void OpenStreetMap::computeRequiredTiles(double longitude, double latitude, uint8_t zoom, tileList &requiredTiles)
@@ -186,12 +195,16 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
     {
         if (!isTileCached(x, y, zoom))
         {
+            const unsigned long startMs = millis();
             CachedTile *tileToReplace = findUnusedTile(requiredTiles, zoom);
             String result;
             if (!fetchTile(*tileToReplace, x, y, zoom, result))
                 log_e("%s", result.c_str());
             else
-                log_i("%s", result.c_str());
+            {
+                log_v("%s", result.c_str());
+                log_i("tile cached in %i ms", millis() - startMs);
+            }
         }
     }
 }
@@ -309,7 +322,7 @@ bool OpenStreetMap::readTileDataToBuffer(WiFiClient *stream, MemoryBuffer &buffe
     return true;
 }
 
-std::optional<std::unique_ptr<MemoryBuffer>> OpenStreetMap::downloadTile(const String &url, String &result, size_t &size)
+std::optional<std::unique_ptr<MemoryBuffer>> OpenStreetMap::urlToBuffer(const String &url, String &result)
 {
     HTTPClient http;
     http.setUserAgent("OpenStreetMap-esp32/1.0 (+https://github.com/CelliesProjects/OpenStreetMap-esp32)");
@@ -358,7 +371,6 @@ std::optional<std::unique_ptr<MemoryBuffer>> OpenStreetMap::downloadTile(const S
     }
 
     http.end();
-    size = contentSize;
     result = "Downloaded tile " + url;
     return buffer;
 }
@@ -375,12 +387,11 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
     const String url = "https://tile.openstreetmap.org/" + String(zoom) + "/" + String(x) + "/" + String(y) + ".png";
 
     {
-        size_t contentSize;
-        auto buffer = downloadTile(url, result, contentSize);
+        auto buffer = urlToBuffer(url, result);
         if (!buffer)
             return false;
 
-        const int16_t rc = png.openRAM(buffer.value()->get(), contentSize, PNGDraw);
+        const int16_t rc = png.openRAM(buffer.value()->get(), buffer.value()->size(), PNGDraw);
         if (rc != PNG_SUCCESS)
         {
             result = "PNG Decoder Error: " + String(rc);

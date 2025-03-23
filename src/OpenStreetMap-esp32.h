@@ -70,7 +70,7 @@ private:
     bool isTileCached(uint32_t x, uint32_t y, uint8_t z);
     CachedTile *findUnusedTile(const tileList &requiredTiles, uint8_t zoom);
     bool fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result);
-    std::optional<std::unique_ptr<MemoryBuffer>> downloadTile(const String &url, String &result, size_t &size);
+    std::optional<std::unique_ptr<MemoryBuffer>> urlToBuffer(const String &url, String &result);
     bool readTileDataToBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t contentSize, String &result);
     bool composeMap(LGFX_Sprite &mapSprite, const tileList &requiredTiles, uint8_t zoom);
     bool writeHeader(const LGFX_Sprite &map, File &file);
