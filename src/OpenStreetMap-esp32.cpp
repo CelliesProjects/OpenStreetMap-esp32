@@ -296,10 +296,14 @@ bool OpenStreetMap::readTileDataToBuffer(WiFiClient *stream, MemoryBuffer &buffe
             readSize += bytesRead;
             lastReadTime = millis();
         }
-        else if (millis() - lastReadTime >= OSM_TILE_TIMEOUT_MS)
+        else
         {
-            result = "Timeout: No data received within " + String(OSM_TILE_TIMEOUT_MS) + " ms";
-            return false;
+            if (millis() - lastReadTime >= OSM_TILE_TIMEOUT_MS)
+            {
+                result = "Timeout: No data received within " + String(OSM_TILE_TIMEOUT_MS) + " ms";
+                return false;
+            }
+            yield();
         }
     }
     return true;
