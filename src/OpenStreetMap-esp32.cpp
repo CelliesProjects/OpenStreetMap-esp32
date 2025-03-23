@@ -287,7 +287,7 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
     return true;
 }
 
-bool OpenStreetMap::readTileData(WiFiClient *stream, MemoryBuffer &buffer, size_t contentSize, String &result)
+bool OpenStreetMap::fillBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t contentSize, String &result)
 {
     size_t readSize = 0;
     unsigned long lastReadTime = millis();
@@ -355,7 +355,7 @@ std::optional<std::unique_ptr<MemoryBuffer>> OpenStreetMap::urlToBuffer(const St
         return std::nullopt;
     }
 
-    if (!readTileData(stream, *buffer, contentSize, result))
+    if (!fillBuffer(stream, *buffer, contentSize, result))
     {
         http.end();
         return std::nullopt;
