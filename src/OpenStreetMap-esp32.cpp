@@ -296,7 +296,7 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
     return true;
 }
 
-bool OpenStreetMap::readTileDataToBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t contentSize, String &result)
+bool OpenStreetMap::readTileData(WiFiClient *stream, MemoryBuffer &buffer, size_t contentSize, String &result)
 {
     size_t readSize = 0;
     unsigned long lastReadTime = millis();
@@ -364,7 +364,7 @@ std::optional<std::unique_ptr<MemoryBuffer>> OpenStreetMap::urlToBuffer(const St
         return std::nullopt;
     }
 
-    if (!readTileDataToBuffer(stream, *buffer, contentSize, result))
+    if (!readTileData(stream, *buffer, contentSize, result))
     {
         http.end();
         return std::nullopt;
@@ -386,6 +386,7 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
 
     const String url = "https://tile.openstreetmap.org/" + String(zoom) + "/" + String(x) + "/" + String(y) + ".png";
 
+    int decodeResult;
     {
         auto buffer = urlToBuffer(url, result);
         if (!buffer)
@@ -406,16 +407,16 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
 
         currentInstance = this;
         currentTileBuffer = tile.buffer;
-        const int decodeResult = png.decode(0, PNG_FAST_PALETTE);
+        decodeResult = png.decode(0, PNG_FAST_PALETTE);
         currentTileBuffer = nullptr;
         currentInstance = nullptr;
+    }
 
-        if (decodeResult != PNG_SUCCESS)
-        {
-            result = "Decoding " + url + " failed with code: " + String(decodeResult);
-            tile.valid = false;
-            return false;
-        }
+    if (decodeResult != PNG_SUCCESS)
+    {
+        result = "Decoding " + url + " failed with code: " + String(decodeResult);
+        tile.valid = false;
+        return false;
     }
 
     tile.x = x;
