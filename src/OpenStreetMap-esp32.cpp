@@ -261,22 +261,11 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
         }
     }
 
-    // normalize the coordinates
     longitude = fmod(longitude + 180.0, 360.0) - 180.0;
     latitude = std::clamp(latitude, -90.0, 90.0);
 
     tileList requiredTiles;
     computeRequiredTiles(longitude, latitude, zoom, requiredTiles);
-
-#define SHOW_REQUIRED_TILES false
-#if defined(SHOW_REQUIRED_TILES) && (SHOW_REQUIRED_TILES == true)
-    log_i("Required Tiles:");
-    for (size_t i = 0; i < requiredTiles.size(); ++i)
-    {
-        log_i("    Tile [%zu]: X=%d, Y=%d", i, requiredTiles[i].first, requiredTiles[i].second);
-    }
-#endif
-
     if (tilesCache.capacity() < requiredTiles.size())
     {
         log_e("Caching error: Need %i cache slots, but only %i are provided", requiredTiles.size(), tilesCache.capacity());
@@ -316,6 +305,60 @@ bool OpenStreetMap::readTileDataToBuffer(WiFiClient *stream, MemoryBuffer &buffe
     return true;
 }
 
+std::optional<std::unique_ptr<MemoryBuffer>> OpenStreetMap::downloadTile(const String &url, String &result, size_t &size)
+{
+    HTTPClient http;
+    http.setUserAgent("OpenStreetMap-esp32/1.0 (+https://github.com/CelliesProjects/OpenStreetMap-esp32)");
+    if (!http.begin(url))
+    {
+        result = "Failed to initialize HTTP client";
+        return std::nullopt;
+    }
+
+    const int httpCode = http.GET();
+    if (httpCode != HTTP_CODE_OK)
+    {
+        http.end();
+        result = "HTTP Error: " + String(httpCode);
+        return std::nullopt;
+    }
+
+    const size_t contentSize = http.getSize();
+    if (contentSize < 1)
+    {
+        http.end();
+        result = "Empty or chunked response";
+        return std::nullopt;
+    }
+
+    WiFiClient *stream = http.getStreamPtr();
+    if (!stream)
+    {
+        http.end();
+        result = "Failed to get HTTP stream";
+        return std::nullopt;
+    }
+
+    auto buffer = std::make_unique<MemoryBuffer>(contentSize);
+    if (!buffer->isAllocated())
+    {
+        http.end();
+        result = "Failed to allocate buffer";
+        return std::nullopt;
+    }
+
+    if (!readTileDataToBuffer(stream, *buffer, contentSize, result))
+    {
+        http.end();
+        return std::nullopt;
+    }
+
+    http.end();
+    size = contentSize;
+    result = "Downloaded tile " + url;
+    return buffer;
+}
+
 bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result)
 {
     const uint32_t worldTileWidth = 1 << zoom;
@@ -327,93 +370,43 @@ bool OpenStreetMap::downloadAndDecodeTile(CachedTile &tile, uint32_t x, uint32_t
 
     const String url = "https://tile.openstreetmap.org/" + String(zoom) + "/" + String(x) + "/" + String(y) + ".png";
 
-    HTTPClient http;
-    http.setUserAgent("OpenStreetMap-esp32/1.0 (+https://github.com/CelliesProjects/OpenStreetMap-esp32)");
-    if (!http.begin(url))
     {
-        result = "Failed to initialize HTTP client";
-        return false;
-    }
+        size_t contentSize;
+        auto buffer = downloadTile(url, result, contentSize);
+        if (!buffer)
+            return false;
 
-    const int httpCode = http.GET();
-    if (httpCode != HTTP_CODE_OK)
-    {
-        http.end();
-
-        if (httpCode == HTTP_CODE_NOT_FOUND)
+        const int16_t rc = png.openRAM(buffer.value()->get(), contentSize, PNGDraw);
+        if (rc != PNG_SUCCESS)
         {
-            result = "HTTP Error 404 - not found tile " + String(x) + "," + String(y) + "," + String(zoom);
+            result = "PNG Decoder Error: " + String(rc);
             return false;
         }
 
-        result = "HTTP Error: " + String(httpCode);
-        return false;
-    }
+        if (png.getWidth() != OSM_TILESIZE || png.getHeight() != OSM_TILESIZE)
+        {
+            result = "Unexpected tile size: w=" + String(png.getWidth()) + " h=" + String(png.getWidth());
+            return false;
+        }
 
-    const size_t contentSize = http.getSize();
-    if (contentSize < 1)
-    {
-        http.end();
-        result = "Empty or chunked response";
-        return false;
-    }
+        currentInstance = this;
+        currentTileBuffer = tile.buffer;
+        const int decodeResult = png.decode(0, PNG_FAST_PALETTE);
+        currentTileBuffer = nullptr;
+        currentInstance = nullptr;
 
-    WiFiClient *stream = http.getStreamPtr();
-    if (!stream)
-    {
-        http.end();
-        result = "Failed to get HTTP stream";
-        return false;
-    }
-
-    MemoryBuffer buffer(contentSize);
-    if (!buffer.isAllocated())
-    {
-        http.end();
-        result = "Failed to allocate buffer";
-        return false;
-    }
-
-    if (!readTileDataToBuffer(stream, buffer, contentSize, result))
-    {
-        http.end();
-        log_e("%s", result.c_str());
-        return false;
-    }
-
-    http.end();
-
-    const int16_t rc = png.openRAM(buffer.get(), contentSize, PNGDraw);
-    if (rc != PNG_SUCCESS)
-    {
-        result = "PNG Decoder Error: " + String(rc);
-        return false;
-    }
-
-    if (png.getWidth() != OSM_TILESIZE || png.getHeight() != OSM_TILESIZE)
-    {
-        result = "Unexpected tile size: w=" + String(png.getWidth()) + " h=" + String(png.getWidth());
-        return false;
-    }
-
-    currentInstance = this;
-    currentTileBuffer = tile.buffer;
-    const int decodeResult = png.decode(0, PNG_FAST_PALETTE);
-    currentTileBuffer = nullptr;
-    currentInstance = nullptr;
-
-    if (decodeResult != PNG_SUCCESS)
-    {
-        result = "Decoding " + url + " failed with code: " + String(decodeResult);
-        tile.valid = false;
-        return false;
+        if (decodeResult != PNG_SUCCESS)
+        {
+            result = "Decoding " + url + " failed with code: " + String(decodeResult);
+            tile.valid = false;
+            return false;
+        }
     }
 
     tile.x = x;
     tile.y = y;
     tile.z = zoom;
     tile.valid = true;
-
     result = "Added: " + url;
     return true;
 }
