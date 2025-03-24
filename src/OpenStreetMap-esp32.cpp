@@ -498,6 +498,11 @@ bool OpenStreetMap::writeMapToSD(LGFX_Sprite &map, File &file, MemoryBuffer &buf
     return true;
 }
 
+bool OpenStreetMap::saveMap(const String &filename, LGFX_Sprite &map, String &result, uint8_t sdPin, uint32_t frequency)
+{
+    return saveMap(filename.c_str(), map, result, sdPin, frequency);
+}
+
 bool OpenStreetMap::saveMap(const char *filename, LGFX_Sprite &map, String &result, uint8_t sdPin, uint32_t frequency)
 {
     if (!map.getBuffer())
