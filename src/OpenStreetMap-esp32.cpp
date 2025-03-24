@@ -243,7 +243,7 @@ bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, const tileList &requiredT
 
 bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double latitude, uint8_t zoom)
 {
-    if (!zoom || zoom > 18)
+    if (!zoom || zoom > OSM_MAX_ZOOM)
     {
         log_e("Invalid zoom level: %d", zoom);
         return false;
