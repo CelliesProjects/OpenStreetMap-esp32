@@ -2,9 +2,8 @@
 
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/0961fc2320cd495a9411eb391d5791ca)](https://app.codacy.com/gh/CelliesProjects/OpenStreetMap-esp32/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 
-### What is this
-
 This library provides a [OpenStreetMap](https://www.openstreetmap.org/) (OSM) map fetching and tile caching system for ESP32-based devices.
+
 Under the hood it uses [LovyanGFX](https://github.com/lovyan03/LovyanGFX) and [PNGdec](https://github.com/bitbank2/PNGdec) to do the heavy lifting.
 
 [![map](https://github.com/user-attachments/assets/39a7f287-c59d-4365-888a-d4c3f77a1dd1 "Click to visit OpenStreetMap.org")](https://www.openstreetmap.org/)
@@ -13,22 +12,34 @@ A map is composed from downloaded OSM tiles and returned as a LGFX sprite.
 The sprite can be pushed to the screen or used for further composing.
 Downloaded tiles are cached in psram for reuse.
 
-This library should work on any ESP32 type with psram and a LovyanGFX compatible display.  
+This library should work on any ESP32 type with psram and a LovyanGFX compatible display.
 The downloaded tile cache gets large very quickly -128kB per tile- so psram is required.
 
 This project is not endorsed by or affiliated with the OpenStreetMap Foundation.
 
-### Functions
+## License differences between this library and the map data
 
-#### Set map resolution
+### This library has a MIT license
+
+The `OpenstreetMap-esp32` library -this library- is licensed under the [MIT license](/LICENSE).
+
+### The downloaded tile data has a Open Data Commons Open Database License (ODbL)
+
+OpenStreetMap® is open data, licensed under the [Open Data Commons Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/) by the OpenStreetMap Foundation (OSMF).
+
+Use of any OSMF provided service is governed by the [OSMF Terms of Use](https://osmfoundation.org/wiki/Terms_of_Use).
+
+## Functions
+
+### Set map resolution
 
 ```c++
-void setResolution(uint16_t w, uint16_t h);
+void setSize(uint16_t w, uint16_t h);
 ```
 
-- If no resolution is set, a 320 by 240 map will be returned by `fetchMap`.
+- If no size is set a 320px by 240px map will be returned by `fetchMap`.
 
-#### Resize cache 
+### Resize cache
 
 ```c++
 bool resizeTilesCache(uint8_t numberOfTiles); 
@@ -37,13 +48,13 @@ bool resizeTilesCache(uint8_t numberOfTiles);
 - The cache is cleared before resizing.
 - Each tile is 128 kB.
 
-#### Free the memory used by the tile cache
+### Free the memory used by the tile cache
 
 ```c++
 void freeTilesCache();
 ```
 
-#### Fetch a map
+### Fetch a map
 
 ```c++
 bool fetchMap(LGFX_Sprite &map, double longitude, double latitude, uint8_t zoom);
@@ -52,32 +63,20 @@ bool fetchMap(LGFX_Sprite &map, double longitude, double latitude, uint8_t zoom)
 - `longitude` and `latitude` are normalized to valid coordinates.
 - Valid range for the `zoom` level is 1-18.
 
-#### Save a map to SD card
+### Save a map to SD card
 
 ```c++
 bool saveMap(const char *filename, LGFX_Sprite &map, String &result, 
              uint8_t sdPin = SS, uint32_t frequency = 4000000)
 ```
 
-- `filename` must start with `/` for example `/map.bmp` or `/images/map.bmp` 
+- `filename` must start with `/` for example `/map.bmp` or `/images/map.bmp`
 - `result` returns something like `SD Card mount failed` or `Screenshot saved`.
 - `sdPin` is **optional** and used to set a `SS/CS` pin for the SD slot.
 - `frequency` is **optional** and used to set the SD speed.
 
-**Note**: The SD card is managed from `begin()` to `end()` inside the `saveMap()` function.  
+**Note**: The SD card is managed from `begin()` to `end()` inside the `saveMap()` function.
 Do not mount the SD card before this function but unmount if it is mounted else memory will be leaked.
-
-## License differences between this library and the map data
-
-### This library has a MIT license
-
-The `OpenstreetMap-esp32` library -this library- is licensed under the [MIT license](/LICENSE).  
-
-### The downloaded tile data has a Open Data Commons Open Database License (ODbL)
-
-OpenStreetMap® is open data, licensed under the [Open Data Commons Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/) by the OpenStreetMap Foundation (OSMF).
-
-Use of any OSMF provided service is governed by the [OSMF Terms of Use](https://osmfoundation.org/wiki/Terms_of_Use).
 
 ## Example code
 

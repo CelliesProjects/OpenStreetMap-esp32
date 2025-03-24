@@ -28,7 +28,7 @@ OpenStreetMap::~OpenStreetMap()
     freeTilesCache();
 }
 
-void OpenStreetMap::setResolution(uint16_t w, uint16_t h)
+void OpenStreetMap::setSize(uint16_t w, uint16_t h)
 {
     mapWidth = w;
     mapHeight = h;
