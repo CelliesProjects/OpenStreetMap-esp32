@@ -219,7 +219,7 @@ bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, const tileList &requiredT
         }
     }
 
-    const int32_t worldTileHeight = 1 << zoom; // Maximum valid tileY
+    const int32_t worldTileHeight = 1 << zoom;
 
     int tileIndex = 0;
     for (const auto &[tileX, tileY] : requiredTiles)
