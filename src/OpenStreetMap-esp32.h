@@ -38,7 +38,7 @@
 #include "MemoryBuffer.h"
 
 constexpr uint16_t OSM_TILESIZE = 256;
-constexpr uint16_t OSM_TILE_TIMEOUT_MS = 500;
+constexpr uint16_t OSM_TILE_TIMEOUT_MS = 2500;
 constexpr uint16_t OSM_DEFAULT_CACHE_ITEMS = 10;
 constexpr uint16_t OSM_MAX_ZOOM = 18;
 
