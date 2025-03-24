@@ -60,7 +60,7 @@ bool fetchMap(LGFX_Sprite &map, double longitude, double latitude, uint8_t zoom)
 ```
 
 - Overflowing `longitude` are wrapped and normalized to +-180°.
-- Overflowing `latitude` are clamped to +-90°. There might still be map errors close to both poles.
+- Overflowing `latitude` are clamped to +-90°.
 - Valid range for the `zoom` level is 1-18.
 
 ### Save a map to SD card
