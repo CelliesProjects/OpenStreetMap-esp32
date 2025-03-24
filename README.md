@@ -30,7 +30,7 @@ Use of any OSMF provided service is governed by the [OSMF Terms of Use](https://
 
 ## Functions
 
-### Set map resolution
+### Set map size
 
 ```c++
 void setSize(uint16_t w, uint16_t h);
@@ -183,7 +183,7 @@ void setup()
     display.setBrightness(110);
 
     osm.resizeTilesCache(cacheSize);
-    osm.setResolution(mapWidth, mapHeight);
+    osm.setSize(mapWidth, mapHeight);
 
     LGFX_Sprite map(&display);
 
