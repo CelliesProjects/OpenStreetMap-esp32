@@ -182,8 +182,12 @@ bool OpenStreetMap::resizeTilesCache(uint8_t numberOfTiles)
 
 void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
 {
+    const int32_t worldTileHeight = 1 << zoom;
     for (const auto &[x, y] : requiredTiles)
     {
+        if (y < 0 || y >= worldTileHeight)
+            continue;
+
         if (!isTileCached(x, y, zoom))
         {
             const unsigned long startMs = millis();
@@ -215,9 +219,17 @@ bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, const tileList &requiredT
         }
     }
 
+    const int32_t worldTileHeight = 1 << zoom; // Maximum valid tileY
+
     int tileIndex = 0;
     for (const auto &[tileX, tileY] : requiredTiles)
     {
+        if (tileY < 0 || tileY >= worldTileHeight)
+        {
+            tileIndex++;
+            continue;
+        }
+
         int drawX = startOffsetX + (tileIndex % numberOfColums) * OSM_TILESIZE;
         int drawY = startOffsetY + (tileIndex / numberOfColums) * OSM_TILESIZE;
 

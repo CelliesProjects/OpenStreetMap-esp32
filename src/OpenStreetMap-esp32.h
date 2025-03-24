@@ -42,7 +42,7 @@ constexpr uint16_t OSM_TILE_TIMEOUT_MS = 500;
 constexpr uint16_t OSM_DEFAULT_CACHE_ITEMS = 10;
 constexpr uint16_t OSM_MAX_ZOOM = 18;
 
-using tileList = std::vector<std::pair<uint32_t, uint32_t>>;
+using tileList = std::vector<std::pair<uint32_t, int32_t>>;
 
 class OpenStreetMap
 {
