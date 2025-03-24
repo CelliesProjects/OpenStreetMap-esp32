@@ -74,8 +74,8 @@ private:
     std::optional<std::unique_ptr<MemoryBuffer>> urlToBuffer(const String &url, String &result);
     bool fillBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t contentSize, String &result);
     bool composeMap(LGFX_Sprite &mapSprite, const tileList &requiredTiles, uint8_t zoom);
-    bool writeHeader(const LGFX_Sprite &map, File &file);
-    bool writeMap(LGFX_Sprite &map, File &file, MemoryBuffer &buffer);
+    bool writeHeaderToSD(const LGFX_Sprite &map, File &file);
+    bool writeMapToSD(LGFX_Sprite &map, File &file, MemoryBuffer &buffer);
 
     std::vector<CachedTile> tilesCache;
     uint16_t *currentTileBuffer = nullptr;
