@@ -8,7 +8,7 @@ Under the hood it uses [LovyanGFX](https://github.com/lovyan03/LovyanGFX) and [P
 [![map](https://github.com/user-attachments/assets/39a7f287-c59d-4365-888a-d4c3f77a1dd1 "Click to visit OpenStreetMap.org")](https://www.openstreetmap.org/)
 
 A map is composed from downloaded OSM tiles and returned as a LGFX sprite.
-The sprite can be pushed to the screen or used for further composing.
+The sprite can be pushed to the screen, saved to SD or used for further composing.
 Downloaded tiles are cached in psram for reuse.
 
 This library should work on any ESP32 type with psram and a LovyanGFX compatible display.
@@ -204,10 +204,6 @@ void loop()
     delay(1000);
 }
 ```
-
-### Screenshot of a 480x800 map from a esp32-8048s050
-
-![map](https://github.com/user-attachments/assets/9a92bbff-e96d-444d-8b34-29801744fa80)
 
 ### PlatformIO setup
 
