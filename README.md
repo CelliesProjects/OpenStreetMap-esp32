@@ -44,9 +44,9 @@ void setSize(uint16_t w, uint16_t h);
 bool resizeTilesCache(uint8_t numberOfTiles); 
 ```
 
-- The cache is cleared before resizing.
-- Each tile is 128 kB.
 - Default cache size is 10 tiles.
+- Each tile is 128 kB.
+- The cache is cleared before resizing.
 
 ### Free the memory used by the tile cache
 
@@ -196,7 +196,7 @@ void loop()
 
 ```bash
 lib_deps =
-    https://github.com/CelliesProjects/OpenStreetMap-esp32
+    CelliesProjects/OpenStreetMap-esp32@^1.0.0
     lovyan03/LovyanGFX@^1.2.0
     bitbank2/PNGdec@^1.0.3  
 ```
