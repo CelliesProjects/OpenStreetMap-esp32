@@ -63,21 +63,6 @@ bool fetchMap(LGFX_Sprite &map, double longitude, double latitude, uint8_t zoom)
 - Overflowing `latitude` are clamped to +-90°.
 - Valid range for the `zoom` level is 1-18.
 
-### Save a map to SD card
-
-```c++
-bool saveMap(const char *filename, LGFX_Sprite &map, String &result, 
-             uint8_t sdPin = SS, uint32_t frequency = 4000000)
-```
-
-- `filename` must start with `/` for example `/map.bmp` or `/images/map.bmp`
-- `result` returns something like `SD Card mount failed` or `Screenshot saved`.
-- `sdPin` is **optional** and used to set a `SS/CS` pin for the SD slot.
-- `frequency` is **optional** and used to set the SD speed.
-
-**Note**: The SD card is managed from `begin()` to `end()` inside the `saveMap()` function.
-Do not mount the SD card before this function but unmount if it is mounted else memory will be leaked.
-
 ## Example code
 
 ### Example returning the default 320x240 map
