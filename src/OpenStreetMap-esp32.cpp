@@ -378,7 +378,10 @@ std::optional<std::unique_ptr<MemoryBuffer>> OpenStreetMap::urlToBuffer(const St
 bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result)
 {
     if (zoom < 1 || zoom > OSM_MAX_ZOOM)
+    {
         result = "Invalid zoom level: " + String(zoom);
+        return false;
+    }
 
     const uint32_t worldTileWidth = 1 << zoom;
     if (x >= worldTileWidth || y >= worldTileWidth)
