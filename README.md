@@ -46,6 +46,7 @@ bool resizeTilesCache(uint8_t numberOfTiles);
 
 - The cache is cleared before resizing.
 - Each tile is 128 kB.
+- Default cache size is 10 tiles.
 
 ### Free the memory used by the tile cache
 
