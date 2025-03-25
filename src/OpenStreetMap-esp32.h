@@ -59,8 +59,6 @@ public:
     bool resizeTilesCache(uint8_t numberOfTiles);
     void freeTilesCache();
     bool fetchMap(LGFX_Sprite &sprite, double longitude, double latitude, uint8_t zoom);
-    bool saveMap(const char *filename, LGFX_Sprite &map, String &result, uint8_t sdPin = SS, uint32_t frequency = 4000000);
-    bool saveMap(const String &filename, LGFX_Sprite &map, String &result, uint8_t sdPin = SS, uint32_t frequency = 4000000);
 
 private:
     static OpenStreetMap *currentInstance;
@@ -75,8 +73,6 @@ private:
     std::optional<std::unique_ptr<MemoryBuffer>> urlToBuffer(const String &url, String &result);
     bool fillBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t contentSize, String &result);
     bool composeMap(LGFX_Sprite &mapSprite, const tileList &requiredTiles, uint8_t zoom);
-    bool writeHeaderToSD(const LGFX_Sprite &map, File &file);
-    bool writeMapToSD(LGFX_Sprite &map, File &file, MemoryBuffer &buffer);
 
     std::vector<CachedTile> tilesCache;
     uint16_t *currentTileBuffer = nullptr;
