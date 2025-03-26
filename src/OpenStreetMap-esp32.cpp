@@ -324,8 +324,7 @@ bool OpenStreetMap::fillBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t 
 
 std::optional<std::unique_ptr<MemoryBuffer>> OpenStreetMap::urlToBuffer(const String &url, String &result)
 {
-    HTTPClient http;
-    http.setUserAgent("OpenStreetMap-esp32/1.0 (+https://github.com/CelliesProjects/OpenStreetMap-esp32)");
+    HTTPClientRAII http;
     if (!http.begin(url))
     {
         result = "Failed to initialize HTTP client";
@@ -335,7 +334,6 @@ std::optional<std::unique_ptr<MemoryBuffer>> OpenStreetMap::urlToBuffer(const St
     const int httpCode = http.GET();
     if (httpCode != HTTP_CODE_OK)
     {
-        http.end();
         result = "HTTP Error: " + String(httpCode);
         return std::nullopt;
     }
@@ -343,7 +341,6 @@ std::optional<std::unique_ptr<MemoryBuffer>> OpenStreetMap::urlToBuffer(const St
     const size_t contentSize = http.getSize();
     if (contentSize < 1)
     {
-        http.end();
         result = "Empty or chunked response";
         return std::nullopt;
     }
@@ -351,7 +348,6 @@ std::optional<std::unique_ptr<MemoryBuffer>> OpenStreetMap::urlToBuffer(const St
     WiFiClient *stream = http.getStreamPtr();
     if (!stream)
     {
-        http.end();
         result = "Failed to get HTTP stream";
         return std::nullopt;
     }
@@ -359,18 +355,13 @@ std::optional<std::unique_ptr<MemoryBuffer>> OpenStreetMap::urlToBuffer(const St
     auto buffer = std::make_unique<MemoryBuffer>(contentSize);
     if (!buffer->isAllocated())
     {
-        http.end();
         result = "Failed to allocate buffer";
         return std::nullopt;
     }
 
     if (!fillBuffer(stream, *buffer, contentSize, result))
-    {
-        http.end();
         return std::nullopt;
-    }
 
-    http.end();
     result = "Downloaded tile " + url;
     return buffer;
 }
