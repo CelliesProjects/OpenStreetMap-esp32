@@ -9,6 +9,11 @@ class HTTPClientRAII
 {
 public:
     HTTPClientRAII();
+    HTTPClientRAII(const HTTPClientRAII &) = delete;
+    HTTPClientRAII &operator=(const HTTPClientRAII &) = delete;
+    HTTPClientRAII(HTTPClientRAII &&) = delete;
+    HTTPClientRAII &operator=(HTTPClientRAII &&) = delete;
+
     ~HTTPClientRAII();
 
     bool begin(const String &url);
@@ -16,11 +21,6 @@ public:
     size_t getSize() const;
     WiFiClient *getStreamPtr();
     bool isInitialized() const;
-
-    HTTPClientRAII(const HTTPClientRAII &) = delete;
-    HTTPClientRAII &operator=(const HTTPClientRAII &) = delete;
-    HTTPClientRAII(HTTPClientRAII &&) = delete;
-    HTTPClientRAII &operator=(HTTPClientRAII &&) = delete;
 
 private:
     HTTPClient *http;
