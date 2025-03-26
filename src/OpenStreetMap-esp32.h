@@ -25,18 +25,16 @@
 #define OPENSTREETMAP_ESP32_H
 
 #include <Arduino.h>
-#include <HTTPClient.h>
 #include <WiFiClient.h>
 #include <SD.h>
 #include <vector>
 #include <optional>
-#include <memory>
 #include <LovyanGFX.hpp>
-#include <PNGdec.h>
 
 #include "CachedTile.h"
 #include "MemoryBuffer.h"
 #include "HTTPClientRAII.h"
+#include "pngdecRAII.h"
 
 constexpr uint16_t OSM_TILESIZE = 256;
 constexpr uint16_t OSM_TILE_TIMEOUT_MS = 2500;
@@ -77,7 +75,6 @@ private:
 
     std::vector<CachedTile> tilesCache;
     uint16_t *currentTileBuffer = nullptr;
-    PNG png;
 
     uint16_t mapWidth = 320;
     uint16_t mapHeight = 240;

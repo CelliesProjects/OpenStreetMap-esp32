@@ -383,10 +383,10 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
         if (!buffer)
             return false;
 
-        const int16_t rc = png.openRAM(buffer.value()->get(), buffer.value()->size(), PNGDraw);
-        if (rc != PNG_SUCCESS)
+        PNGDecoderRAII png(PNGDraw);
+        if (!png.open(buffer.value()->get(), buffer.value()->size()))
         {
-            result = "PNG Decoder Error: " + String(rc);
+            result = "PNG Decoder Error";
             return false;
         }
 
