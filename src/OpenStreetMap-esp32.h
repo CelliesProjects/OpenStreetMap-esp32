@@ -25,14 +25,11 @@
 #define OPENSTREETMAP_ESP32_H
 
 #include <Arduino.h>
-#include <HTTPClient.h>
 #include <WiFiClient.h>
 #include <SD.h>
 #include <vector>
 #include <optional>
-#include <memory>
 #include <LovyanGFX.hpp>
-#include <PNGdec.h>
 
 #include "CachedTile.h"
 #include "MemoryBuffer.h"
@@ -78,7 +75,6 @@ private:
 
     std::vector<CachedTile> tilesCache;
     uint16_t *currentTileBuffer = nullptr;
-    PNG png;
 
     uint16_t mapWidth = 320;
     uint16_t mapHeight = 240;
