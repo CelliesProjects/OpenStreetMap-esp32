@@ -44,10 +44,9 @@ void setSize(uint16_t w, uint16_t h);
 bool resizeTilesCache(uint8_t numberOfTiles); 
 ```
 
-- The default cache is initialized on the first fetch.
-- Default cache size is 10 tiles.
-- Each tile is 128 kB.
-- The cache is cleared before resizing.
+- If the cache is not resized before the first call to fetchMap, it will automatically initialize with space for 10 tiles on the first fetch.
+- Each tile allocates 128 kB psram.
+- The cache content is cleared before resizing.
 
 ### Free the memory used by the tile cache
 
