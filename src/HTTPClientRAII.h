@@ -17,7 +17,10 @@ public:
     WiFiClient *getStreamPtr();
     bool isInitialized() const;
 
-    HTTPClientRAII(HTTPClient& other) = delete;
+    HTTPClientRAII(const HTTPClientRAII &) = delete;
+    HTTPClientRAII &operator=(const HTTPClientRAII &) = delete;
+    HTTPClientRAII(HTTPClientRAII &&) = delete;
+    HTTPClientRAII &operator=(HTTPClientRAII &&) = delete;
 
 private:
     HTTPClient *http;
