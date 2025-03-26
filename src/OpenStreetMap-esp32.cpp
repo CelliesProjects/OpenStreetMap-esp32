@@ -303,7 +303,7 @@ bool OpenStreetMap::fillBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t 
     while (readSize < contentSize)
     {
         int availableData = stream->available();
-        if (availableData > 0)
+        if (availableData)
         {
             int bytesRead = stream->readBytes(buffer.get() + readSize, availableData);
             readSize += bytesRead;
