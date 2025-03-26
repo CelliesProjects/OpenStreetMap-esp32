@@ -1,5 +1,6 @@
 #include "HTTPClientRAII.h"
 
+// codacy-disable-next-line cpp/explicit-copy-constructor
 HTTPClientRAII::HTTPClientRAII() : http(new HTTPClient()) {}
 
 HTTPClientRAII::~HTTPClientRAII()
