@@ -17,6 +17,8 @@ public:
     WiFiClient *getStreamPtr();
     bool isInitialized() const;
 
+    HTTPClientRAII(HTTPClient& other) = delete;
+
 private:
     HTTPClient *http;
     const char *userAgent = "OpenStreetMap-esp32/1.0 (+https://github.com/CelliesProjects/OpenStreetMap-esp32)";
