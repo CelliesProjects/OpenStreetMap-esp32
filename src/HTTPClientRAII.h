@@ -9,6 +9,7 @@ class HTTPClientRAII
 {
 public:
     HTTPClientRAII();
+    // This class manages an HTTPClient and should not be copied.
     HTTPClientRAII(const HTTPClientRAII &) = delete;
     HTTPClientRAII &operator=(const HTTPClientRAII &) = delete;
     HTTPClientRAII(HTTPClientRAII &&) = delete;
