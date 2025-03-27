@@ -37,7 +37,7 @@ public:
 
     ~PNGDecoderRAII() {}
 
-    int16_t open(uint8_t *pngData, size_t dataSize)
+    int open(uint8_t *pngData, size_t dataSize)
     {
         return png.openRAM(pngData, dataSize, callback);
     }
