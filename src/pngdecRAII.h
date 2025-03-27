@@ -30,31 +30,20 @@ class PNGDecoderRAII
 {
 public:
     explicit PNGDecoderRAII(PNG_DRAW_CALLBACK *drawCallback)
-        : callback(drawCallback), isOpen(false) {}
+        : callback(drawCallback) {}
 
     PNGDecoderRAII(const PNGDecoderRAII &) = delete;
     PNGDecoderRAII &operator=(const PNGDecoderRAII &) = delete;
 
-    ~PNGDecoderRAII()
-    {
-        close();
-    }
+    ~PNGDecoderRAII() {}
 
-    bool open(uint8_t *pngData, size_t dataSize)
+    int open(uint8_t *pngData, size_t dataSize)
     {
-        if (isOpen)
-            close();
-
-        int result = png.openRAM(pngData, dataSize, callback);
-        isOpen = (result == PNG_SUCCESS);
-        return isOpen;
+        return png.openRAM(pngData, dataSize, callback);
     }
 
     int decode(void *pPriv = NULL, uint8_t options = 0)
     {
-        if (!isOpen)
-            return PNG_INVALID_PARAMETER;
-
         return png.decode(pPriv, options);
     }
 
@@ -66,19 +55,9 @@ public:
         png.getLineAsRGB565(pDraw, dest, format, transparent);
     }
 
-    void close()
-    {
-        if (isOpen)
-        {
-            png.close();
-            isOpen = false;
-        }
-    }
-
 private:
     PNG png;
     PNG_DRAW_CALLBACK *callback;
-    bool isOpen;
 };
 
 #endif // PNGDEC_RAII_H
