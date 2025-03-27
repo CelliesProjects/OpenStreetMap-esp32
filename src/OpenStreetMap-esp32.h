@@ -75,7 +75,8 @@ private:
 
     std::vector<CachedTile> tilesCache;
     uint16_t *currentTileBuffer = nullptr;
-
+    PNG png;
+    
     uint16_t mapWidth = 320;
     uint16_t mapHeight = 240;
 

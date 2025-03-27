@@ -58,8 +58,13 @@ public:
         return png.decode(pPriv, options);
     }
 
-    int getWidth() const { return png.getWidth(); }
-    int getHeight() const { return png.getHeight(); }
+    int getWidth() { return png.getWidth(); }
+    int getHeight() { return png.getHeight(); }
+
+    void getLineAsRGB565(PNGDRAW *pDraw, uint16_t *dest, int format, uint32_t transparent)
+    {
+        png.getLineAsRGB565(pDraw, dest, format, transparent);
+    }
 
     void close()
     {
@@ -71,7 +76,7 @@ public:
     }
 
 private:
-    PNGdec png;
+    PNG png;
     PNG_DRAW_CALLBACK *callback;
     bool isOpen;
 };

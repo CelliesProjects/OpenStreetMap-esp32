@@ -45,17 +45,6 @@ double OpenStreetMap::lat2tile(double lat, uint8_t zoom)
     return (1.0 - log(tan(latRad) + 1.0 / cos(latRad)) / M_PI) / 2.0 * (1 << zoom);
 }
 
-OpenStreetMap *OpenStreetMap::currentInstance = nullptr;
-
-void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
-{
-    if (!currentInstance || !currentInstance->currentTileBuffer)
-        return;
-
-    uint16_t *destRow = currentInstance->currentTileBuffer + (pDraw->y * OSM_TILESIZE);
-    currentInstance->png.getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, 0xffffffff);
-}
-
 void OpenStreetMap::computeRequiredTiles(double longitude, double latitude, uint8_t zoom, tileList &requiredTiles)
 {
     // Compute exact tile coordinates
@@ -366,6 +355,17 @@ std::optional<std::unique_ptr<MemoryBuffer>> OpenStreetMap::urlToBuffer(const St
     return buffer;
 }
 
+OpenStreetMap *OpenStreetMap::currentInstance = nullptr;
+
+void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
+{
+    if (!currentInstance || !currentInstance->currentTileBuffer)
+        return;
+
+    uint16_t *destRow = currentInstance->currentTileBuffer + (pDraw->y * OSM_TILESIZE);
+    currentInstance->png.getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, 0xffffffff);
+}
+
 bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result)
 {
     const uint32_t worldTileWidth = 1 << zoom;
@@ -383,10 +383,10 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
         if (!buffer)
             return false;
 
-        PNGDecoderRAII png(PNGDraw);
-        if (!png.open(buffer.value()->get(), buffer.value()->size()))
+        const int16_t rc = png.openRAM(buffer.value()->get(), buffer.value()->size(), PNGDraw);
+        if (rc != PNG_SUCCESS)
         {
-            result = "PNG Decoder Error";
+            result = "PNG Decoder Error: " + String(rc);
             return false;
         }
 
