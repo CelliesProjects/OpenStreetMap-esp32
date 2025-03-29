@@ -44,7 +44,7 @@ void setSize(uint16_t w, uint16_t h);
 bool resizeTilesCache(uint8_t numberOfTiles); 
 ```
 
-- If the cache is not resized before the first call to `fetchMap`, it will automatically initialize with space for 10 tiles on the first fetch.
+- If the cache is not resized before the first call to `fetchMap`, it will auto initialize with space for 10 tiles on the first call.
 - Each tile allocates 128 kB psram.
 - The cache content is cleared before resizing.
 
