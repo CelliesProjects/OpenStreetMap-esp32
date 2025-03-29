@@ -407,6 +407,5 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
     tile.y = y;
     tile.z = zoom;
     tile.valid = true;
-    result = "Added: " + url;
     return true;
 }
