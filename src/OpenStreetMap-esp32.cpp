@@ -173,22 +173,15 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
 {
     for (const auto &[x, y] : requiredTiles)
     {
-        if (y < 0 || y >= (1 << zoom))
+        if (isTileCached(x, y, zoom) || y < 0 || y >= (1 << zoom))
             continue;
 
-        if (!isTileCached(x, y, zoom))
-        {
-            const unsigned long startMs = millis();
-            CachedTile *tileToReplace = findUnusedTile(requiredTiles, zoom);
-            String result;
-            if (!fetchTile(*tileToReplace, x, y, zoom, result))
-                log_e("%s", result.c_str());
-            else
-            {
-                log_v("%s", result.c_str());
-                log_i("tile cached in %i ms", millis() - startMs);
-            }
-        }
+        const unsigned long startMs = millis();
+        CachedTile *tileToReplace = findUnusedTile(requiredTiles, zoom);
+        String result;
+        fetchTile(*tileToReplace, x, y, zoom, result);
+        log_v("%s", result.c_str());
+        log_i("tile cached in %i ms", millis() - startMs);
     }
 }
 
