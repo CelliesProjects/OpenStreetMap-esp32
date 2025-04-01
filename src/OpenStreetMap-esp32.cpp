@@ -226,6 +226,7 @@ bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, const tileList &requiredT
         tileIndex++;
     }
 
+    mapSprite.setTextColor(TFT_WHITE, TFT_BLACK);
     mapSprite.drawRightString(" Map data from OpenStreetMap.org ",
                               mapSprite.width(), mapSprite.height() - 10, &DejaVu9);
 
