@@ -226,7 +226,7 @@ bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, const tileList &requiredT
         tileIndex++;
     }
 
-    constexpr uint32_t LESS_INTRUSIVE_MS = 15000;
+    constexpr uint32_t LESS_INTRUSIVE_MS = 15 * 60 * 1000;
     static unsigned long initTime = millis();
     if (millis() - initTime < LESS_INTRUSIVE_MS)
         mapSprite.setTextColor(TFT_WHITE, TFT_BLACK);
