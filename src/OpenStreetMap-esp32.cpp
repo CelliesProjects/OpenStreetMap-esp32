@@ -226,9 +226,15 @@ bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, const tileList &requiredT
         tileIndex++;
     }
 
-    mapSprite.setTextColor(TFT_WHITE, TFT_BLACK);
+    constexpr uint32_t LESS_INTRUSIVE_MS = 15000;
+    static unsigned long initTime = millis();
+    if (millis() - initTime < LESS_INTRUSIVE_MS)
+        mapSprite.setTextColor(TFT_WHITE, TFT_BLACK);
+    else
+        mapSprite.setTextColor(TFT_BLACK);
     mapSprite.drawRightString(" Map data from OpenStreetMap.org ",
                               mapSprite.width(), mapSprite.height() - 10, &DejaVu9);
+    mapSprite.setTextColor(TFT_WHITE, TFT_BLACK);
 
     return true;
 }
