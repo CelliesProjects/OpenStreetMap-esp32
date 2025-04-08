@@ -392,7 +392,7 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
 
         if (png.getWidth() != OSM_TILESIZE || png.getHeight() != OSM_TILESIZE)
         {
-            result = "Unexpected tile size: w=" + String(png.getWidth()) + " h=" + String(png.getWidth());
+            result = "Unexpected tile size: w=" + String(png.getWidth()) + " h=" + String(png.getHeight());
             return false;
         }
 
