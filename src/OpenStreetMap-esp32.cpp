@@ -351,7 +351,6 @@ std::optional<std::unique_ptr<MemoryBuffer>> OpenStreetMap::urlToBuffer(const St
     if (!fillBuffer(stream, *buffer, contentSize, result))
         return std::nullopt;
 
-    result = "Downloaded tile " + url;
     return buffer;
 }
 
