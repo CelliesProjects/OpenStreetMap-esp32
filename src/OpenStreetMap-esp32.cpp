@@ -311,7 +311,7 @@ bool OpenStreetMap::fillBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t 
     return true;
 }
 
-std::optional<std::unique_ptr<MemoryBuffer>> OpenStreetMap::urlToBuffer(const String &url, String &result)
+std::optional<std::unique_ptr<MemoryBuffer>> OpenStreetMap::urlToBuffer(const char *url, String &result)
 {
     HTTPClientRAII http;
     if (!http.begin(url))
@@ -374,7 +374,8 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
         return false;
     }
 
-    const String url = "https://tile.openstreetmap.org/" + String(zoom) + "/" + String(x) + "/" + String(y) + ".png";
+    static char url[64];
+    snprintf(url, sizeof(url), "https://tile.openstreetmap.org/%u/%lu/%lu.png", zoom, x, y);
 
     int decodeResult;
     {
@@ -404,7 +405,7 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
 
     if (decodeResult != PNG_SUCCESS)
     {
-        result = "Decoding " + url + " failed with code: " + String(decodeResult);
+        result = "Decoding " + String(url) + " failed with code: " + String(decodeResult);
         tile.valid = false;
         return false;
     }
