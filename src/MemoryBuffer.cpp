@@ -24,30 +24,19 @@
 #include "MemoryBuffer.h"
 #include <Arduino.h>
 
-MemoryBuffer::MemoryBuffer(size_t size) : size_(size), buffer_(nullptr)
+MemoryBuffer::MemoryBuffer(size_t size) : size_(size)
 {
     if (size_ > 0)
     {
-        buffer_ = static_cast<uint8_t *>(malloc(size_));
-        if (buffer_ == nullptr)
-        {
+        buffer_ = std::make_unique<uint8_t[]>(size);
+        if (buffer_.get() == nullptr)
             log_e("Memory allocation failed!");
-        }
-    }
-}
-
-MemoryBuffer::~MemoryBuffer()
-{
-    if (buffer_ != nullptr)
-    {
-        free(buffer_);
-        buffer_ = nullptr;
     }
 }
 
 uint8_t *MemoryBuffer::get()
 {
-    return buffer_;
+    return buffer_.get();
 }
 
 size_t MemoryBuffer::size() const
@@ -57,5 +46,5 @@ size_t MemoryBuffer::size() const
 
 bool MemoryBuffer::isAllocated()
 {
-    return buffer_ != nullptr;
+    return buffer_.get() != nullptr;
 }
