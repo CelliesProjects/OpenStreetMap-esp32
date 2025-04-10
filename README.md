@@ -1,5 +1,11 @@
 ## OpenStreetMap-esp32
 
+[![License](https://img.shields.io/github/license/CelliesProjects/OpenStreetMap-esp32)](https://github.com/CelliesProjects/OpenStreetMap-esp32/blob/main/LICENSE)
+[![Release](https://img.shields.io/github/v/release/CelliesProjects/OpenStreetMap-esp32)](https://github.com/CelliesProjects/OpenStreetMap-esp32/releases/latest)
+[![Issues](https://img.shields.io/github/issues/CelliesProjects/OpenStreetMap-esp32)](https://github.com/CelliesProjects/OpenStreetMap-esp32/issues)
+[![Last Commit](https://img.shields.io/github/last-commit/CelliesProjects/OpenStreetMap-esp32)](https://github.com/CelliesProjects/OpenStreetMap-esp32/commits)
+[![PlatformIO](https://img.shields.io/badge/PlatformIO-Compatible-green?logo=platformio)](https://registry.platformio.org/libraries/celliesprojects/openstreetmap-esp32)
+[![Arduino](https://img.shields.io/badge/Arduino-ESP32-blue?logo=arduino)](https://www.arduino.cc/)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/0961fc2320cd495a9411eb391d5791ca)](https://app.codacy.com/gh/CelliesProjects/OpenStreetMap-esp32/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 
 This library provides a [OpenStreetMap](https://www.openstreetmap.org/) (OSM) map fetching and tile caching system for ESP32-based devices.  
