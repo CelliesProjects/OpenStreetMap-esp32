@@ -304,7 +304,7 @@ bool OpenStreetMap::fillBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t 
                 lastReadTime = millis();
             }
             else
-                delay(1); // Give system a breath
+                vTaskDelay(pdMS_TO_TICKS(1));
         }
         else
         {
@@ -313,7 +313,7 @@ bool OpenStreetMap::fillBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t 
                 result = "Timeout: No data received within " + String(OSM_TILE_TIMEOUT_MS) + " ms";
                 return false;
             }
-            yield();
+            vTaskDelay(pdMS_TO_TICKS(1));
         }
     }
     return true;
