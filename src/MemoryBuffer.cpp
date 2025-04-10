@@ -28,8 +28,8 @@ MemoryBuffer::MemoryBuffer(size_t size) : size_(size)
 {
     if (size_ > 0)
     {
-        buffer_ = std::make_unique<uint8_t[]>(size);
-        if (buffer_.get() == nullptr)
+        buffer_ = std::unique_ptr<uint8_t[]>(new (std::nothrow) uint8_t[size]);
+        if (!buffer_)
             log_e("Memory allocation failed!");
     }
 }
