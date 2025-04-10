@@ -291,12 +291,20 @@ bool OpenStreetMap::fillBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t 
     unsigned long lastReadTime = millis();
     while (readSize < contentSize)
     {
-        int availableData = stream->available();
+        const size_t availableData = stream->available();
         if (availableData)
         {
-            int bytesRead = stream->readBytes(buffer.get() + readSize, availableData);
-            readSize += bytesRead;
-            lastReadTime = millis();
+            const size_t remaining = contentSize - readSize;
+            const size_t toRead = std::min(availableData, remaining);
+            const int bytesRead = stream->readBytes(buffer.get() + readSize, toRead);
+
+            if (bytesRead > 0)
+            {
+                readSize += bytesRead;
+                lastReadTime = millis();
+            }
+            else
+                delay(1); // Give system a breath
         }
         else
         {
