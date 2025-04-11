@@ -292,29 +292,30 @@ bool OpenStreetMap::fillBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t 
     while (readSize < contentSize)
     {
         const size_t availableData = stream->available();
-        if (availableData)
-        {
-            const size_t remaining = contentSize - readSize;
-            const size_t toRead = std::min(availableData, remaining);
-            const int bytesRead = stream->readBytes(buffer.get() + readSize, toRead);
-
-            if (bytesRead > 0)
-            {
-                readSize += bytesRead;
-                lastReadTime = millis();
-            }
-            else
-                vTaskDelay(pdMS_TO_TICKS(1));
-        }
-        else
+        if (!availableData)
         {
             if (millis() - lastReadTime >= OSM_TILE_TIMEOUT_MS)
             {
-                result = "Timeout: No data received within " + String(OSM_TILE_TIMEOUT_MS) + " ms";
+                result = "Timeout: " + String(OSM_TILE_TIMEOUT_MS) + " ms";
                 return false;
             }
             vTaskDelay(pdMS_TO_TICKS(1));
+            continue;
         }
+
+        const size_t remaining = contentSize - readSize;
+        const size_t toRead = std::min(availableData, remaining);
+        if (toRead == 0)
+            continue;
+
+        const int bytesRead = stream->readBytes(buffer.get() + readSize, toRead);
+        if (bytesRead > 0)
+        {
+            readSize += bytesRead;
+            lastReadTime = millis();
+        }
+        else
+            vTaskDelay(pdMS_TO_TICKS(1));
     }
     return true;
 }
