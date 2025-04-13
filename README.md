@@ -4,7 +4,7 @@
 [![Release](https://img.shields.io/github/v/release/CelliesProjects/OpenStreetMap-esp32)](https://github.com/CelliesProjects/OpenStreetMap-esp32/releases/latest)
 [![Issues](https://img.shields.io/github/issues/CelliesProjects/OpenStreetMap-esp32)](https://github.com/CelliesProjects/OpenStreetMap-esp32/issues)
 [![PlatformIO](https://img.shields.io/badge/PlatformIO-Compatible-green?logo=platformio)](https://registry.platformio.org/libraries/celliesprojects/openstreetmap-esp32)
-[![arduino-library-badge](https://www.ardu-badge.com/badge/OpenStreetMap-esp32.svg?)](https://www.ardu-badge.com/OpenStreetMap-esp32)
+[![arduino-library-badge](https://www.ardu-badge.com/badge/OpenStreetMap-esp32.svg?)](https://docs.arduino.cc/libraries/openstreetmap-esp32/)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/0961fc2320cd495a9411eb391d5791ca)](https://app.codacy.com/gh/CelliesProjects/OpenStreetMap-esp32/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 
 This library provides a [OpenStreetMap](https://www.openstreetmap.org/) (OSM) map fetching and tile caching system for ESP32-based devices.  
