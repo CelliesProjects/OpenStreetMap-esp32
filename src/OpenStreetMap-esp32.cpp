@@ -143,7 +143,7 @@ void OpenStreetMap::freeTilesCache()
     tilesCache.clear();
 }
 
-bool OpenStreetMap::resizeTilesCache(uint8_t numberOfTiles)
+bool OpenStreetMap::resizeTilesCache(uint16_t numberOfTiles)
 {
     if (tilesCache.size() == numberOfTiles)
         return true;

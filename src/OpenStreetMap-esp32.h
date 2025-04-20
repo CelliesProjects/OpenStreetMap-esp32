@@ -55,7 +55,7 @@ public:
     ~OpenStreetMap();
 
     void setSize(uint16_t w, uint16_t h);
-    bool resizeTilesCache(uint8_t numberOfTiles);
+    bool resizeTilesCache(uint16_t numberOfTiles);
     void freeTilesCache();
     bool fetchMap(LGFX_Sprite &sprite, double longitude, double latitude, uint8_t zoom);
 
