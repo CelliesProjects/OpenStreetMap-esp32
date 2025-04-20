@@ -201,7 +201,7 @@ void loop()
 
 ```bash
 lib_deps =
-    CelliesProjects/OpenStreetMap-esp32@^1.0.0
+    CelliesProjects/OpenStreetMap-esp32@^1.0.1
     lovyan03/LovyanGFX@^1.2.0
     bitbank2/PNGdec@^1.0.3  
 ```
