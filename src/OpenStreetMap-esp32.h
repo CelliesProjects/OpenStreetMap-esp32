@@ -30,11 +30,11 @@
 #include <vector>
 #include <optional>
 #include <LovyanGFX.hpp>
+#include <PNGdec.h>
 
 #include "CachedTile.h"
 #include "MemoryBuffer.h"
 #include "HTTPClientRAII.h"
-#include "pngdecRAII.h"
 
 constexpr uint16_t OSM_TILESIZE = 256;
 constexpr uint16_t OSM_TILE_TIMEOUT_MS = 2500;
