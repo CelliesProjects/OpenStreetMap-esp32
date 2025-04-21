@@ -384,7 +384,10 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
     }
 
     static char url[64];
-    snprintf(url, sizeof(url), "https://tile.openstreetmap.org/%u/%lu/%lu.png", zoom, x, y);
+    snprintf(url, sizeof(url), "https://tile.openstreetmap.org/%u/%u/%u.png",
+             static_cast<unsigned int>(zoom),
+             static_cast<unsigned int>(x),
+             static_cast<unsigned int>(y));
 
     int decodeResult;
     {
