@@ -20,7 +20,6 @@
     SOFTWARE.
     SPDX-License-Identifier: MIT
     */
-   
 #ifndef HTTPCLIENTRAII_H
 #define HTTPCLIENTRAII_H
 
@@ -31,24 +30,38 @@
 class HTTPClientRAII
 {
 public:
-    HTTPClientRAII();
-    // This class manages an HTTPClient and should not be copied.
     HTTPClientRAII(const HTTPClientRAII &) = delete;
     HTTPClientRAII &operator=(const HTTPClientRAII &) = delete;
     HTTPClientRAII(HTTPClientRAII &&) = delete;
     HTTPClientRAII &operator=(HTTPClientRAII &&) = delete;
 
-    ~HTTPClientRAII();
+    HTTPClientRAII() noexcept : http(new HTTPClient()), userAgent(DEFAULT_USERAGENT) {}
 
-    bool begin(const String &url);
-    int GET();
-    size_t getSize() const;
-    WiFiClient *getStreamPtr();
-    bool isInitialized() const;
+    ~HTTPClientRAII() noexcept
+    {
+        if (http)
+            http->end();
+    }
+
+    bool begin(const String &url)
+    {
+        if (!http)
+            return false;
+        http->setUserAgent(userAgent);
+        return http->begin(url);
+    }
+
+    void setUserAgent(const String &ua) { userAgent = ua; }
+
+    int GET() { return http ? http->GET() : -1; }
+    size_t getSize() const { return http ? http->getSize() : 0; }
+    WiFiClient *getStreamPtr() { return http ? http->getStreamPtr() : nullptr; }
+    bool isInitialized() const { return static_cast<bool>(http); }
 
 private:
-    HTTPClient *http;
-    const char *userAgent = "OpenStreetMap-esp32/1.0 (+https://github.com/CelliesProjects/OpenStreetMap-esp32)";
+    std::unique_ptr<HTTPClient> http;
+    String userAgent;
+    constexpr static char *DEFAULT_USERAGENT = "OpenStreetMap-esp32/1.0 (+https://github.com/CelliesProjects/OpenStreetMap-esp32)";
 };
 
-#endif // HTTPCLIENTRAII_H
+#endif
