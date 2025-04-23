@@ -35,7 +35,7 @@ public:
     HTTPClientRAII(HTTPClientRAII &&) = delete;
     HTTPClientRAII &operator=(HTTPClientRAII &&) = delete;
 
-    HTTPClientRAII() noexcept : http(new HTTPClient()), userAgent(DEFAULT_USERAGENT) {}
+    HTTPClientRAII() noexcept : http(new HTTPClient()) {}
 
     ~HTTPClientRAII() noexcept
     {
@@ -47,11 +47,9 @@ public:
     {
         if (!http)
             return false;
-        http->setUserAgent(userAgent);
+        http->setUserAgent("OpenStreetMap-esp32/1.0 (+https://github.com/CelliesProjects/OpenStreetMap-esp32)");
         return http->begin(url);
     }
-
-    void setUserAgent(const String &ua) { userAgent = ua; }
 
     int GET() { return http ? http->GET() : -1; }
     size_t getSize() const { return http ? http->getSize() : 0; }
@@ -60,8 +58,6 @@ public:
 
 private:
     std::unique_ptr<HTTPClient> http;
-    String userAgent;
-    constexpr static char *DEFAULT_USERAGENT = "OpenStreetMap-esp32/1.0 (+https://github.com/CelliesProjects/OpenStreetMap-esp32)";
 };
 
 #endif
