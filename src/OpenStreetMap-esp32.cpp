@@ -118,6 +118,9 @@ CachedTile *OpenStreetMap::findUnusedTile(const tileList &requiredTiles, uint8_t
 {
     for (auto &tile : tilesCache)
     {
+        if (tile.busy)
+            continue; // don't touch tiles still being filled
+
         // If a tile is valid but not required in the current frame, we can replace it
         bool needed = false;
         for (const auto &[x, y] : requiredTiles)
@@ -132,7 +135,7 @@ CachedTile *OpenStreetMap::findUnusedTile(const tileList &requiredTiles, uint8_t
             return &tile;
     }
 
-    return &tilesCache[0]; // Placeholder: replace with better eviction logic
+    return nullptr;
 }
 
 void OpenStreetMap::freeTilesCache()
@@ -182,7 +185,10 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
         if (!tileToReplace)
             continue; // Should never happen if cache sizing is correct
 
+        tileToReplace->busy = true; // Mark it busy immediately!
+
         TileJob job = {x, static_cast<uint32_t>(y), zoom, tileToReplace};
+
         if (xQueueSend(jobQueue, &job, portMAX_DELAY) == pdPASS)
             jobsSubmitted++;
         else
@@ -386,7 +392,7 @@ void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
 {
     if (!currentInstance || !currentInstance->currentTileBuffer)
         return;
-    
+
     uint16_t *destRow = currentInstance->currentTileBuffer + (pDraw->y * OSM_TILESIZE);
     currentInstance->png.getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, 0xffffffff);
 }
@@ -443,6 +449,7 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
     tile.y = y;
     tile.z = zoom;
     tile.valid = true;
+    tile.busy = false;
     return true;
 }
 
@@ -484,7 +491,7 @@ void OpenStreetMap::tileFetcherTask(void *param)
                 // Fetch and decode the tile
                 String result;
                 osm->fetchTile(*job.tile, job.x, job.y, job.z, result);
-                log_i("Tile fetch result: %s", result.c_str());
+                log_v("Tile fetch result: %s", result.c_str());
             }
 
             // Decrement the active jobs counter
