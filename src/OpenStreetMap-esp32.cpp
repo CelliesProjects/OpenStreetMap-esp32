@@ -191,7 +191,7 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
 
     if (jobsSubmitted > 0)
     {
-        // Set wait group counter
+        log_i("submitting %i jobs", jobsSubmitted);
         pendingJobs.store(jobsSubmitted); // Assume pendingJobs is an std::atomic<int>
 
         // Wait for all jobs to finish
@@ -386,7 +386,7 @@ void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
 {
     if (!currentInstance || !currentInstance->currentTileBuffer)
         return;
-
+    
     uint16_t *destRow = currentInstance->currentTileBuffer + (pDraw->y * OSM_TILESIZE);
     currentInstance->png.getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, 0xffffffff);
 }
@@ -449,21 +449,21 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
 void OpenStreetMap::decrementActiveJobs()
 {
     if (--pendingJobs == 0)
-    {
-        // Maybe notify main thread that fetching is done
-        xSemaphoreGive(doneSemaphore);
-    }
+        log_i("jobs done");
 }
 
 void OpenStreetMap::tileFetcherTask(void *param)
 {
     OpenStreetMap *osm = static_cast<OpenStreetMap *>(param);
 
+    log_i("worker %i running", xPortGetCoreID());
+
     while (true)
     {
         TileJob job;
         if (xQueueReceive(osm->jobQueue, &job, portMAX_DELAY) == pdTRUE)
         {
+            log_i("core %i running job z=%u x=%lu, y=%lu", xPortGetCoreID(), job.z, job.x, job.y);
             // Validate input, double check in case of race
             if (!job.tile)
                 continue;
@@ -484,7 +484,7 @@ void OpenStreetMap::tileFetcherTask(void *param)
                 // Fetch and decode the tile
                 String result;
                 osm->fetchTile(*job.tile, job.x, job.y, job.z, result);
-                log_v("Tile fetch result: %s", result.c_str());
+                log_i("Tile fetch result: %s", result.c_str());
             }
 
             // Decrement the active jobs counter
@@ -495,6 +495,16 @@ void OpenStreetMap::tileFetcherTask(void *param)
 
 void OpenStreetMap::startTileWorkersIfNeeded()
 {
+    if (jobQueue == nullptr)
+    {
+        jobQueue = xQueueCreate(50, sizeof(TileJob));
+        if (jobQueue == nullptr)
+        {
+            log_e("Failed to create job queue!");
+            return;
+        }
+    }
+
     if (tasksStarted)
         return;
 

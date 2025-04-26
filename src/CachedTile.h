@@ -19,12 +19,13 @@
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
     SPDX-License-Identifier: MIT
-    */
+*/
 
 #ifndef CACHEDTILE
 #define CACHEDTILE
 
 #include <Arduino.h>
+#include <freertos/semphr.h>
 
 struct CachedTile
 {
@@ -33,9 +34,9 @@ struct CachedTile
     uint8_t z;
     bool valid;
     uint16_t *buffer;
-    SemaphoreHandle_t mutex; // <-- Store the semaphore itself
+    SemaphoreHandle_t mutex = xSemaphoreCreateMutex(); // <-- Store the semaphore itself
 
-    CachedTile() : valid(false), buffer(nullptr), mutex(nullptr) {}
+    CachedTile() : valid(false), buffer(nullptr) {}
 
     bool allocate()
     {

@@ -85,7 +85,6 @@ private:
 
     QueueHandle_t jobQueue = nullptr;
     std::atomic<int> pendingJobs = 0;
-    SemaphoreHandle_t doneSemaphore = nullptr; // maybe still needed for 'done' signal
     bool tasksStarted = false;
 
     uint16_t mapWidth = 320;
