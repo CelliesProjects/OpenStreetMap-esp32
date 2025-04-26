@@ -363,7 +363,7 @@ std::optional<std::unique_ptr<MemoryBuffer>> OpenStreetMap::urlToBuffer(const ch
     return buffer;
 }
 
-thread_local *OpenStreetMap::currentInstance = nullptr;
+thread_local OpenStreetMap *OpenStreetMap::currentInstance = nullptr;
 
 void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
 {

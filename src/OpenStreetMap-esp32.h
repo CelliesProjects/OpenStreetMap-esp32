@@ -60,7 +60,7 @@ public:
     bool fetchMap(LGFX_Sprite &sprite, double longitude, double latitude, uint8_t zoom);
 
 private:
-    static OpenStreetMap *currentInstance;
+    thread_local static OpenStreetMap *currentInstance;
     static void PNGDraw(PNGDRAW *pDraw);
     double lon2tile(double lon, uint8_t zoom);
     double lat2tile(double lat, uint8_t zoom);
@@ -76,7 +76,7 @@ private:
     std::vector<CachedTile> tilesCache;
     uint16_t *currentTileBuffer = nullptr;
     PNG png;
-    
+
     uint16_t mapWidth = 320;
     uint16_t mapHeight = 240;
 
