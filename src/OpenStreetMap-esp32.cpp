@@ -171,17 +171,32 @@ bool OpenStreetMap::resizeTilesCache(uint16_t numberOfTiles)
 
 void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
 {
+    int jobsSubmitted = 0;
+
     for (const auto &[x, y] : requiredTiles)
     {
         if (isTileCached(x, y, zoom) || y < 0 || y >= (1 << zoom))
             continue;
 
-        const unsigned long startMs = millis();
         CachedTile *tileToReplace = findUnusedTile(requiredTiles, zoom);
-        String result;
-        fetchTile(*tileToReplace, x, y, zoom, result);
-        log_v("%s", result.c_str());
-        log_i("tile cached in %i ms", millis() - startMs);
+        if (!tileToReplace)
+            continue; // Should never happen if cache sizing is correct
+
+        TileJob job = {x, static_cast<uint32_t>(y), zoom, tileToReplace};
+        if (xQueueSend(jobQueue, &job, portMAX_DELAY) == pdPASS)
+            jobsSubmitted++;
+        else
+            log_e("Failed to enqueue TileJob");
+    }
+
+    if (jobsSubmitted > 0)
+    {
+        // Set wait group counter
+        pendingJobs.store(jobsSubmitted); // Assume pendingJobs is an std::atomic<int>
+
+        // Wait for all jobs to finish
+        while (pendingJobs.load() > 0)
+            delay(1); // Sleep briefly, avoid tight busy loop
     }
 }
 
