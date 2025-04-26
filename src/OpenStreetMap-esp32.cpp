@@ -256,6 +256,8 @@ bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, const tileList &requiredT
 
 bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double latitude, uint8_t zoom)
 {
+    startTileWorkersIfNeeded();
+
     if (!zoom || zoom > OSM_MAX_ZOOM)
     {
         log_e("Invalid zoom level: %d", zoom);
@@ -489,4 +491,16 @@ void OpenStreetMap::tileFetcherTask(void *param)
             osm->decrementActiveJobs();
         }
     }
+}
+
+void OpenStreetMap::startTileWorkersIfNeeded()
+{
+    if (tasksStarted)
+        return;
+
+    tasksStarted = true;
+
+    // Create worker task(s)
+    xTaskCreatePinnedToCore(tileFetcherTask, "TileWorker0", 4096, this, 1, nullptr, 0);
+    xTaskCreatePinnedToCore(tileFetcherTask, "TileWorker1", 4096, this, 1, nullptr, 1);
 }

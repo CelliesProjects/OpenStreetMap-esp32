@@ -75,8 +75,9 @@ private:
     std::optional<std::unique_ptr<MemoryBuffer>> urlToBuffer(const char *url, String &result);
     bool fillBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t contentSize, String &result);
     bool composeMap(LGFX_Sprite &mapSprite, const tileList &requiredTiles, uint8_t zoom);
-    void tileFetcherTask(void *param);
+    static void tileFetcherTask(void *param);
     void decrementActiveJobs();
+    void startTileWorkersIfNeeded();
 
     std::vector<CachedTile> tilesCache;
     uint16_t *currentTileBuffer = nullptr;
@@ -85,6 +86,7 @@ private:
     QueueHandle_t jobQueue = nullptr;
     std::atomic<int> pendingJobs = 0;
     SemaphoreHandle_t doneSemaphore = nullptr; // maybe still needed for 'done' signal
+    bool tasksStarted = false;
 
     uint16_t mapWidth = 320;
     uint16_t mapHeight = 240;
