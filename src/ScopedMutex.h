@@ -1,4 +1,5 @@
 /*
+    MIT License
     Copyright (c) 2025 Cellie https://github.com/CelliesProjects/OpenStreetMap-esp32
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -19,38 +20,33 @@
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
     SPDX-License-Identifier: MIT
-    */
-
-#ifndef CACHEDTILE
-#define CACHEDTILE
+*/
+#ifndef SCOPEDMUTEX_H
+#define SCOPEDMUTEX_H
 
 #include <Arduino.h>
+#include <freertos/semphr.h>
 
-struct CachedTile
+class ScopedMutex
 {
-    uint32_t x;
-    uint32_t y;
-    uint8_t z;
-    bool valid;
-    uint16_t *buffer;
-    SemaphoreHandle_t mutex; // <-- Store the semaphore itself
+private:
+    SemaphoreHandle_t &mutex;
+    bool locked;
 
-    CachedTile() : valid(false), buffer(nullptr), mutex(nullptr) {}
+public:
+    explicit ScopedMutex(SemaphoreHandle_t &m, TickType_t timeout = portMAX_DELAY)
+        : mutex(m), locked(xSemaphoreTake(mutex, timeout)) {}
 
-    bool allocate()
+    ScopedMutex(const ScopedMutex &) = delete;
+    ScopedMutex &operator=(const ScopedMutex &) = delete;
+
+    ~ScopedMutex()
     {
-        buffer = (uint16_t *)heap_caps_malloc(256 * 256 * sizeof(uint16_t), MALLOC_CAP_SPIRAM);
-        return buffer != nullptr;
+        if (locked)
+            xSemaphoreGive(mutex);
     }
 
-    void free()
-    {
-        if (buffer)
-        {
-            heap_caps_free(buffer);
-            buffer = nullptr;
-        }
-    }
+    bool acquired() const { return locked; }
 };
 
-#endif
+#endif // SCOPEDMUTEX_H
