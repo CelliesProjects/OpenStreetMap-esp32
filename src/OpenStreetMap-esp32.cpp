@@ -132,7 +132,10 @@ CachedTile *OpenStreetMap::findUnusedTile(const tileList &requiredTiles, uint8_t
             }
         }
         if (!needed)
+        {
+            tile.busy = true
             return &tile;
+        }
     }
 
     return nullptr;
@@ -174,7 +177,7 @@ bool OpenStreetMap::resizeTilesCache(uint16_t numberOfTiles)
 
 void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
 {
-    int jobsSubmitted = 0;
+    std::vector<TileJob> jobs;
 
     for (const auto &[x, y] : requiredTiles)
     {
@@ -185,26 +188,27 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
         if (!tileToReplace)
             continue; // Should never happen if cache sizing is correct
 
-        tileToReplace->busy = true; // Mark it busy immediately!
-
-        TileJob job = {x, static_cast<uint32_t>(y), zoom, tileToReplace};
-
-        if (xQueueSend(jobQueue, &job, portMAX_DELAY) == pdPASS)
-            jobsSubmitted++;
-        else
-            log_e("Failed to enqueue TileJob");
+        jobs.push_back({x, static_cast<uint32_t>(y), zoom, tileToReplace});
     }
 
-    if (jobsSubmitted > 0)
+    if (!jobs.empty())
     {
-        log_i("submitting %i jobs", jobsSubmitted);
-        pendingJobs.store(jobsSubmitted); // Assume pendingJobs is an std::atomic<int>
+        pendingJobs.store(jobs.size());
+        log_i("submitting %i jobs", (int)jobs.size());
 
-        // Wait for all jobs to finish
+        for (const TileJob &job : jobs)
+        {
+            if (xQueueSend(jobQueue, &job, portMAX_DELAY) != pdPASS)
+                log_e("Failed to enqueue TileJob");
+        }
+
         while (pendingJobs.load() > 0)
-            delay(1); // Sleep briefly, avoid tight busy loop
+            delay(1); // simple wait loop
     }
+
+    // Unmark busy tiles here
 }
+
 
 bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, const tileList &requiredTiles, uint8_t zoom)
 {
@@ -449,7 +453,7 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
     tile.y = y;
     tile.z = zoom;
     tile.valid = true;
-    tile.busy = false;
+    //tile.busy = false;
     return true;
 }
 
