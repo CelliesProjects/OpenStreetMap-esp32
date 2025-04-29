@@ -105,13 +105,25 @@ void OpenStreetMap::computeRequiredTiles(double longitude, double latitude, uint
     }
 }
 
-bool OpenStreetMap::isTileCached(uint32_t x, uint32_t y, uint8_t z)
+bool OpenStreetMap::isTilePresent(uint32_t x, uint32_t y, uint8_t z)
 {
     for (const auto &tile : tilesCache)
         if (tile.x == x && tile.y == y && tile.z == z && tile.valid)
             return true;
-
     return false;
+}
+
+bool OpenStreetMap::isTileBeingFetched(uint32_t x, uint32_t y, uint8_t z)
+{
+    for (const auto &tile : tilesCache)
+        if (tile.x == x && tile.y == y && tile.z == z && tile.busy)
+            return true;
+    return false;
+}
+
+bool OpenStreetMap::isTileCached(uint32_t x, uint32_t y, uint8_t z)
+{
+    return isTilePresent(x, y, z) || isTileBeingFetched(x, y, z);
 }
 
 CachedTile *OpenStreetMap::findUnusedTile(const tileList &requiredTiles, uint8_t zoom)
@@ -128,14 +140,18 @@ CachedTile *OpenStreetMap::findUnusedTile(const tileList &requiredTiles, uint8_t
             if (tile.x == x && tile.y == y && tile.z == zoom && tile.valid)
             {
                 needed = true;
+                tile.busy = true; // mark the tile as busy before breaking
                 break;
             }
         }
         if (!needed)
-            return &tile;
+        {
+            tile.busy = true; // ensure this tile is marked busy before returning it
+            return &tile;     // return the tile to replace
+        }
     }
 
-    return nullptr;
+    return nullptr; // no unused tile found
 }
 
 void OpenStreetMap::freeTilesCache()
@@ -174,7 +190,7 @@ bool OpenStreetMap::resizeTilesCache(uint16_t numberOfTiles)
 
 void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
 {
-    int jobsSubmitted = 0;
+    std::vector<TileJob> jobs;
 
     for (const auto &[x, y] : requiredTiles)
     {
@@ -185,25 +201,25 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
         if (!tileToReplace)
             continue; // Should never happen if cache sizing is correct
 
-        tileToReplace->busy = true; // Mark it busy immediately!
-
-        TileJob job = {x, static_cast<uint32_t>(y), zoom, tileToReplace};
-
-        if (xQueueSend(jobQueue, &job, portMAX_DELAY) == pdPASS)
-            jobsSubmitted++;
-        else
-            log_e("Failed to enqueue TileJob");
+        jobs.push_back({x, static_cast<uint32_t>(y), zoom, tileToReplace});
     }
 
-    if (jobsSubmitted > 0)
+    if (!jobs.empty())
     {
-        log_i("submitting %i jobs", jobsSubmitted);
-        pendingJobs.store(jobsSubmitted); // Assume pendingJobs is an std::atomic<int>
+        pendingJobs.store(jobs.size()); // ✅ set BEFORE enqueuing jobs
+        log_i("submitting %i jobs", (int)jobs.size());
 
-        // Wait for all jobs to finish
+        for (const TileJob &job : jobs)
+        {
+            if (xQueueSend(jobQueue, &job, portMAX_DELAY) != pdPASS)
+                log_e("Failed to enqueue TileJob");
+        }
+
         while (pendingJobs.load() > 0)
-            delay(1); // Sleep briefly, avoid tight busy loop
+            delay(1); // simple wait loop
     }
+
+    // Unmark busy tiles here
 }
 
 bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, const tileList &requiredTiles, uint8_t zoom)
@@ -449,7 +465,7 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
     tile.y = y;
     tile.z = zoom;
     tile.valid = true;
-    tile.busy = false;
+    // tile.busy = false;
     return true;
 }
 
@@ -459,44 +475,47 @@ void OpenStreetMap::decrementActiveJobs()
         log_i("jobs done");
 }
 
+SemaphoreHandle_t jobQueueMutex = xSemaphoreCreateMutex();
+
 void OpenStreetMap::tileFetcherTask(void *param)
 {
     OpenStreetMap *osm = static_cast<OpenStreetMap *>(param);
-
     log_i("worker %i running", xPortGetCoreID());
 
     while (true)
     {
         TileJob job;
-        if (xQueueReceive(osm->jobQueue, &job, portMAX_DELAY) == pdTRUE)
-        {
-            log_i("core %i running job z=%u x=%lu, y=%lu", xPortGetCoreID(), job.z, job.x, job.y);
-            // Validate input, double check in case of race
-            if (!job.tile)
+
+        { // Only lock the queue access
+            ScopedMutex lock(jobQueueMutex);
+            BaseType_t received = xQueueReceive(osm->jobQueue, &job, portMAX_DELAY);
+
+            if (received != pdTRUE)
                 continue;
+        }
+        
+        log_i("core %i running job z=%u x=%lu, y=%lu", xPortGetCoreID(), job.z, job.x, job.y);
 
+        if (!job.tile)
+            continue;
+
+        {
+            ScopedMutex lock(job.tile->mutex); // protect tile fields
+            if (job.tile->valid &&
+                job.tile->x == job.x &&
+                job.tile->y == job.y &&
+                job.tile->z == job.z)
             {
-                ScopedMutex lock(job.tile->mutex); // Lock the tile we're working on
-
-                // Check again that the tile is still needed
-                if (job.tile->valid &&
-                    job.tile->x == job.x &&
-                    job.tile->y == job.y &&
-                    job.tile->z == job.z)
-                {
-                    // Already done, no work needed
-                    continue;
-                }
-
-                // Fetch and decode the tile
-                String result;
-                osm->fetchTile(*job.tile, job.x, job.y, job.z, result);
-                log_v("Tile fetch result: %s", result.c_str());
+                continue; // Already fetched
             }
 
-            // Decrement the active jobs counter
-            osm->decrementActiveJobs();
+            log_i("really fetching z=%u x=%lu, y=%lu", job.z, job.x, job.y);
+            String result;
+            osm->fetchTile(*job.tile, job.x, job.y, job.z, result);
+            log_v("Tile fetch result: %s", result.c_str());
         }
+
+        osm->decrementActiveJobs();
     }
 }
 
@@ -518,6 +537,6 @@ void OpenStreetMap::startTileWorkersIfNeeded()
     tasksStarted = true;
 
     // Create worker task(s)
-    xTaskCreatePinnedToCore(tileFetcherTask, "TileWorker0", 4096, this, 1, nullptr, 0);
-    xTaskCreatePinnedToCore(tileFetcherTask, "TileWorker1", 4096, this, 1, nullptr, 1);
+    xTaskCreatePinnedToCore(tileFetcherTask, "TileWorker0", 4096, this, 0, nullptr, 0);
+    xTaskCreatePinnedToCore(tileFetcherTask, "TileWorker1", 4096, this, 0, nullptr, 1);
 }
