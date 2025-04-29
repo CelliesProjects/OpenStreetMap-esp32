@@ -188,6 +188,8 @@ bool OpenStreetMap::resizeTilesCache(uint16_t numberOfTiles)
     return true;
 }
 
+SemaphoreHandle_t jobQueueMutex = xSemaphoreCreateMutex();
+
 void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
 {
     std::vector<TileJob> jobs;
@@ -199,9 +201,7 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
 
         CachedTile *tileToReplace = findUnusedTile(requiredTiles, zoom);
         if (!tileToReplace)
-            continue; // Should never happen if cache sizing is correct
-
-        jobs.push_back({x, static_cast<uint32_t>(y), zoom, tileToReplace});
+            continue;
     }
 
     if (!jobs.empty())
@@ -217,6 +217,11 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
 
         while (pendingJobs.load() > 0)
             delay(1); // simple wait loop
+        log_i("submitting %i jobs", jobsSubmitted);
+        pendingJobs.store(jobsSubmitted);
+
+        while (pendingJobs.load() > 0)
+            delay(1);
     }
 
     // Unmark busy tiles here
@@ -465,7 +470,6 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
     tile.y = y;
     tile.z = zoom;
     tile.valid = true;
-    // tile.busy = false;
     return true;
 }
 
@@ -510,6 +514,7 @@ void OpenStreetMap::tileFetcherTask(void *param)
             }
 
             log_i("really fetching z=%u x=%lu, y=%lu", job.z, job.x, job.y);
+
             String result;
             osm->fetchTile(*job.tile, job.x, job.y, job.z, result);
             log_v("Tile fetch result: %s", result.c_str());

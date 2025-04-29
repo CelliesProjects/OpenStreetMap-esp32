@@ -88,6 +88,7 @@ private:
     QueueHandle_t jobQueue = nullptr;
     std::atomic<int> pendingJobs = 0;
     bool tasksStarted = false;
+    //
 
     uint16_t mapWidth = 320;
     uint16_t mapHeight = 240;
