@@ -33,8 +33,8 @@ struct CachedTile
     uint32_t y;
     uint8_t z;
     bool valid;
-    uint16_t *buffer;
     bool busy = false;
+    uint16_t *buffer;
     SemaphoreHandle_t mutex;
 
     CachedTile() : valid(false), buffer(nullptr), mutex(nullptr)
