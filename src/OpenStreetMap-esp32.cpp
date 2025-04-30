@@ -188,6 +188,8 @@ bool OpenStreetMap::resizeTilesCache(uint16_t numberOfTiles)
     return true;
 }
 
+SemaphoreHandle_t jobQueueMutex = xSemaphoreCreateMutex();
+
 void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
 {
     std::vector<TileJob> jobs;
@@ -207,6 +209,7 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
     if (!jobs.empty())
     {
         pendingJobs.store(jobs.size());
+
         log_i("submitting %i jobs", (int)jobs.size());
 
         for (const TileJob &job : jobs)
@@ -215,8 +218,14 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
                 log_e("Failed to enqueue TileJob");
         }
 
+
         while (pendingJobs.load() > 0)
             delay(1); // simple wait loop
+        log_i("submitting %i jobs", jobsSubmitted);
+        pendingJobs.store(jobsSubmitted);
+
+        while (pendingJobs.load() > 0)
+            delay(1);
     }
 
     // Unmark busy tiles here
@@ -486,6 +495,8 @@ void OpenStreetMap::decrementActiveJobs()
         log_i("jobs done");
 }
 
+SemaphoreHandle_t jobQueueMutex = xSemaphoreCreateMutex();
+
 void OpenStreetMap::tileFetcherTask(void *param)
 {
     OpenStreetMap *osm = static_cast<OpenStreetMap *>(param);
@@ -507,8 +518,22 @@ void OpenStreetMap::tileFetcherTask(void *param)
             log_v("core %i running job z=%u x=%lu, y=%lu", xPortGetCoreID(), job.z, job.x, job.y);
 
             if (!job.tile)
-                continue;
 
+        { // Only lock the queue access
+            ScopedMutex lock(jobQueueMutex);
+            BaseType_t received = xQueueReceive(osm->jobQueue, &job, portMAX_DELAY);
+
+            if (received != pdTRUE)
+                continue;
+        }
+        
+        log_i("core %i running job z=%u x=%lu, y=%lu", xPortGetCoreID(), job.z, job.x, job.y);
+
+        if (!job.tile)
+            continue;
+
+        {
+            ScopedMutex lock(job.tile->mutex); // protect tile fields
             if (job.tile->valid &&
                 job.tile->x == job.x &&
                 job.tile->y == job.y &&
@@ -522,7 +547,7 @@ void OpenStreetMap::tileFetcherTask(void *param)
         String result;
         osm->fetchTile(*job.tile, job.x, job.y, job.z, result);
         log_v("Tile fetch result: %s", result.c_str());
-
+        }
         osm->decrementActiveJobs();
     }
 }
