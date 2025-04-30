@@ -35,9 +35,12 @@ struct CachedTile
     bool valid;
     uint16_t *buffer;
     bool busy = false;
-    SemaphoreHandle_t mutex = xSemaphoreCreateMutex(); // <-- Store the semaphore itself
+    SemaphoreHandle_t mutex;
 
-    CachedTile() : valid(false), buffer(nullptr) {}
+    CachedTile() : valid(false), buffer(nullptr), mutex(nullptr)
+    {
+        mutex = xSemaphoreCreateMutex();
+    }
 
     bool allocate()
     {
