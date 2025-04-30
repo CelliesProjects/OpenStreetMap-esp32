@@ -201,12 +201,15 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
 
         CachedTile *tileToReplace = findUnusedTile(requiredTiles, zoom);
         if (!tileToReplace)
-            continue;
+            continue; // Should never happen if cache sizing is correct
+
+        jobs.push_back({x, static_cast<uint32_t>(y), zoom, tileToReplace});
     }
 
     if (!jobs.empty())
     {
-        pendingJobs.store(jobs.size()); // ✅ set BEFORE enqueuing jobs
+        pendingJobs.store(jobs.size());
+
         log_i("submitting %i jobs", (int)jobs.size());
 
         for (const TileJob &job : jobs)
@@ -214,6 +217,7 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
             if (xQueueSend(jobQueue, &job, portMAX_DELAY) != pdPASS)
                 log_e("Failed to enqueue TileJob");
         }
+
 
         while (pendingJobs.load() > 0)
             delay(1); // simple wait loop
@@ -283,6 +287,17 @@ bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, const tileList &requiredT
 
 bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double latitude, uint8_t zoom)
 {
+    if (!cacheSemaphore)
+    {
+        cacheSemaphore = xSemaphoreCreateBinary();
+        if (!cacheSemaphore)
+        {
+            log_e("could not init cache mutex");
+            return false;
+        }
+        xSemaphoreGive(cacheSemaphore);
+    }
+
     startTileWorkersIfNeeded();
 
     if (!zoom || zoom > OSM_MAX_ZOOM)
@@ -463,6 +478,7 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
     {
         result = "Decoding " + String(url) + " failed with code: " + String(decodeResult);
         tile.valid = false;
+        tile.busy = false;
         return false;
     }
 
@@ -489,6 +505,19 @@ void OpenStreetMap::tileFetcherTask(void *param)
     while (true)
     {
         TileJob job;
+        {
+            // TODO: wait until the queue is populated
+
+            ScopedMutex lock(osm->cacheSemaphore);
+
+            BaseType_t received = xQueueReceive(osm->jobQueue, &job, portMAX_DELAY);
+
+            if (received != pdTRUE)
+                continue;
+
+            log_v("core %i running job z=%u x=%lu, y=%lu", xPortGetCoreID(), job.z, job.x, job.y);
+
+            if (!job.tile)
 
         { // Only lock the queue access
             ScopedMutex lock(jobQueueMutex);
@@ -512,14 +541,13 @@ void OpenStreetMap::tileFetcherTask(void *param)
             {
                 continue; // Already fetched
             }
-
-            log_i("really fetching z=%u x=%lu, y=%lu", job.z, job.x, job.y);
-
-            String result;
-            osm->fetchTile(*job.tile, job.x, job.y, job.z, result);
-            log_v("Tile fetch result: %s", result.c_str());
         }
 
+        log_i("core %i fetching tile z=%u x=%lu, y=%lu", xPortGetCoreID(), job.z, job.x, job.y);
+        String result;
+        osm->fetchTile(*job.tile, job.x, job.y, job.z, result);
+        log_v("Tile fetch result: %s", result.c_str());
+        }
         osm->decrementActiveJobs();
     }
 }
@@ -542,6 +570,6 @@ void OpenStreetMap::startTileWorkersIfNeeded()
     tasksStarted = true;
 
     // Create worker task(s)
-    xTaskCreatePinnedToCore(tileFetcherTask, "TileWorker0", 4096, this, 0, nullptr, 0);
-    xTaskCreatePinnedToCore(tileFetcherTask, "TileWorker1", 4096, this, 0, nullptr, 1);
+    xTaskCreatePinnedToCore(tileFetcherTask, "TileWorker0", 4096, this, 10, nullptr, 0);
+    xTaskCreatePinnedToCore(tileFetcherTask, "TileWorker1", 4096, this, 10, nullptr, 1);
 }

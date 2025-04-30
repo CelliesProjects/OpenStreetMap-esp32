@@ -81,6 +81,7 @@ private:
     bool isTileBeingFetched(uint32_t x, uint32_t y, uint8_t z);
     bool isTilePresent(uint32_t x, uint32_t y, uint8_t z);
 
+    SemaphoreHandle_t cacheSemaphore = nullptr;
     std::vector<CachedTile> tilesCache;
     uint16_t *currentTileBuffer = nullptr;
     PNG png;
