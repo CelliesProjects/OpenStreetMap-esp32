@@ -470,7 +470,6 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
     {
         result = "Decoding " + String(url) + " failed with code: " + String(decodeResult);
         tile.valid = false;
-        tile.busy = false;
         return false;
     }
 
@@ -502,19 +501,23 @@ void OpenStreetMap::tileFetcherTask(void *param)
 
             if (received != pdTRUE)
                 continue;
-        }
 
-        if (!job.tile)
-            continue;
+            if (!job.tile)
+                continue;
 
-        {
-            ScopedMutex lock(job.tile->mutex); // protect tile fields
-            if (job.tile->valid &&
-                job.tile->x == job.x &&
-                job.tile->y == job.y &&
-                job.tile->z == job.z)
             {
-                continue; // Already fetched
+                ScopedMutex lock(job.tile->mutex); // protect tile fields
+                if (job.tile->valid &&
+                    job.tile->x == job.x &&
+                    job.tile->y == job.y &&
+                    job.tile->z == job.z)
+                {
+                    continue; // Already fetched
+                }
+
+                job.tile->x = job.x;
+                job.tile->y = job.y;
+                job.tile->z = job.z;
             }
         }
 
