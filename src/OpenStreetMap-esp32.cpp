@@ -488,8 +488,6 @@ void OpenStreetMap::decrementActiveJobs()
         log_i("jobs done");
 }
 
-SemaphoreHandle_t jobQueueMutex = xSemaphoreCreateMutex();
-
 void OpenStreetMap::tileFetcherTask(void *param)
 {
     OpenStreetMap *osm = static_cast<OpenStreetMap *>(param);
