@@ -46,6 +46,15 @@ constexpr uint16_t OSM_MAX_ZOOM = 18;
 
 using tileList = std::vector<std::pair<uint32_t, int32_t>>;
 
+namespace {
+    PNG pngCore0;
+    PNG pngCore1;
+
+    PNG& getPNGForCore() {
+        return (xPortGetCoreID() == 0) ? pngCore0 : pngCore1;
+    }
+}
+
 class OpenStreetMap
 {
 public:
@@ -84,8 +93,7 @@ private:
     SemaphoreHandle_t cacheSemaphore = nullptr;
     std::vector<CachedTile> tilesCache;
     thread_local static uint16_t *currentTileBuffer;
-    PNG png;
- 
+
     QueueHandle_t jobQueue = nullptr;
     std::atomic<int> pendingJobs = 0;
     bool tasksStarted = false;

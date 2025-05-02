@@ -416,7 +416,6 @@ std::optional<std::unique_ptr<MemoryBuffer>> OpenStreetMap::urlToBuffer(const ch
 
 thread_local OpenStreetMap *OpenStreetMap::currentInstance = nullptr;
 thread_local uint16_t *OpenStreetMap::currentTileBuffer = nullptr;
-thread_local PNG png;
 
 void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
 {
@@ -424,7 +423,7 @@ void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
         return;
 
     uint16_t *destRow = currentInstance->currentTileBuffer + (pDraw->y * OSM_TILESIZE);
-    currentInstance->png.getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, 0xffffffff);
+    getPNGForCore().getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, 0xffffffff);
 }
 
 bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result)
@@ -447,6 +446,8 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
         auto buffer = urlToBuffer(url, result);
         if (!buffer)
             return false;
+
+        PNG &png = getPNGForCore();
 
         const int16_t rc = png.openRAM(buffer.value()->get(), buffer.value()->size(), PNGDraw);
         if (rc != PNG_SUCCESS)
@@ -492,8 +493,6 @@ void OpenStreetMap::decrementActiveJobs()
 void OpenStreetMap::tileFetcherTask(void *param)
 {
     OpenStreetMap *osm = static_cast<OpenStreetMap *>(param);
-    log_i("worker %i running", xPortGetCoreID());
-
     while (true)
     {
         TileJob job;
@@ -546,9 +545,17 @@ void OpenStreetMap::startTileWorkersIfNeeded()
     if (tasksStarted)
         return;
 
+    const int numCores = portNUM_PROCESSORS;
+
+    for (int core = 0; core < numCores; ++core)
+    {
+        char taskName[16];
+        snprintf(taskName, sizeof(taskName), "TileWorker%d", core);
+        xTaskCreatePinnedToCore(tileFetcherTask, taskName, 4096, this, 10, nullptr, core);
+    }
+
     tasksStarted = true;
 
-    // Create worker task(s)
-    xTaskCreatePinnedToCore(tileFetcherTask, "TileWorker0", 4096, this, 10, nullptr, 0);
-    xTaskCreatePinnedToCore(tileFetcherTask, "TileWorker1", 4096, this, 10, nullptr, 1);
+    log_i("Started %d tile worker task(s)", numCores);
 }
+
