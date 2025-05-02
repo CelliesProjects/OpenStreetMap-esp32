@@ -415,6 +415,7 @@ std::optional<std::unique_ptr<MemoryBuffer>> OpenStreetMap::urlToBuffer(const ch
 }
 
 thread_local OpenStreetMap *OpenStreetMap::currentInstance = nullptr;
+thread_local uint16_t *OpenStreetMap::currentTileBuffer = nullptr;
 
 void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
 {
@@ -434,7 +435,7 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
         return false;
     }
 
-    static char url[64];
+    char url[64];
     snprintf(url, sizeof(url), "https://tile.openstreetmap.org/%u/%u/%u.png",
              static_cast<unsigned int>(zoom),
              static_cast<unsigned int>(x),

@@ -83,7 +83,7 @@ private:
 
     SemaphoreHandle_t cacheSemaphore = nullptr;
     std::vector<CachedTile> tilesCache;
-    uint16_t *currentTileBuffer = nullptr;
+    thread_local static uint16_t *currentTileBuffer;
     PNG png;
  
     QueueHandle_t jobQueue = nullptr;
