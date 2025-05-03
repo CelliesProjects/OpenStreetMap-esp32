@@ -25,6 +25,17 @@
 
 OpenStreetMap::~OpenStreetMap()
 {
+    if (jobQueue && tasksStarted)
+    {
+        const int numCores = ESP.getChipCores();
+        for (int i = 0; i < numCores; ++i)
+        {
+            TileJob poison = {};
+            poison.z = 255; // Sentinel value for shutdown
+            if (xQueueSend(jobQueue, &poison, portMAX_DELAY) != pdPASS)
+                log_e("Failed to send poison pill to tile worker %d", i);
+        }
+    }
     freeTilesCache();
 }
 
@@ -130,8 +141,9 @@ CachedTile *OpenStreetMap::findUnusedTile(const tileList &requiredTiles, uint8_t
 {
     for (auto &tile : tilesCache)
     {
+        ScopedMutex lock(tile.mutex);
         if (tile.busy)
-            continue; // don't touch tiles still being filled
+            continue;
 
         // If a tile is valid but not required in the current frame, we can replace it
         bool needed = false;
@@ -140,14 +152,14 @@ CachedTile *OpenStreetMap::findUnusedTile(const tileList &requiredTiles, uint8_t
             if (tile.x == x && tile.y == y && tile.z == zoom && tile.valid)
             {
                 needed = true;
-                tile.busy = true; // mark the tile as busy before breaking
+                tile.busy = true;
                 break;
             }
         }
         if (!needed)
         {
-            tile.busy = true; // ensure this tile is marked busy before returning it
-            return &tile;     // return the tile to replace
+            tile.busy = true;
+            return &tile;
         }
     }
 
@@ -220,7 +232,11 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
             delay(1);
     }
 
-    // Unmark busy tiles here
+    for (const TileJob &job : jobs)
+    {
+        ScopedMutex _(job.tile->mutex);
+        job.tile->busy = false;
+    }
 }
 
 bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, const tileList &requiredTiles, uint8_t zoom)
@@ -290,7 +306,11 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
         xSemaphoreGive(cacheSemaphore);
     }
 
-    startTileWorkersIfNeeded();
+    if (!startTileWorkerTasks())
+    {
+        log_e("Failed to start tile worker(s)");
+        return false;
+    }
 
     if (!zoom || zoom > OSM_MAX_ZOOM)
     {
@@ -423,7 +443,7 @@ void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
         return;
 
     uint16_t *destRow = currentInstance->currentTileBuffer + (pDraw->y * OSM_TILESIZE);
-    currentInstance->png.getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, 0xffffffff);
+    getPNGForCore().getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, 0xffffffff);
 }
 
 bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result)
@@ -446,6 +466,8 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
         auto buffer = urlToBuffer(url, result);
         if (!buffer)
             return false;
+
+        PNG &png = getPNGForCore();
 
         const int16_t rc = png.openRAM(buffer.value()->get(), buffer.value()->size(), PNGDraw);
         if (rc != PNG_SUCCESS)
@@ -483,7 +505,7 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
 
 void OpenStreetMap::decrementActiveJobs()
 {
-    log_v("pending jobs: %d", pendingJobs.load());
+    log_d("pending jobs: %d", pendingJobs.load());
     if (--pendingJobs == 0)
         log_i("jobs done");
 }
@@ -491,8 +513,6 @@ void OpenStreetMap::decrementActiveJobs()
 void OpenStreetMap::tileFetcherTask(void *param)
 {
     OpenStreetMap *osm = static_cast<OpenStreetMap *>(param);
-    log_i("worker %i running", xPortGetCoreID());
-
     while (true)
     {
         TileJob job;
@@ -502,6 +522,9 @@ void OpenStreetMap::tileFetcherTask(void *param)
 
             if (received != pdTRUE)
                 continue;
+
+            if (job.z == 255)
+                break;
 
             if (!job.tile)
                 continue;
@@ -522,15 +545,18 @@ void OpenStreetMap::tileFetcherTask(void *param)
             }
         }
 
-        log_i("core %i fetching tile z=%u x=%lu, y=%lu", xPortGetCoreID(), job.z, job.x, job.y);
         String result;
         if (!osm->fetchTile(*job.tile, job.x, job.y, job.z, result))
             log_e("Tile fetch failed: %s", result.c_str());
+        else
+            log_i("core %i fetched tile z=%u x=%lu, y=%lu", xPortGetCoreID(), job.z, job.x, job.y);
         osm->decrementActiveJobs();
     }
+    log_i("task on core %i exiting", xPortGetCoreID());
+    vTaskDelete(nullptr);
 }
 
-void OpenStreetMap::startTileWorkersIfNeeded()
+bool OpenStreetMap::startTileWorkerTasks()
 {
     if (jobQueue == nullptr)
     {
@@ -538,16 +564,25 @@ void OpenStreetMap::startTileWorkersIfNeeded()
         if (jobQueue == nullptr)
         {
             log_e("Failed to create job queue!");
-            return;
+            return false;
         }
     }
 
     if (tasksStarted)
-        return;
+        return true;
+
+    const int numCores = ESP.getChipCores();
+
+    for (int core = 0; core < numCores; ++core)
+    {
+        char taskName[16];
+        snprintf(taskName, sizeof(taskName), "TileWorker%d", core);
+        if (!xTaskCreatePinnedToCore(tileFetcherTask, taskName, OSM_TASK_STACKSIZE, this, OSM_TASK_PRIORITY, nullptr, core))
+            return false;
+    }
 
     tasksStarted = true;
 
-    // Create worker task(s)
-    xTaskCreatePinnedToCore(tileFetcherTask, "TileWorker0", 4096, this, 10, nullptr, 0);
-    xTaskCreatePinnedToCore(tileFetcherTask, "TileWorker1", 4096, this, 10, nullptr, 1);
+    log_i("Started %d tile worker task(s)", numCores);
+    return true;
 }

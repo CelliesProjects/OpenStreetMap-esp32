@@ -43,8 +43,21 @@ constexpr uint16_t OSM_TILESIZE = 256;
 constexpr uint16_t OSM_TILE_TIMEOUT_MS = 2500;
 constexpr uint16_t OSM_DEFAULT_CACHE_ITEMS = 10;
 constexpr uint16_t OSM_MAX_ZOOM = 18;
+constexpr UBaseType_t OSM_TASK_PRIORITY = 10;
+constexpr uint32_t OSM_TASK_STACKSIZE = 4096;
 
 using tileList = std::vector<std::pair<uint32_t, int32_t>>;
+
+namespace
+{
+    PNG pngCore0;
+    PNG pngCore1;
+
+    PNG &getPNGForCore()
+    {
+        return (xPortGetCoreID() == 0) ? pngCore0 : pngCore1;
+    }
+}
 
 class OpenStreetMap
 {
@@ -77,19 +90,17 @@ private:
     bool composeMap(LGFX_Sprite &mapSprite, const tileList &requiredTiles, uint8_t zoom);
     static void tileFetcherTask(void *param);
     void decrementActiveJobs();
-    void startTileWorkersIfNeeded();
+    bool startTileWorkerTasks();
     bool isTileBeingFetched(uint32_t x, uint32_t y, uint8_t z);
     bool isTilePresent(uint32_t x, uint32_t y, uint8_t z);
 
     SemaphoreHandle_t cacheSemaphore = nullptr;
     std::vector<CachedTile> tilesCache;
     thread_local static uint16_t *currentTileBuffer;
-    PNG png;
- 
+
     QueueHandle_t jobQueue = nullptr;
     std::atomic<int> pendingJobs = 0;
     bool tasksStarted = false;
-    //
 
     uint16_t mapWidth = 320;
     uint16_t mapHeight = 240;
