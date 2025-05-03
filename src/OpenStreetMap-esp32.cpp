@@ -36,8 +36,22 @@ OpenStreetMap::~OpenStreetMap()
                 log_e("Failed to send poison pill to tile worker %d", i);
         }
     }
+
     freeTilesCache();
+
+    // Clean up dynamically allocated PNG decoders
+    if (pngCore0) {
+        pngCore0->~PNG();
+        heap_caps_free(pngCore0);
+        pngCore0 = nullptr;
+    }
+    if (pngCore1) {
+        pngCore1->~PNG();
+        heap_caps_free(pngCore1);
+        pngCore1 = nullptr;
+    }
 }
+
 
 void OpenStreetMap::setSize(uint16_t w, uint16_t h)
 {
