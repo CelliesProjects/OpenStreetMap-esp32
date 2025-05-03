@@ -48,18 +48,23 @@ constexpr uint32_t OSM_TASK_STACKSIZE = 4096;
 
 using tileList = std::vector<std::pair<uint32_t, int32_t>>;
 
-namespace {
-    PNG* pngCore0 = nullptr;
-    PNG* pngCore1 = nullptr;
 
-    PNG& getPNGForCore() {
-        if (!pngCore0) {
-            pngCore0 = new PNG();  // Optional: use heap_caps_malloc() if needed
+namespace
+{
+    PNG *pngCore0 = nullptr;
+    PNG *pngCore1 = nullptr;
+
+    PNG *getPNGForCore()
+    {
+        auto &ptr = (xPortGetCoreID() == 0) ? pngCore0 : pngCore1;
+        if (!ptr)
+        {
+            void *mem = heap_caps_malloc(sizeof(PNG), MALLOC_CAP_SPIRAM);
+            if (!mem)
+                return nullptr;
+            ptr = new (mem) PNG();
         }
-        if (!pngCore1) {
-            pngCore1 = new PNG();
-        }
-        return (xPortGetCoreID() == 0) ? *pngCore0 : *pngCore1;
+        return ptr;
     }
 }
 
