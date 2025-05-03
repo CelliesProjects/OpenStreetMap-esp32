@@ -537,7 +537,7 @@ void OpenStreetMap::tileFetcherTask(void *param)
             if (received != pdTRUE)
                 continue;
 
-            if (job.z == 255)
+            if (job.z == 255)  // poison pill: absolved by dtor
                 break;
 
             if (!job.tile)
@@ -572,10 +572,10 @@ void OpenStreetMap::tileFetcherTask(void *param)
 
 bool OpenStreetMap::startTileWorkerTasks()
 {
-    if (jobQueue == nullptr)
+    if (!jobQueue)
     {
         jobQueue = xQueueCreate(50, sizeof(TileJob));
-        if (jobQueue == nullptr)
+        if (!jobQueue)
         {
             log_e("Failed to create job queue!");
             return false;
