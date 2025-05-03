@@ -130,8 +130,9 @@ CachedTile *OpenStreetMap::findUnusedTile(const tileList &requiredTiles, uint8_t
 {
     for (auto &tile : tilesCache)
     {
+        ScopedMutex lock(tile.mutex);
         if (tile.busy)
-            continue; // don't touch tiles still being filled
+            continue;
 
         // If a tile is valid but not required in the current frame, we can replace it
         bool needed = false;
@@ -140,14 +141,14 @@ CachedTile *OpenStreetMap::findUnusedTile(const tileList &requiredTiles, uint8_t
             if (tile.x == x && tile.y == y && tile.z == zoom && tile.valid)
             {
                 needed = true;
-                tile.busy = true; // mark the tile as busy before breaking
+                tile.busy = true;
                 break;
             }
         }
         if (!needed)
         {
-            tile.busy = true; // ensure this tile is marked busy before returning it
-            return &tile;     // return the tile to replace
+            tile.busy = true;
+            return &tile;
         }
     }
 
@@ -220,7 +221,11 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
             delay(1);
     }
 
-    // Unmark busy tiles here
+    for (const TileJob &job : jobs)
+    {
+        ScopedMutex _(job.tile->mutex);
+        job.tile->busy = false;
+    }
 }
 
 bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, const tileList &requiredTiles, uint8_t zoom)
@@ -525,8 +530,9 @@ void OpenStreetMap::tileFetcherTask(void *param)
         String result;
         if (!osm->fetchTile(*job.tile, job.x, job.y, job.z, result))
             log_e("Tile fetch failed: %s", result.c_str());
+        else
+            log_i("core %i fetched tile z=%u x=%lu, y=%lu", xPortGetCoreID(), job.z, job.x, job.y);
         osm->decrementActiveJobs();
-        log_i("core %i fetched tile z=%u x=%lu, y=%lu", xPortGetCoreID(), job.z, job.x, job.y);
     }
 }
 
