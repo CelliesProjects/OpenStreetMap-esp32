@@ -40,18 +40,19 @@ OpenStreetMap::~OpenStreetMap()
     freeTilesCache();
 
     // Clean up dynamically allocated PNG decoders
-    if (pngCore0) {
+    if (pngCore0)
+    {
         pngCore0->~PNG();
         heap_caps_free(pngCore0);
         pngCore0 = nullptr;
     }
-    if (pngCore1) {
+    if (pngCore1)
+    {
         pngCore1->~PNG();
         heap_caps_free(pngCore1);
         pngCore1 = nullptr;
     }
 }
-
 
 void OpenStreetMap::setSize(uint16_t w, uint16_t h)
 {
@@ -457,7 +458,7 @@ void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
         return;
 
     uint16_t *destRow = currentInstance->currentTileBuffer + (pDraw->y * OSM_TILESIZE);
-    getPNGForCore().getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, 0xffffffff);
+    getPNGForCore()->getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, 0xffffffff);
 }
 
 bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result)
@@ -481,24 +482,29 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
         if (!buffer)
             return false;
 
-        PNG &png = getPNGForCore();
+        PNG *png = getPNGForCore();
+        if (!png)
+        {
+            result = "PNG decoder unavailable";
+            return false;
+        }
 
-        const int16_t rc = png.openRAM(buffer.value()->get(), buffer.value()->size(), PNGDraw);
+        const int16_t rc = png->openRAM(buffer.value()->get(), buffer.value()->size(), PNGDraw);
         if (rc != PNG_SUCCESS)
         {
             result = "PNG Decoder Error: " + String(rc);
             return false;
         }
 
-        if (png.getWidth() != OSM_TILESIZE || png.getHeight() != OSM_TILESIZE)
+        if (png->getWidth() != OSM_TILESIZE || png->getHeight() != OSM_TILESIZE)
         {
-            result = "Unexpected tile size: w=" + String(png.getWidth()) + " h=" + String(png.getHeight());
+            result = "Unexpected tile size: w=" + String(png->getWidth()) + " h=" + String(png->getHeight());
             return false;
         }
 
         currentInstance = this;
         currentTileBuffer = tile.buffer;
-        decodeResult = png.decode(0, PNG_FAST_PALETTE);
+        decodeResult = png->decode(0, PNG_FAST_PALETTE);
         currentTileBuffer = nullptr;
         currentInstance = nullptr;
     }
@@ -537,7 +543,7 @@ void OpenStreetMap::tileFetcherTask(void *param)
             if (received != pdTRUE)
                 continue;
 
-            if (job.z == 255)  // poison pill: absolved by dtor
+            if (job.z == 255) // poison pill: absolved by dtor
                 break;
 
             if (!job.tile)
