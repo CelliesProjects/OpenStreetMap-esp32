@@ -557,7 +557,7 @@ void OpenStreetMap::startTileWorkersIfNeeded()
     {
         char taskName[16];
         snprintf(taskName, sizeof(taskName), "TileWorker%d", core);
-        xTaskCreatePinnedToCore(tileFetcherTask, taskName, 4096, this, 10, nullptr, core);
+        xTaskCreatePinnedToCore(tileFetcherTask, taskName, OSM_TASK_STACKSIZE, this, OSM_TASK_PRIORITY, nullptr, core);
     }
 
     tasksStarted = true;

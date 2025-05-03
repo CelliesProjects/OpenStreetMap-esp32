@@ -43,6 +43,8 @@ constexpr uint16_t OSM_TILESIZE = 256;
 constexpr uint16_t OSM_TILE_TIMEOUT_MS = 2500;
 constexpr uint16_t OSM_DEFAULT_CACHE_ITEMS = 10;
 constexpr uint16_t OSM_MAX_ZOOM = 18;
+constexpr UBaseType_t OSM_TASK_PRIORITY = 10;
+constexpr uint32_t OSM_TASK_STACKSIZE = 4096;
 
 using tileList = std::vector<std::pair<uint32_t, int32_t>>;
 
