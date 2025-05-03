@@ -90,7 +90,7 @@ private:
     bool composeMap(LGFX_Sprite &mapSprite, const tileList &requiredTiles, uint8_t zoom);
     static void tileFetcherTask(void *param);
     void decrementActiveJobs();
-    void startTileWorkersIfNeeded();
+    bool startTileWorkerTasks();
     bool isTileBeingFetched(uint32_t x, uint32_t y, uint8_t z);
     bool isTilePresent(uint32_t x, uint32_t y, uint8_t z);
 

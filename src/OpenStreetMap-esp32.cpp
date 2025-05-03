@@ -25,6 +25,17 @@
 
 OpenStreetMap::~OpenStreetMap()
 {
+    if (jobQueue && tasksStarted)
+    {
+        const int numCores = ESP.getChipCores();
+        for (int i = 0; i < numCores; ++i)
+        {
+            TileJob poison = {};
+            poison.z = 255; // Sentinel value for shutdown
+            if (xQueueSend(jobQueue, &poison, portMAX_DELAY) != pdPASS)
+                log_e("Failed to send poison pill to tile worker %d", i);
+        }
+    }
     freeTilesCache();
 }
 
@@ -295,7 +306,11 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
         xSemaphoreGive(cacheSemaphore);
     }
 
-    startTileWorkersIfNeeded();
+    if (!startTileWorkerTasks())
+    {
+        log_e("Failed to start tile worker(s)");
+        return false;
+    }
 
     if (!zoom || zoom > OSM_MAX_ZOOM)
     {
@@ -508,6 +523,9 @@ void OpenStreetMap::tileFetcherTask(void *param)
             if (received != pdTRUE)
                 continue;
 
+            if (job.z == 255)
+                break;
+
             if (!job.tile)
                 continue;
 
@@ -534,9 +552,11 @@ void OpenStreetMap::tileFetcherTask(void *param)
             log_i("core %i fetched tile z=%u x=%lu, y=%lu", xPortGetCoreID(), job.z, job.x, job.y);
         osm->decrementActiveJobs();
     }
+    log_i("task on core %i exiting", xPortGetCoreID());
+    vTaskDelete(nullptr);
 }
 
-void OpenStreetMap::startTileWorkersIfNeeded()
+bool OpenStreetMap::startTileWorkerTasks()
 {
     if (jobQueue == nullptr)
     {
@@ -544,24 +564,25 @@ void OpenStreetMap::startTileWorkersIfNeeded()
         if (jobQueue == nullptr)
         {
             log_e("Failed to create job queue!");
-            return;
+            return false;
         }
     }
 
     if (tasksStarted)
-        return;
+        return true;
 
-    const int numCores = portNUM_PROCESSORS;
+    const int numCores = ESP.getChipCores();
 
     for (int core = 0; core < numCores; ++core)
     {
         char taskName[16];
         snprintf(taskName, sizeof(taskName), "TileWorker%d", core);
-        xTaskCreatePinnedToCore(tileFetcherTask, taskName, OSM_TASK_STACKSIZE, this, OSM_TASK_PRIORITY, nullptr, core);
+        if (!xTaskCreatePinnedToCore(tileFetcherTask, taskName, OSM_TASK_STACKSIZE, this, OSM_TASK_PRIORITY, nullptr, core))
+            return false;
     }
 
     tasksStarted = true;
 
     log_i("Started %d tile worker task(s)", numCores);
+    return true;
 }
-
