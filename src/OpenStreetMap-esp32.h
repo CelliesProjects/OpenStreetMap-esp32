@@ -46,11 +46,13 @@ constexpr uint16_t OSM_MAX_ZOOM = 18;
 
 using tileList = std::vector<std::pair<uint32_t, int32_t>>;
 
-namespace {
+namespace
+{
     PNG pngCore0;
     PNG pngCore1;
 
-    PNG& getPNGForCore() {
+    PNG &getPNGForCore()
+    {
         return (xPortGetCoreID() == 0) ? pngCore0 : pngCore1;
     }
 }
