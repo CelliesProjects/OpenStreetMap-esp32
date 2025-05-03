@@ -490,7 +490,7 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
 
 void OpenStreetMap::decrementActiveJobs()
 {
-    log_v("pending jobs: %d", pendingJobs.load());
+    log_d("pending jobs: %d", pendingJobs.load());
     if (--pendingJobs == 0)
         log_i("jobs done");
 }
