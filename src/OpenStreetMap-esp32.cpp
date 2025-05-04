@@ -39,7 +39,6 @@ OpenStreetMap::~OpenStreetMap()
 
     freeTilesCache();
 
-    // Clean up dynamically allocated PNG decoders
     if (pngCore0)
     {
         pngCore0->~PNG();
@@ -131,25 +130,14 @@ void OpenStreetMap::computeRequiredTiles(double longitude, double latitude, uint
     }
 }
 
-bool OpenStreetMap::isTilePresent(uint32_t x, uint32_t y, uint8_t z)
+bool OpenStreetMap::isTileCachedOrBusy(uint32_t x, uint32_t y, uint8_t z)
 {
     for (const auto &tile : tilesCache)
-        if (tile.x == x && tile.y == y && tile.z == z && tile.valid)
-            return true;
+    {
+        if (tile.x == x && tile.y == y && tile.z == z)
+            return tile.valid || tile.busy;
+    }
     return false;
-}
-
-bool OpenStreetMap::isTileBeingFetched(uint32_t x, uint32_t y, uint8_t z)
-{
-    for (const auto &tile : tilesCache)
-        if (tile.x == x && tile.y == y && tile.z == z && tile.busy)
-            return true;
-    return false;
-}
-
-bool OpenStreetMap::isTileCached(uint32_t x, uint32_t y, uint8_t z)
-{
-    return isTilePresent(x, y, z) || isTileBeingFetched(x, y, z);
 }
 
 CachedTile *OpenStreetMap::findUnusedTile(const tileList &requiredTiles, uint8_t zoom)
@@ -221,22 +209,23 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
 
     for (const auto &[x, y] : requiredTiles)
     {
-        if (isTileCached(x, y, zoom) || y < 0 || y >= (1 << zoom))
+        if (isTileCachedOrBusy(x, y, zoom) || y < 0 || y >= (1 << zoom))
             continue;
 
         CachedTile *tileToReplace = findUnusedTile(requiredTiles, zoom);
         if (!tileToReplace)
-            continue; // Should never happen if cache sizing is correct
-
+        {
+            log_e("no cache tile available"); // Should never happen if cache sizing is correct
+            continue;
+        }
         jobs.push_back({x, static_cast<uint32_t>(y), zoom, tileToReplace});
     }
 
     if (!jobs.empty())
     {
-        pendingJobs.store(jobs.size());
-
         log_i("submitting %i jobs", (int)jobs.size());
 
+        pendingJobs.store(jobs.size());
         for (const TileJob &job : jobs)
         {
             if (xQueueSend(jobQueue, &job, portMAX_DELAY) != pdPASS)
