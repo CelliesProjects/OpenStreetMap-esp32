@@ -33,7 +33,7 @@ struct CachedTile
     uint32_t y;
     uint8_t z;
     bool valid;
-    bool busy = false;
+    bool inUse = false;
     uint16_t *buffer;
     SemaphoreHandle_t mutex;
 
