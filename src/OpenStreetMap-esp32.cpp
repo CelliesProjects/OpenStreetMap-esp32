@@ -130,7 +130,7 @@ void OpenStreetMap::computeRequiredTiles(double longitude, double latitude, uint
     }
 }
 
-bool OpenStreetMap::isTileCachedOrBusy(uint32_t x, uint32_t y, uint8_t z)
+bool OpenStreetMap::tileCachedOrBusy(uint32_t x, uint32_t y, uint8_t z)
 {
     for (const auto &tile : tilesCache)
     {
@@ -209,7 +209,7 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
 
     for (const auto &[x, y] : requiredTiles)
     {
-        if (isTileCachedOrBusy(x, y, zoom) || y < 0 || y >= (1 << zoom))
+        if (tileCachedOrBusy(x, y, zoom) || y < 0 || y >= (1 << zoom))
             continue;
 
         CachedTile *tileToReplace = findUnusedTile(requiredTiles, zoom);
