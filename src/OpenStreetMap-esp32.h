@@ -48,7 +48,6 @@ constexpr uint32_t OSM_TASK_STACKSIZE = 4096;
 
 using tileList = std::vector<std::pair<uint32_t, int32_t>>;
 
-
 namespace
 {
     PNG *pngCore0 = nullptr;
@@ -91,7 +90,7 @@ private:
     double lat2tile(double lat, uint8_t zoom);
     void computeRequiredTiles(double longitude, double latitude, uint8_t zoom, tileList &requiredTiles);
     void updateCache(const tileList &requiredTiles, uint8_t zoom);
-    bool isTileCached(uint32_t x, uint32_t y, uint8_t z);
+    bool isTileCachedOrBusy(uint32_t x, uint32_t y, uint8_t z);
     CachedTile *findUnusedTile(const tileList &requiredTiles, uint8_t zoom);
     bool fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result);
     std::optional<std::unique_ptr<MemoryBuffer>> urlToBuffer(const char *url, String &result);
@@ -100,8 +99,6 @@ private:
     static void tileFetcherTask(void *param);
     void decrementActiveJobs();
     bool startTileWorkerTasks();
-    bool isTileBeingFetched(uint32_t x, uint32_t y, uint8_t z);
-    bool isTilePresent(uint32_t x, uint32_t y, uint8_t z);
 
     SemaphoreHandle_t cacheSemaphore = nullptr;
     std::vector<CachedTile> tilesCache;
