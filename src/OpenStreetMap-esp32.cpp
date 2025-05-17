@@ -158,25 +158,17 @@ CachedTile *OpenStreetMap::findUnusedTile(const tileList &requiredTiles, uint8_t
     return nullptr; // no unused tile found
 }
 
-bool OpenStreetMap::isTilePresent(uint32_t x, uint32_t y, uint8_t z)
-{
-    for (const auto &tile : tilesCache)
-        if (tile.x == x && tile.y == y && tile.z == z && tile.valid)
-            return true;
-    return false;
-}
-
-bool OpenStreetMap::isTileBeingFetched(uint32_t x, uint32_t y, uint8_t z)
-{
-    for (const auto &tile : tilesCache)
-        if (tile.x == x && tile.y == y && tile.z == z && tile.busy)
-            return true;
-    return false;
-}
-
 bool OpenStreetMap::isTileCached(uint32_t x, uint32_t y, uint8_t z)
 {
-    return isTilePresent(x, y, z) || isTileBeingFetched(x, y, z);
+    for (const auto &tile : tilesCache)
+    {
+        if (tile.x == x && tile.y == y && tile.z == z)
+        {
+            if (tile.valid || tile.busy)
+                return true;
+        }
+    }
+    return false;
 }
 
 void OpenStreetMap::freeTilesCache()
