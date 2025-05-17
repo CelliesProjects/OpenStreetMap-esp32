@@ -145,7 +145,6 @@ CachedTile *OpenStreetMap::findUnusedTile(const tileList &requiredTiles, uint8_t
             if (tile.x == x && tile.y == y && tile.z == zoom && tile.valid)
             {
                 needed = true;
-                tile.busy = true;
                 break;
             }
         }
