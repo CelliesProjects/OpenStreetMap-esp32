@@ -145,7 +145,6 @@ CachedTile *OpenStreetMap::findUnusedTile(const tileList &requiredTiles, uint8_t
             if (tile.x == x && tile.y == y && tile.z == zoom && tile.valid)
             {
                 needed = true;
-                tile.busy = true;
                 break;
             }
         }
@@ -225,7 +224,10 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
 
         CachedTile *tileToReplace = findUnusedTile(requiredTiles, zoom);
         if (!tileToReplace)
-            continue; // Should never happen if cache sizing is correct
+        {
+            log_e("no free cache space found");
+            continue; // Should never happen if cache sizing is correct}
+        }
 
         jobs.push_back({x, static_cast<uint32_t>(y), zoom, tileToReplace});
     }
@@ -244,12 +246,12 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
 
         while (pendingJobs.load() > 0)
             delay(1);
-    }
 
-    for (const TileJob &job : jobs)
-    {
-        ScopedMutex _(job.tile->mutex);
-        job.tile->busy = false;
+        for (const TileJob &job : jobs)
+        {
+            ScopedMutex _(job.tile->mutex);
+            job.tile->busy = false;
+        }
     }
 }
 
