@@ -209,6 +209,8 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
 {
     std::vector<TileJob> jobs;
 
+    const unsigned long startMS = millis();
+
     for (const auto &[x, y] : requiredTiles)
     {
         if (isTileCached(x, y, zoom) || y < 0 || y >= (1 << zoom))
@@ -235,12 +237,13 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
 
         while (pendingJobs.load() > 0)
             delay(1);
-    }
 
-    for (const TileJob &job : jobs)
-    {
-        ScopedMutex _(job.tile->mutex);
-        job.tile->busy = false;
+        for (const TileJob &job : jobs)
+        {
+            ScopedMutex _(job.tile->mutex);
+            job.tile->busy = false;
+        }
+        log_i("Cache updated in %lu ms", millis() - startMS);
     }
 }
 
@@ -517,7 +520,7 @@ void OpenStreetMap::decrementActiveJobs()
 {
     log_d("pending jobs: %d", pendingJobs.load());
     if (--pendingJobs == 0)
-        log_i("jobs done");
+        log_v("jobs done");
 }
 
 void OpenStreetMap::tileFetcherTask(void *param)
