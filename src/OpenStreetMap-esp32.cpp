@@ -130,15 +130,54 @@ void OpenStreetMap::computeRequiredTiles(double longitude, double latitude, uint
     }
 }
 
-bool OpenStreetMap::tileIsCachedAndFree(uint32_t x, uint32_t y, uint8_t z)
+CachedTile *OpenStreetMap::findUnusedTile(const tileList &requiredTiles, uint8_t zoom)
 {
     for (auto &tile : tilesCache)
     {
         ScopedMutex lock(tile.mutex);
-        if (tile.x == x && tile.y == y && tile.z == z && tile.valid && !tile.inUse)
-            return true;
+        if (tile.busy)
+            continue;
+
+        // If a tile is valid but not required in the current frame, we can replace it
+        bool needed = false;
+        for (const auto &[x, y] : requiredTiles)
+        {
+            if (tile.x == x && tile.y == y && tile.z == zoom && tile.valid)
+            {
+                needed = true;
+                tile.busy = true;
+                break;
+            }
+        }
+        if (!needed)
+        {
+            tile.busy = true;
+            return &tile;
+        }
     }
+
+    return nullptr; // no unused tile found
+}
+
+bool OpenStreetMap::isTilePresent(uint32_t x, uint32_t y, uint8_t z)
+{
+    for (const auto &tile : tilesCache)
+        if (tile.x == x && tile.y == y && tile.z == z && tile.valid)
+            return true;
     return false;
+}
+
+bool OpenStreetMap::isTileBeingFetched(uint32_t x, uint32_t y, uint8_t z)
+{
+    for (const auto &tile : tilesCache)
+        if (tile.x == x && tile.y == y && tile.z == z && tile.busy)
+            return true;
+    return false;
+}
+
+bool OpenStreetMap::isTileCached(uint32_t x, uint32_t y, uint8_t z)
+{
+    return isTilePresent(x, y, z) || isTileBeingFetched(x, y, z);
 }
 
 void OpenStreetMap::freeTilesCache()
@@ -179,45 +218,23 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
 {
     std::vector<TileJob> jobs;
 
-    // Step 1: Collect candidate (free and unused) tiles without marking them yet
-    std::vector<CachedTile *> candidateTiles;
-    for (auto &tile : tilesCache)
-    {
-        ScopedMutex lock(tile.mutex);
-        if (!tile.inUse)  // only consider tiles not in use
-        {
-            candidateTiles.push_back(&tile);
-        }
-    }
-
-    // Step 2: Assign tiles to missing requirements
     for (const auto &[x, y] : requiredTiles)
     {
-        if (tileIsCachedAndFree(x, y, zoom) || y < 0 || y >= (1 << zoom))
+        if (isTileCached(x, y, zoom) || y < 0 || y >= (1 << zoom))
             continue;
 
-        if (candidateTiles.empty())
-        {
-            log_e("No cache tile available");
-            continue;
-        }
+        CachedTile *tileToReplace = findUnusedTile(requiredTiles, zoom);
+        if (!tileToReplace)
+            continue; // Should never happen if cache sizing is correct
 
-        CachedTile *tile = candidateTiles.back();
-        candidateTiles.pop_back();
-
-        {
-            ScopedMutex lock(tile->mutex);
-            tile->inUse = true; // now mark as in use once selected
-        }
-
-        jobs.push_back({x, static_cast<uint32_t>(y), zoom, tile});
+        jobs.push_back({x, static_cast<uint32_t>(y), zoom, tileToReplace});
     }
 
-    // Step 3: Submit jobs
     if (!jobs.empty())
     {
-        log_i("Submitting %d jobs", (int)jobs.size());
         pendingJobs.store(jobs.size());
+
+        log_i("submitting %i jobs", (int)jobs.size());
 
         for (const TileJob &job : jobs)
         {
@@ -229,11 +246,10 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
             delay(1);
     }
 
-    // Step 4: Release tiles after jobs complete
     for (const TileJob &job : jobs)
     {
         ScopedMutex _(job.tile->mutex);
-        job.tile->inUse = false;
+        job.tile->busy = false;
     }
 }
 
