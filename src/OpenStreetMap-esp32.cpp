@@ -575,7 +575,7 @@ bool OpenStreetMap::startTileWorkerTasks()
 {
     if (!jobQueue)
     {
-        jobQueue = xQueueCreate(50, sizeof(TileJob));
+        jobQueue = xQueueCreate(OSM_JOB_QUEUE_SIZE, sizeof(TileJob));
         if (!jobQueue)
         {
             log_e("Failed to create job queue!");
