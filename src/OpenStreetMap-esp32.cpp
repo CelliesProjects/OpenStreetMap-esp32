@@ -314,7 +314,7 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
         xSemaphoreGive(cacheSemaphore);
     }
 
-    if (!startTileWorkerTasks())
+    if (!tasksStarted && !startTileWorkerTasks())
     {
         log_e("Failed to start tile worker(s)");
         return false;
