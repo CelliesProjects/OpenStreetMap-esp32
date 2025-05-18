@@ -529,9 +529,11 @@ void OpenStreetMap::tileFetcherTask(void *param)
     while (true)
     {
         TileJob job;
+        unsigned long startMS;
         {
             ScopedMutex lock(osm->cacheSemaphore);
             BaseType_t received = xQueueReceive(osm->jobQueue, &job, portMAX_DELAY);
+            startMS = millis();
 
             if (received != pdTRUE)
                 continue;
@@ -562,7 +564,7 @@ void OpenStreetMap::tileFetcherTask(void *param)
         if (!osm->fetchTile(*job.tile, job.x, job.y, job.z, result))
             log_e("Tile fetch failed: %s", result.c_str());
         else
-            log_i("core %i fetched tile z=%u x=%lu, y=%lu", xPortGetCoreID(), job.z, job.x, job.y);
+            log_i("core %i fetched tile z=%u x=%lu, y=%lu in %lu ms", xPortGetCoreID(), job.z, job.x, job.y, millis() - startMS);
         osm->decrementActiveJobs();
     }
     log_i("task on core %i exiting", xPortGetCoreID());
