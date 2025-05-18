@@ -21,8 +21,8 @@
     SPDX-License-Identifier: MIT
 */
 
-#ifndef CACHEDTILE
-#define CACHEDTILE
+#ifndef CACHED_TILE_H
+#define CACHED_TILE_H
 
 #include <Arduino.h>
 #include <freertos/semphr.h>

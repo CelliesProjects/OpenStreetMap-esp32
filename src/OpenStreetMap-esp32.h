@@ -84,6 +84,9 @@ public:
     bool fetchMap(LGFX_Sprite &sprite, double longitude, double latitude, uint8_t zoom);
 
 private:
+    SemaphoreHandle_t cacheSemaphore = nullptr;
+    std::vector<CachedTile> tilesCache;
+    thread_local static uint16_t *currentTileBuffer;
     thread_local static OpenStreetMap *currentInstance;
     static void PNGDraw(PNGDRAW *pDraw);
     double lon2tile(double lon, uint8_t zoom);
@@ -99,10 +102,6 @@ private:
     static void tileFetcherTask(void *param);
     void decrementActiveJobs();
     bool startTileWorkerTasks();
-
-    SemaphoreHandle_t cacheSemaphore = nullptr;
-    std::vector<CachedTile> tilesCache;
-    thread_local static uint16_t *currentTileBuffer;
 
     QueueHandle_t jobQueue = nullptr;
     std::atomic<int> pendingJobs = 0;
