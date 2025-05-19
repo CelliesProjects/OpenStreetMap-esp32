@@ -71,7 +71,10 @@ namespace
 class OpenStreetMap
 {
 public:
-    OpenStreetMap() = default;
+    OpenStreetMap()
+    {
+        ownerTask = xTaskGetCurrentTaskHandle();
+    }
     OpenStreetMap(const OpenStreetMap &) = delete;
     OpenStreetMap &operator=(const OpenStreetMap &) = delete;
     OpenStreetMap(OpenStreetMap &&other) = delete;
@@ -101,6 +104,7 @@ private:
     bool fillBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t contentSize, String &result);
     bool composeMap(LGFX_Sprite &mapSprite, const tileList &requiredTiles, uint8_t zoom);
     static void tileFetcherTask(void *param);
+    TaskHandle_t ownerTask = nullptr;
     void decrementActiveJobs();
     bool startTileWorkerTasks();
 

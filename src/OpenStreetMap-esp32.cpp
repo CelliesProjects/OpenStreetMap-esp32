@@ -31,10 +31,16 @@ OpenStreetMap::~OpenStreetMap()
         for (int i = 0; i < numCores; ++i)
         {
             TileJob poison = {};
-            poison.z = 255; // Sentinel value for shutdown
+            poison.z = 255;
             if (xQueueSend(jobQueue, &poison, portMAX_DELAY) != pdPASS)
                 log_e("Failed to send poison pill to tile worker %d", i);
         }
+
+        for (int i = 0; i < numCores; ++i)
+            ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+        vQueueDelete(jobQueue);
+        jobQueue = nullptr;
     }
 
     freeTilesCache();
@@ -564,10 +570,11 @@ void OpenStreetMap::tileFetcherTask(void *param)
         if (!osm->fetchTile(*job.tile, job.x, job.y, job.z, result))
             log_e("Tile fetch failed: %s", result.c_str());
         else
-            log_i("core %i fetched tile z=%u x=%lu, y=%lu in %lu ms", xPortGetCoreID(), job.z, job.x, job.y, millis() - startMS);
+            log_d("core %i fetched tile z=%u x=%lu, y=%lu in %lu ms", xPortGetCoreID(), job.z, job.x, job.y, millis() - startMS);
         osm->decrementActiveJobs();
     }
-    log_i("task on core %i exiting", xPortGetCoreID());
+    log_d("task on core %i exiting", xPortGetCoreID());
+    xTaskNotifyGive(osm->ownerTask);
     vTaskDelete(nullptr);
 }
 
