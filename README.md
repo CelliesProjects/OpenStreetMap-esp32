@@ -16,8 +16,9 @@ A map is composed from downloaded OSM tiles and returned as a LGFX sprite.
 The sprite can be pushed to the screen, saved to SD or used for further composing.
 Downloaded tiles are cached in psram for reuse.
 
-This library should work on any ESP32 type with psram and a LovyanGFX compatible display.
-The downloaded tile cache gets large very quickly -128kB per tile- so psram is required.
+This library should work on any ESP32 type with psram and a LovyanGFX compatible display.  
+OSM tiles are quite large -128kB per tile- so psram is required.   
+Tile fetching and decoding is performed concurrently across both cores on multicore ESP32 devices.  
 
 This project is not endorsed by or affiliated with the OpenStreetMap Foundation.
 
@@ -46,7 +47,7 @@ void setSize(uint16_t w, uint16_t h);
 ### Resize cache
 
 ```c++
-bool resizeTilesCache(uint8_t numberOfTiles); 
+bool resizeTilesCache(uint16_t numberOfTiles); 
 ```
 
 - If the cache is not resized before the first call to `fetchMap`, it will auto initialize with space for 10 tiles on the first call.
@@ -201,7 +202,7 @@ void loop()
 
 ```bash
 lib_deps =
-    CelliesProjects/OpenStreetMap-esp32@^1.0.1
+    celliesprojects/OpenStreetMap-esp32@^1.0.2
     lovyan03/LovyanGFX@^1.2.0
     bitbank2/PNGdec@^1.0.3  
 ```
