@@ -45,6 +45,9 @@ OpenStreetMap::~OpenStreetMap()
 
     freeTilesCache();
 
+    if (cacheSemaphore)
+        vSemaphoreDelete(cacheSemaphore);
+
     if (pngCore0)
     {
         pngCore0->~PNG();
