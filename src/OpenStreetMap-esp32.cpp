@@ -573,7 +573,7 @@ void OpenStreetMap::tileFetcherTask(void *param)
         if (!osm->fetchTile(*job.tile, job.x, job.y, job.z, result))
             log_e("Tile fetch failed: %s", result.c_str());
         else
-            log_d("core %i fetched tile z=%u x=%lu, y=%lu in %lu ms", xPortGetCoreID(), job.z, job.x, job.y, millis() - startMS);
+            log_i("core %i fetched tile z=%u x=%lu, y=%lu in %lu ms", xPortGetCoreID(), job.z, job.x, job.y, millis() - startMS);
         osm->decrementActiveJobs();
     }
     log_d("task on core %i exiting", xPortGetCoreID());
