@@ -27,6 +27,7 @@
 #include <Arduino.h>
 #include <freertos/semphr.h>
 
+// cppcheck-suppress unusedStruct
 struct CachedTile
 {
     uint32_t x;

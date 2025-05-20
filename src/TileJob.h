@@ -26,6 +26,7 @@
 
 #include "CachedTile.h"
 
+// cppcheck-suppress unusedStruct
 struct TileJob
 {
     uint32_t x;
