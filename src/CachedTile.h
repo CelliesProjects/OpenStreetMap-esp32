@@ -27,7 +27,6 @@
 #include <Arduino.h>
 #include <freertos/semphr.h>
 
-// cppcheck-suppress unusedStruct
 struct CachedTile
 {
     uint32_t x;
@@ -70,5 +69,7 @@ struct CachedTile
         busy = false;
     }
 };
+
+static_assert(sizeof(CachedTile) >= 0, "Suppress unusedStruct");
 
 #endif
