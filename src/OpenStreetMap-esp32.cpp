@@ -45,8 +45,8 @@ OpenStreetMap::~OpenStreetMap()
 
     freeTilesCache();
 
-    if (cacheSemaphore)
-        vSemaphoreDelete(cacheSemaphore);
+    if (cacheMutex)
+        vSemaphoreDelete(cacheMutex);
 
     if (pngCore0)
     {
@@ -312,15 +312,15 @@ bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, const tileList &requiredT
 
 bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double latitude, uint8_t zoom)
 {
-    if (!cacheSemaphore)
+    if (!cacheMutex)
     {
-        cacheSemaphore = xSemaphoreCreateBinary();
-        if (!cacheSemaphore)
+        cacheMutex = xSemaphoreCreateBinary();
+        if (!cacheMutex)
         {
             log_e("could not init cache mutex");
             return false;
         }
-        xSemaphoreGive(cacheSemaphore);
+        xSemaphoreGive(cacheMutex);
     }
 
     if (!tasksStarted && !startTileWorkerTasks())
@@ -525,13 +525,6 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
     return true;
 }
 
-void OpenStreetMap::decrementActiveJobs()
-{
-    log_d("pending jobs: %d", pendingJobs.load());
-    if (--pendingJobs == 0)
-        log_v("jobs done");
-}
-
 void OpenStreetMap::tileFetcherTask(void *param)
 {
     OpenStreetMap *osm = static_cast<OpenStreetMap *>(param);
@@ -540,27 +533,27 @@ void OpenStreetMap::tileFetcherTask(void *param)
         TileJob job;
         unsigned long startMS;
         {
-            ScopedMutex lock(osm->cacheSemaphore);
+            ScopedMutex lock(osm->cacheMutex);
             BaseType_t received = xQueueReceive(osm->jobQueue, &job, portMAX_DELAY);
             startMS = millis();
 
             if (received != pdTRUE)
                 continue;
 
-            if (job.z == 255) // poison pill: absolved by dtor
+            if (job.z == 255)
                 break;
 
             if (!job.tile)
                 continue;
 
             {
-                ScopedMutex lock(job.tile->mutex); // protect tile fields
+                ScopedMutex lock(job.tile->mutex);
                 if (job.tile->valid &&
                     job.tile->x == job.x &&
                     job.tile->y == job.y &&
                     job.tile->z == job.z)
                 {
-                    continue; // Already fetched
+                    continue;
                 }
 
                 job.tile->x = job.x;
