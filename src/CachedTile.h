@@ -1,4 +1,3 @@
-// cppcheck-suppress unusedStruct
 /*
     Copyright (c) 2025 Cellie https://github.com/CelliesProjects/OpenStreetMap-esp32
 
@@ -28,6 +27,7 @@
 #include <Arduino.h>
 #include <freertos/semphr.h>
 
+// cppcheck-suppress unusedStruct
 struct CachedTile
 {
     uint32_t x;
