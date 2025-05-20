@@ -70,4 +70,6 @@ struct CachedTile
     }
 };
 
+static_assert(sizeof(CachedTile) >= 0, "Suppress unusedStruct");
+
 #endif

@@ -34,4 +34,6 @@ struct TileJob
     CachedTile *tile;
 };
 
+static_assert(sizeof(TileJob) >= 0, "Suppress unusedStruct");
+
 #endif
