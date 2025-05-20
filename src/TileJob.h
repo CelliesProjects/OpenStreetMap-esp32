@@ -1,3 +1,4 @@
+// cppcheck-suppress unusedStruct
 /*
     Copyright (c) 2025 Cellie https://github.com/CelliesProjects/OpenStreetMap-esp32
 
@@ -26,7 +27,6 @@
 
 #include "CachedTile.h"
 
-// cppcheck-suppress unusedStruct
 struct TileJob
 {
     uint32_t x;
