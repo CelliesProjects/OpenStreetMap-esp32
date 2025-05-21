@@ -71,10 +71,7 @@ namespace
 class OpenStreetMap
 {
 public:
-    OpenStreetMap()
-    {
-        ownerTask = xTaskGetCurrentTaskHandle();
-    }
+    OpenStreetMap() = default;
     OpenStreetMap(const OpenStreetMap &) = delete;
     OpenStreetMap &operator=(const OpenStreetMap &) = delete;
     OpenStreetMap(OpenStreetMap &&other) = delete;

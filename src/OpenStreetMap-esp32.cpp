@@ -243,6 +243,7 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
 
         log_i("submitting %i jobs", (int)jobs.size());
 
+        ownerTask = xTaskGetCurrentTaskHandle();
         for (const TileJob &job : jobs)
         {
             if (xQueueSend(jobQueue, &job, portMAX_DELAY) != pdPASS)
