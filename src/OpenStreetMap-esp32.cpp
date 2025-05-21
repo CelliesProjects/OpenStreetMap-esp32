@@ -39,6 +39,8 @@ OpenStreetMap::~OpenStreetMap()
         for (int i = 0; i < numCores; ++i)
             ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
+        tasksStarted = false;
+
         vQueueDelete(jobQueue);
         jobQueue = nullptr;
     }
@@ -46,7 +48,10 @@ OpenStreetMap::~OpenStreetMap()
     freeTilesCache();
 
     if (cacheMutex)
+    {
         vSemaphoreDelete(cacheMutex);
+        cacheMutex = nullptr;
+    }
 
     if (pngCore0)
     {
