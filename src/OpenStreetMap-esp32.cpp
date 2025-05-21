@@ -243,7 +243,6 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
 
         log_i("submitting %i jobs", (int)jobs.size());
 
-        ownerTask = xTaskGetCurrentTaskHandle();
         for (const TileJob &job : jobs)
         {
             if (xQueueSend(jobQueue, &job, portMAX_DELAY) != pdPASS)
@@ -595,8 +594,9 @@ bool OpenStreetMap::startTileWorkerTasks()
     if (tasksStarted)
         return true;
 
-    const int numCores = ESP.getChipCores();
+    ownerTask = xTaskGetCurrentTaskHandle();
 
+    const int numCores = ESP.getChipCores();
     for (int core = 0; core < numCores; ++core)
     {
         char taskName[16];
