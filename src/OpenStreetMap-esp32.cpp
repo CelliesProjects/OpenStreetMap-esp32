@@ -594,8 +594,9 @@ bool OpenStreetMap::startTileWorkerTasks()
     if (tasksStarted)
         return true;
 
-    const int numCores = ESP.getChipCores();
+    ownerTask = xTaskGetCurrentTaskHandle();
 
+    const int numCores = ESP.getChipCores();
     for (int core = 0; core < numCores; ++core)
     {
         char taskName[16];
