@@ -1,0 +1,42 @@
+{
+    "name": "OpenStreetMap-esp32",
+    "version": "1.0.3",
+    "description": "This library provides a OpenStreetMap (OSM) map fetching and caching system for ESP32-based devices.",
+    "keywords": [
+        "OpenStreetMap",
+        "GPS",
+        "LovyanGFX",
+        "ESP32"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/CelliesProjects/OpenStreetMap-esp32"
+    },
+    "authors": [
+        {
+            "name": "CelliesProjects"
+        }
+    ],
+    "frameworks": [
+        "arduino"
+    ],
+    "platforms": [
+        "espressif32"
+    ],
+    "dependencies": [
+        {
+            "name": "LovyanGFX",
+            "version": "https://github.com/lovyan03/LovyanGFX.git#1.2.7"
+        },
+        {
+            "name": "PNGdec",
+            "version": "https://github.com/bitbank2/PNGdec.git#28b221d"
+        }
+    ],
+    "build": {
+        "flags": [
+            "-std=gnu++17"
+        ]
+    },
+    "license": "MIT"
+}
