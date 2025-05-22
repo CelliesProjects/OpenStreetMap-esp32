@@ -11,7 +11,6 @@ Under the hood it uses [LovyanGFX](https://github.com/lovyan03/LovyanGFX) and [P
 
 This library is **PlatformIO only** due to use of modern C++ features. The Arduino IDE is **not** supported.
 
-
 [![map](https://github.com/user-attachments/assets/39a7f287-c59d-4365-888a-d4c3f77a1dd1 "Click to visit OpenStreetMap.org")](https://www.openstreetmap.org/)
 
 A map is composed from downloaded OSM tiles and returned as a LGFX sprite.
