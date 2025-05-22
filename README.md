@@ -4,11 +4,13 @@
 [![Release](https://img.shields.io/github/v/release/CelliesProjects/OpenStreetMap-esp32)](https://github.com/CelliesProjects/OpenStreetMap-esp32/releases/latest)
 [![Issues](https://img.shields.io/github/issues/CelliesProjects/OpenStreetMap-esp32)](https://github.com/CelliesProjects/OpenStreetMap-esp32/issues)
 [![PlatformIO](https://img.shields.io/badge/PlatformIO-Compatible-green?logo=platformio)](https://registry.platformio.org/libraries/celliesprojects/openstreetmap-esp32)
-[![arduino-library-badge](https://www.ardu-badge.com/badge/OpenStreetMap-esp32.svg?)](https://docs.arduino.cc/libraries/openstreetmap-esp32/)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/0961fc2320cd495a9411eb391d5791ca)](https://app.codacy.com/gh/CelliesProjects/OpenStreetMap-esp32/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 
 This library provides a [OpenStreetMap](https://www.openstreetmap.org/) (OSM) map fetching and tile caching system for ESP32-based devices.  
 Under the hood it uses [LovyanGFX](https://github.com/lovyan03/LovyanGFX) and [PNGdec](https://github.com/bitbank2/PNGdec) to do the heavy lifting.
+
+This library is **PlatformIO only** due to use of modern C++ features. The Arduino IDE is **not** supported.
+
 
 [![map](https://github.com/user-attachments/assets/39a7f287-c59d-4365-888a-d4c3f77a1dd1 "Click to visit OpenStreetMap.org")](https://www.openstreetmap.org/)
 
