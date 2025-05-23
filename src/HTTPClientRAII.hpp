@@ -20,8 +20,8 @@
     SOFTWARE.
     SPDX-License-Identifier: MIT
     */
-#ifndef HTTPCLIENTRAII_H
-#define HTTPCLIENTRAII_H
+#ifndef HTTPCLIENTRAII_HPP_
+#define HTTPCLIENTRAII_HPP_
 
 #include <Arduino.h>
 #include <HTTPClient.h>

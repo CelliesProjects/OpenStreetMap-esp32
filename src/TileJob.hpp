@@ -1,5 +1,4 @@
 /*
-    MIT License
     Copyright (c) 2025 Cellie https://github.com/CelliesProjects/OpenStreetMap-esp32
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -20,33 +19,21 @@
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
     SPDX-License-Identifier: MIT
-*/
-#ifndef SCOPEDMUTEX_H
-#define SCOPEDMUTEX_H
+    */
 
-#include <Arduino.h>
-#include <freertos/semphr.h>
+#ifndef TILEJOB_HPP_
+#define TILEJOB_HPP_
 
-class ScopedMutex
+#include "CachedTile.hpp"
+
+struct TileJob
 {
-private:
-    SemaphoreHandle_t &mutex;
-    bool locked;
-
-public:
-    explicit ScopedMutex(SemaphoreHandle_t &m, TickType_t timeout = portMAX_DELAY)
-        : mutex(m), locked(xSemaphoreTake(mutex, timeout)) {}
-
-    ScopedMutex(const ScopedMutex &) = delete;
-    ScopedMutex &operator=(const ScopedMutex &) = delete;
-
-    ~ScopedMutex()
-    {
-        if (locked)
-            xSemaphoreGive(mutex);
-    }
-
-    bool acquired() const { return locked; }
+    uint32_t x;
+    uint32_t y;
+    uint8_t z;
+    CachedTile *tile;
 };
 
-#endif // SCOPEDMUTEX_H
+static_assert(sizeof(TileJob) >= 0, "Suppress unusedStruct");
+
+#endif

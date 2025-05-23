@@ -21,8 +21,8 @@
     SPDX-License-Identifier: MIT
     */
 
-#ifndef OPENSTREETMAP_ESP32_H
-#define OPENSTREETMAP_ESP32_H
+#ifndef OPENSTREETMAP_ESP32_HPP_
+#define OPENSTREETMAP_ESP32_HPP_
 
 #include <Arduino.h>
 #include <WiFiClient.h>
@@ -33,11 +33,11 @@
 #include <LovyanGFX.hpp>
 #include <PNGdec.h>
 
-#include "CachedTile.h"
-#include "ScopedMutex.h"
-#include "TileJob.h"
-#include "MemoryBuffer.h"
-#include "HTTPClientRAII.h"
+#include "CachedTile.hpp"
+#include "ScopedMutex.hpp"
+#include "TileJob.hpp"
+#include "MemoryBuffer.hpp"
+#include "HTTPClientRAII.hpp"
 
 constexpr uint16_t OSM_TILESIZE = 256;
 constexpr uint16_t OSM_TILE_TIMEOUT_MS = 2500;
