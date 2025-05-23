@@ -3,10 +3,18 @@
     "version": "1.0.3",
     "description": "This library provides a OpenStreetMap (OSM) map fetching and caching system for ESP32-based devices.",
     "keywords": [
-        "OpenStreetMap",
-        "GPS",
-        "LovyanGFX",
-        "ESP32"
+        "esp32",
+        "gps",
+        "location",
+        "geolocation",
+        "tracking",
+        "map",
+        "tiles",
+        "tile-caching",
+        "openstreetmap",
+        "osm",
+        "lovyangfx",
+        "pngdec"
     ],
     "repository": {
         "type": "git",
@@ -38,5 +46,8 @@
             "-std=gnu++17"
         ]
     },
-    "license": "MIT"
+    "license": "MIT",
+    "include": [
+        "src/OpenStreetMap-esp32.hpp"
+    ]
 }
