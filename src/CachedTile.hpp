@@ -29,16 +29,24 @@
 
 struct CachedTile
 {
-    uint32_t x = 0;
-    uint32_t y = 0;
-    uint8_t z = 0;
-    bool valid = false;
-    bool busy = false;
-    uint16_t *buffer = nullptr;
+    uint32_t x;
+    uint32_t y;
+    uint8_t z;
+    bool valid;
+    bool busy;
+    uint16_t *buffer;
     SemaphoreHandle_t mutex;
 
     CachedTile()
-        : mutex(xSemaphoreCreateMutex()) {}
+        : x(0),
+          y(0),
+          z(0),
+          valid(false),
+          busy(false),
+          buffer(nullptr),
+          mutex(xSemaphoreCreateMutex())
+    {
+    }
 
     ~CachedTile()
     {
