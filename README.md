@@ -17,7 +17,6 @@ This library is **PlatformIO only** due to use of modern C++ features. The Ardui
 
 [![map](https://github.com/user-attachments/assets/39a7f287-c59d-4365-888a-d4c3f77a1dd1 "Click to visit OpenStreetMap.org")](https://www.openstreetmap.org/)
 
-
 The returned map can be pushed to the screen, saved to SD or used for further composing.  
 Downloaded tiles are cached in psram for reuse.
 
