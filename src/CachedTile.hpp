@@ -29,18 +29,16 @@
 
 struct CachedTile
 {
-    uint32_t x;
-    uint32_t y;
-    uint8_t z;
+    uint32_t x = 0;
+    uint32_t y = 0;
+    uint8_t z = 0;
     bool valid = false;
     bool busy = false;
     uint16_t *buffer = nullptr;
-    SemaphoreHandle_t mutex = nullptr;
+    SemaphoreHandle_t mutex;
 
     CachedTile()
-    {
-        mutex = xSemaphoreCreateMutex();
-    }
+        : mutex(xSemaphoreCreateMutex()) {}
 
     ~CachedTile()
     {
@@ -54,7 +52,7 @@ struct CachedTile
 
     bool allocate()
     {
-        buffer = (uint16_t *)heap_caps_malloc(256 * 256 * sizeof(uint16_t), MALLOC_CAP_SPIRAM);
+        buffer = static_cast<uint16_t *>(heap_caps_malloc(256 * 256 * sizeof(uint16_t), MALLOC_CAP_SPIRAM));
         return buffer != nullptr;
     }
 
