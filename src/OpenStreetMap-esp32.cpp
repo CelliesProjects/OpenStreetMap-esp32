@@ -21,7 +21,7 @@
     SPDX-License-Identifier: MIT
     */
 
-#include "OpenStreetMap-esp32.h"
+#include "OpenStreetMap-esp32.hpp"
 
 OpenStreetMap::~OpenStreetMap()
 {

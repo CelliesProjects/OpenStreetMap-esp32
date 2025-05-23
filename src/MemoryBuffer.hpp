@@ -21,8 +21,8 @@
     SPDX-License-Identifier: MIT
     */
 
-#ifndef MEMORYBUFFER_H
-#define MEMORYBUFFER_H
+#ifndef MEMORYBUFFER_HPP_
+#define MEMORYBUFFER_HPP_
 
 #include <Arduino.h>
 #include <memory>

@@ -21,7 +21,7 @@
     SPDX-License-Identifier: MIT
     */
 
-#include "MemoryBuffer.h"
+#include "MemoryBuffer.hpp"
 #include <Arduino.h>
 
 MemoryBuffer::MemoryBuffer(size_t size) : size_(size)

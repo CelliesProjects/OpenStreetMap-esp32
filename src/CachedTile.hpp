@@ -19,21 +19,57 @@
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
     SPDX-License-Identifier: MIT
-    */
+*/
 
-#ifndef TILEJOB
-#define TILEJOB
+#ifndef CACHEDTILE_HPP_
+#define CACHEDTILE_HPP_
 
-#include "CachedTile.h"
+#include <Arduino.h>
+#include <freertos/semphr.h>
 
-struct TileJob
+struct CachedTile
 {
     uint32_t x;
     uint32_t y;
     uint8_t z;
-    CachedTile *tile;
+    bool valid = false;
+    bool busy = false;
+    uint16_t *buffer = nullptr;
+    SemaphoreHandle_t mutex = nullptr;
+
+    CachedTile()
+    {
+        mutex = xSemaphoreCreateMutex();
+    }
+
+    ~CachedTile()
+    {
+        if (mutex)
+        {
+            vSemaphoreDelete(mutex);
+            mutex = nullptr;
+        }
+        free();
+    }
+
+    bool allocate()
+    {
+        buffer = (uint16_t *)heap_caps_malloc(256 * 256 * sizeof(uint16_t), MALLOC_CAP_SPIRAM);
+        return buffer != nullptr;
+    }
+
+    void free()
+    {
+        if (buffer)
+        {
+            heap_caps_free(buffer);
+            buffer = nullptr;
+        }
+        valid = false;
+        busy = false;
+    }
 };
 
-static_assert(sizeof(TileJob) >= 0, "Suppress unusedStruct");
+static_assert(sizeof(CachedTile) >= 0, "Suppress unusedStruct");
 
 #endif
