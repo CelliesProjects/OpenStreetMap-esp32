@@ -87,8 +87,8 @@ public:
 private:
     SemaphoreHandle_t cacheMutex = nullptr;
     std::vector<CachedTile> tilesCache;
-    thread_local static uint16_t *currentTileBuffer;
-    thread_local static OpenStreetMap *currentInstance;
+    static inline thread_local uint16_t *currentTileBuffer = nullptr;
+    static inline thread_local OpenStreetMap *currentInstance = nullptr;
     static void PNGDraw(PNGDRAW *pDraw);
     double lon2tile(double lon, uint8_t zoom);
     double lat2tile(double lat, uint8_t zoom);
