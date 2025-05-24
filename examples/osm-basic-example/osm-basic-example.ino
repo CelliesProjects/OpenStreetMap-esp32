@@ -7,7 +7,7 @@
 #include <LGFX_AUTODETECT.hpp>
 #include <LovyanGFX.hpp>
 
-#include <OpenStreetMap-esp32.h>
+#include <OpenStreetMap-esp32.hpp>
 
 const char *ssid = "xxx";
 const char *password = "xxx";
