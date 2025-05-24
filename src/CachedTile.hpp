@@ -25,7 +25,6 @@
 #define CACHEDTILE_HPP_
 
 #include <Arduino.h>
-#include <freertos/semphr.h>
 
 struct CachedTile
 {
