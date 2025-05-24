@@ -34,7 +34,6 @@
 #include <PNGdec.h>
 
 #include "CachedTile.hpp"
-#include "ScopedMutex.hpp"
 #include "TileJob.hpp"
 #include "MemoryBuffer.hpp"
 #include "HTTPClientRAII.hpp"
@@ -85,7 +84,6 @@ public:
     bool fetchMap(LGFX_Sprite &sprite, double longitude, double latitude, uint8_t zoom);
 
 private:
-    SemaphoreHandle_t cacheMutex = nullptr;
     std::vector<CachedTile> tilesCache;
     static inline thread_local OpenStreetMap *currentInstance = nullptr;
     static inline thread_local uint16_t *currentTileBuffer = nullptr;

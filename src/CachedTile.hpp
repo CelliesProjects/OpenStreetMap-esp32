@@ -34,7 +34,6 @@ struct CachedTile
     uint8_t z;
     bool valid;
     bool busy;
-    SemaphoreHandle_t mutex;
     uint16_t *buffer;
 
     CachedTile()
@@ -43,18 +42,12 @@ struct CachedTile
           z(0),
           valid(false),
           busy(false),
-          mutex(xSemaphoreCreateMutex()),
           buffer(nullptr)
     {
     }
 
     ~CachedTile()
     {
-        if (mutex)
-        {
-            vSemaphoreDelete(mutex);
-            mutex = nullptr;
-        }
         free();
     }
 
