@@ -47,12 +47,6 @@ OpenStreetMap::~OpenStreetMap()
 
     freeTilesCache();
 
-    if (cacheMutex)
-    {
-        vSemaphoreDelete(cacheMutex);
-        cacheMutex = nullptr;
-    }
-
     if (pngCore0)
     {
         pngCore0->~PNG();
@@ -148,7 +142,6 @@ CachedTile *OpenStreetMap::findUnusedTile(const tileList &requiredTiles, uint8_t
 {
     for (auto &tile : tilesCache)
     {
-        ScopedMutex lock(tile.mutex);
         if (tile.busy)
             continue;
 
@@ -253,10 +246,8 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
             delay(1);
 
         for (const TileJob &job : jobs)
-        {
-            ScopedMutex _(job.tile->mutex);
             job.tile->busy = false;
-        }
+
         log_i("Cache updated in %lu ms", millis() - startMS);
     }
 }
@@ -317,17 +308,6 @@ bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, const tileList &requiredT
 
 bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double latitude, uint8_t zoom)
 {
-    if (!cacheMutex)
-    {
-        cacheMutex = xSemaphoreCreateBinary();
-        if (!cacheMutex)
-        {
-            log_e("could not init cache mutex");
-            return false;
-        }
-        xSemaphoreGive(cacheMutex);
-    }
-
     if (!tasksStarted && !startTileWorkerTasks())
     {
         log_e("Failed to start tile worker(s)");
@@ -533,36 +513,14 @@ void OpenStreetMap::tileFetcherTask(void *param)
     while (true)
     {
         TileJob job;
-        unsigned long startMS;
-        {
-            ScopedMutex lock(osm->cacheMutex);
-            BaseType_t received = xQueueReceive(osm->jobQueue, &job, portMAX_DELAY);
-            startMS = millis();
+        xQueueReceive(osm->jobQueue, &job, portMAX_DELAY);
+        const unsigned long startMS = millis();
 
-            if (received != pdTRUE)
-                continue;
+        if (job.z == 255)
+            break;
 
-            if (job.z == 255)
-                break;
-
-            if (!job.tile)
-                continue;
-
-            {
-                ScopedMutex lock(job.tile->mutex);
-                if (job.tile->valid &&
-                    job.tile->x == job.x &&
-                    job.tile->y == job.y &&
-                    job.tile->z == job.z)
-                {
-                    continue;
-                }
-
-                job.tile->x = job.x;
-                job.tile->y = job.y;
-                job.tile->z = job.z;
-            }
-        }
+        if (!job.tile)
+            continue;
 
         String result;
         if (!osm->fetchTile(*job.tile, job.x, job.y, job.z, result))
