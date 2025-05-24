@@ -87,7 +87,7 @@ bool fetchMap(LGFX_Sprite &map, double longitude, double latitude, uint8_t zoom)
 #include <LGFX_AUTODETECT.hpp>
 #include <LovyanGFX.hpp>
 
-#include <OpenStreetMap-esp32.h>
+#include <OpenStreetMap-esp32.hpp>
 
 const char *ssid = "xxx";
 const char *password = "xxx";
@@ -144,7 +144,7 @@ void loop()
 
 #include "LGFX_ESP32_8048S050C.hpp" // replace with your panel config
 
-#include <OpenStreetMap-esp32.h>
+#include <OpenStreetMap-esp32.hpp>
 
 const char *ssid = "xxx";
 const char *password = "xxx";
