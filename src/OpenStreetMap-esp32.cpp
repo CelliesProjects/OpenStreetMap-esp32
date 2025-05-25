@@ -214,10 +214,18 @@ bool OpenStreetMap::resizeTilesCache(uint16_t numberOfTiles)
 
 void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
 {
-    std::vector<TileJob> jobs;
-
     const unsigned long startMS = millis();
+    std::vector<TileJob> jobs;
+    makeJobList(requiredTiles, jobs, zoom);
+    if (!jobs.empty())
+    {
+        runJobs(jobs);
+        log_i("Cache updated in %lu ms", millis() - startMS);
+    }
+}
 
+void OpenStreetMap::makeJobList(const tileList &requiredTiles, std::vector<TileJob> &jobs, uint8_t zoom)
+{
     for (const auto &[x, y] : requiredTiles)
     {
         if (isTileCached(x, y, zoom) || y < 0 || y >= (1 << zoom))
@@ -229,27 +237,25 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
 
         jobs.push_back({x, static_cast<uint32_t>(y), zoom, tileToReplace});
     }
+}
 
-    if (!jobs.empty())
-    {
-        pendingJobs.store(jobs.size());
+void OpenStreetMap::runJobs(const std::vector<TileJob> &jobs)
+{
+    log_i("submitting %i jobs", (int)jobs.size());
 
-        log_i("submitting %i jobs", (int)jobs.size());
-
-        for (const TileJob &job : jobs)
+    pendingJobs.store(jobs.size());
+    for (const TileJob &job : jobs)
+        if (xQueueSend(jobQueue, &job, portMAX_DELAY) != pdPASS)
         {
-            if (xQueueSend(jobQueue, &job, portMAX_DELAY) != pdPASS)
-                log_e("Failed to enqueue TileJob");
+            log_e("Failed to enqueue TileJob");
+            --pendingJobs;
         }
 
-        while (pendingJobs.load() > 0)
-            delay(1);
+    while (pendingJobs.load() > 0)
+        delay(1);
 
-        for (const TileJob &job : jobs)
-            job.tile->busy = false;
-
-        log_i("Cache updated in %lu ms", millis() - startMS);
-    }
+    for (const TileJob &job : jobs)
+        job.tile->busy = false;
 }
 
 bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, const tileList &requiredTiles, uint8_t zoom)
@@ -483,7 +489,7 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
 
     currentInstance = this;
     currentTileBuffer = tile.buffer;
-    
+
     const int decodeResult = png->decode(0, PNG_FAST_PALETTE);
     if (decodeResult != PNG_SUCCESS)
     {
