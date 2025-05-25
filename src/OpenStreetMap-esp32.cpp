@@ -252,7 +252,7 @@ void OpenStreetMap::runJobs(const std::vector<TileJob> &jobs)
         }
 
     while (pendingJobs.load() > 0)
-        delay(1);
+        vTaskDelay(pdMS_TO_TICKS(1));
 
     for (const TileJob &job : jobs)
         job.tile->busy = false;
