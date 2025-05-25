@@ -438,9 +438,6 @@ std::optional<std::unique_ptr<MemoryBuffer>> OpenStreetMap::urlToBuffer(const ch
 
 void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
 {
-    if (!currentInstance || !currentInstance->currentTileBuffer)
-        return;
-
     uint16_t *destRow = currentInstance->currentTileBuffer + (pDraw->y * OSM_TILESIZE);
     getPNGForCore()->getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, 0xffffffff);
 }
@@ -486,10 +483,8 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
 
     currentInstance = this;
     currentTileBuffer = tile.buffer;
+    
     const int decodeResult = png->decode(0, PNG_FAST_PALETTE);
-    currentTileBuffer = nullptr;
-    currentInstance = nullptr;
-
     if (decodeResult != PNG_SUCCESS)
     {
         result = "Decoding " + String(url) + " failed with code: " + String(decodeResult);
