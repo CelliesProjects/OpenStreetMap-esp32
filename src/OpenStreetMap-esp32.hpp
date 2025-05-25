@@ -93,7 +93,7 @@ private:
     void computeRequiredTiles(double longitude, double latitude, uint8_t zoom, tileList &requiredTiles);
     void updateCache(const tileList &requiredTiles, uint8_t zoom);
     void makeJobList(const tileList &requiredTiles, std::vector<TileJob> &jobs, uint8_t zoom);    
-    void runJobs(std::vector<TileJob> &jobs);
+    void runJobs(const std::vector<TileJob> &jobs);
     CachedTile *findUnusedTile(const tileList &requiredTiles, uint8_t zoom);
     bool isTileCached(uint32_t x, uint32_t y, uint8_t z);
     bool fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result);

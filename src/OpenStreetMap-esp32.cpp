@@ -239,16 +239,17 @@ void OpenStreetMap::makeJobList(const tileList &requiredTiles, std::vector<TileJ
     }
 }
 
-void OpenStreetMap::runJobs(std::vector<TileJob> &jobs)
+void OpenStreetMap::runJobs(const std::vector<TileJob> &jobs)
 {
     log_i("submitting %i jobs", (int)jobs.size());
 
     pendingJobs.store(jobs.size());
     for (const TileJob &job : jobs)
-    {
         if (xQueueSend(jobQueue, &job, portMAX_DELAY) != pdPASS)
+        {
             log_e("Failed to enqueue TileJob");
-    }
+            --pendingJobs;
+        }
 
     while (pendingJobs.load() > 0)
         delay(1);
