@@ -165,15 +165,12 @@ CachedTile *OpenStreetMap::findUnusedTile(const tileList &requiredTiles, uint8_t
     return nullptr; // no unused tile found
 }
 
-bool OpenStreetMap::isTileCached(uint32_t x, uint32_t y, uint8_t z)
+bool OpenStreetMap::isTileCachedOrBusy(uint32_t x, uint32_t y, uint8_t z)
 {
     for (const auto &tile : tilesCache)
     {
-        if (tile.x == x && tile.y == y && tile.z == z)
-        {
-            if (tile.valid || tile.busy)
-                return true;
-        }
+        if (tile.x == x && tile.y == y && tile.z == z && (tile.valid || tile.busy))
+            return true;
     }
     return false;
 }
@@ -228,7 +225,7 @@ void OpenStreetMap::makeJobList(const tileList &requiredTiles, std::vector<TileJ
 {
     for (const auto &[x, y] : requiredTiles)
     {
-        if (isTileCached(x, y, zoom) || y < 0 || y >= (1 << zoom))
+        if (isTileCachedOrBusy(x, y, zoom) || y < 0 || y >= (1 << zoom))
             continue;
 
         CachedTile *tileToReplace = findUnusedTile(requiredTiles, zoom);
