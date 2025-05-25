@@ -454,44 +454,41 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
         return false;
     }
 
+    PNG *png = getPNGForCore();
+    if (!png)
+    {
+        result = "PNG decoder unavailable";
+        return false;
+    }
+
     char url[64];
     snprintf(url, sizeof(url), "https://tile.openstreetmap.org/%u/%u/%u.png",
              static_cast<unsigned int>(zoom),
              static_cast<unsigned int>(x),
              static_cast<unsigned int>(y));
 
-    int decodeResult;
+    const auto buffer = urlToBuffer(url, result);
+    if (!buffer)
+        return false;
+
+    const int16_t rc = png->openRAM(buffer.value()->get(), buffer.value()->size(), PNGDraw);
+    if (rc != PNG_SUCCESS)
     {
-        auto buffer = urlToBuffer(url, result);
-        if (!buffer)
-            return false;
-
-        PNG *png = getPNGForCore();
-        if (!png)
-        {
-            result = "PNG decoder unavailable";
-            return false;
-        }
-
-        const int16_t rc = png->openRAM(buffer.value()->get(), buffer.value()->size(), PNGDraw);
-        if (rc != PNG_SUCCESS)
-        {
-            result = "PNG Decoder Error: " + String(rc);
-            return false;
-        }
-
-        if (png->getWidth() != OSM_TILESIZE || png->getHeight() != OSM_TILESIZE)
-        {
-            result = "Unexpected tile size: w=" + String(png->getWidth()) + " h=" + String(png->getHeight());
-            return false;
-        }
-
-        currentInstance = this;
-        currentTileBuffer = tile.buffer;
-        decodeResult = png->decode(0, PNG_FAST_PALETTE);
-        currentTileBuffer = nullptr;
-        currentInstance = nullptr;
+        result = "PNG Decoder Error: " + String(rc);
+        return false;
     }
+
+    if (png->getWidth() != OSM_TILESIZE || png->getHeight() != OSM_TILESIZE)
+    {
+        result = "Unexpected tile size: w=" + String(png->getWidth()) + " h=" + String(png->getHeight());
+        return false;
+    }
+
+    currentInstance = this;
+    currentTileBuffer = tile.buffer;
+    const int decodeResult = png->decode(0, PNG_FAST_PALETTE);
+    currentTileBuffer = nullptr;
+    currentInstance = nullptr;
 
     if (decodeResult != PNG_SUCCESS)
     {
