@@ -95,7 +95,7 @@ private:
     void makeJobList(const tileList &requiredTiles, std::vector<TileJob> &jobs, uint8_t zoom);    
     void runJobs(const std::vector<TileJob> &jobs);
     CachedTile *findUnusedTile(const tileList &requiredTiles, uint8_t zoom);
-    bool isTileCached(uint32_t x, uint32_t y, uint8_t z);
+    bool isTileCachedOrBusy(uint32_t x, uint32_t y, uint8_t z);
     bool fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result);
     std::optional<std::unique_ptr<MemoryBuffer>> urlToBuffer(const char *url, String &result);
     bool fillBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t contentSize, String &result);
