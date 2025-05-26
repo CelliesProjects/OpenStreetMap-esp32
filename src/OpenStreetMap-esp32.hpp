@@ -104,7 +104,7 @@ private:
     static void tileFetcherTask(void *param);
     bool startTileWorkerTasks();
 
-// codacy-disable-next-line UnusedCode    
+// cppcheck-suppress unusedPrivateMember
     const int numberOfWorkers = OSM_FORCE_SINGLECORE ? 1 : ESP.getChipCores();
     TaskHandle_t ownerTask = nullptr;
     QueueHandle_t jobQueue = nullptr;
