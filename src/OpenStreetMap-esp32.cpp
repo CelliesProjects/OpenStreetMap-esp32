@@ -27,8 +27,7 @@ OpenStreetMap::~OpenStreetMap()
 {
     if (jobQueue && tasksStarted)
     {
-        const int numCores = ESP.getChipCores();
-        for (int i = 0; i < numCores; ++i)
+        for (int i = 0; i < numberOfWorkers; ++i)
         {
             TileJob poison = {};
             poison.z = 255;
@@ -36,7 +35,7 @@ OpenStreetMap::~OpenStreetMap()
                 log_e("Failed to send poison pill to tile worker %d", i);
         }
 
-        for (int i = 0; i < numCores; ++i)
+        for (int i = 0; i < numberOfWorkers; ++i)
             ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
         tasksStarted = false;
@@ -546,17 +545,12 @@ bool OpenStreetMap::startTileWorkerTasks()
 
     ownerTask = xTaskGetCurrentTaskHandle();
 
-    const int numCores = ESP.getChipCores();
-    for (int core = 0; core < numCores; ++core)
-    {
-        char taskName[16];
-        snprintf(taskName, sizeof(taskName), "TileWorker%d", core);
-        if (!xTaskCreatePinnedToCore(tileFetcherTask, taskName, OSM_TASK_STACKSIZE, this, OSM_TASK_PRIORITY, nullptr, core))
+    for (int core = 0; core < numberOfWorkers; ++core)
+        if (!xTaskCreatePinnedToCore(tileFetcherTask, nullptr, OSM_TASK_STACKSIZE, this, OSM_TASK_PRIORITY, nullptr, core))
             return false;
-    }
 
     tasksStarted = true;
 
-    log_i("Started %d tile worker task(s)", numCores);
+    log_i("Started %d tile worker task(s)", numberOfWorkers);
     return true;
 }

@@ -45,6 +45,7 @@ constexpr uint16_t OSM_MAX_ZOOM = 18;
 constexpr UBaseType_t OSM_TASK_PRIORITY = 10;
 constexpr uint32_t OSM_TASK_STACKSIZE = 5120;
 constexpr uint32_t OSM_JOB_QUEUE_SIZE = 50;
+constexpr bool OSM_FORCE_SINGLECORE = false;
 
 using tileList = std::vector<std::pair<uint32_t, int32_t>>;
 
@@ -92,7 +93,7 @@ private:
     double lat2tile(double lat, uint8_t zoom);
     void computeRequiredTiles(double longitude, double latitude, uint8_t zoom, tileList &requiredTiles);
     void updateCache(const tileList &requiredTiles, uint8_t zoom);
-    void makeJobList(const tileList &requiredTiles, std::vector<TileJob> &jobs, uint8_t zoom);    
+    void makeJobList(const tileList &requiredTiles, std::vector<TileJob> &jobs, uint8_t zoom);
     void runJobs(const std::vector<TileJob> &jobs);
     CachedTile *findUnusedTile(const tileList &requiredTiles, uint8_t zoom);
     bool isTileCachedOrBusy(uint32_t x, uint32_t y, uint8_t z);
@@ -101,9 +102,10 @@ private:
     bool fillBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t contentSize, String &result);
     bool composeMap(LGFX_Sprite &mapSprite, const tileList &requiredTiles, uint8_t zoom);
     static void tileFetcherTask(void *param);
-    TaskHandle_t ownerTask = nullptr;
     bool startTileWorkerTasks();
 
+    const int numberOfWorkers = OSM_FORCE_SINGLECORE ? 1 : ESP.getChipCores();
+    TaskHandle_t ownerTask = nullptr;
     QueueHandle_t jobQueue = nullptr;
     std::atomic<int> pendingJobs = 0;
     bool tasksStarted = false;
