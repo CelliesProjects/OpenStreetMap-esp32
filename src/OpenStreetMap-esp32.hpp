@@ -45,7 +45,7 @@ constexpr uint16_t OSM_MAX_ZOOM = 18;
 constexpr UBaseType_t OSM_TASK_PRIORITY = 10;
 constexpr uint32_t OSM_TASK_STACKSIZE = 5120;
 constexpr uint32_t OSM_JOB_QUEUE_SIZE = 50;
-constexpr bool OSM_FORCE_SINGLECORE = true;
+constexpr bool OSM_FORCE_SINGLECORE = false;
 constexpr int OSM_SINGLECORE_NUMBER = 1;
 
 static_assert(OSM_SINGLECORE_NUMBER < 2, "OSM_SINGLECORE_NUMBER must be 0 or 1 (ESP32 has only 2 cores)");
@@ -108,7 +108,7 @@ private:
     TaskHandle_t ownerTask = nullptr;
     bool startTileWorkerTasks();
 
-    int numberOfWorkers;
+    int numberOfWorkers = 0;
     QueueHandle_t jobQueue = nullptr;
     std::atomic<int> pendingJobs = 0;
     bool tasksStarted = false;
