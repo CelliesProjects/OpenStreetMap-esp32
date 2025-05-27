@@ -45,6 +45,7 @@ constexpr uint16_t OSM_MAX_ZOOM = 18;
 constexpr UBaseType_t OSM_TASK_PRIORITY = 10;
 constexpr uint32_t OSM_TASK_STACKSIZE = 5120;
 constexpr uint32_t OSM_JOB_QUEUE_SIZE = 50;
+constexpr bool OSM_FORCE_SINGLECORE = false;
 
 using tileList = std::vector<std::pair<uint32_t, int32_t>>;
 
@@ -104,6 +105,7 @@ private:
     TaskHandle_t ownerTask = nullptr;
     bool startTileWorkerTasks();
 
+    int numberOfWorkers;
     QueueHandle_t jobQueue = nullptr;
     std::atomic<int> pendingJobs = 0;
     bool tasksStarted = false;
