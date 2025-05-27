@@ -211,7 +211,7 @@ bool OpenStreetMap::resizeTilesCache(uint16_t numberOfTiles)
 
 void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
 {
-    const unsigned long startMS = millis();
+    [[maybe_unused]] const unsigned long startMS = millis();
     std::vector<TileJob> jobs;
     makeJobList(requiredTiles, jobs, zoom);
     if (!jobs.empty())
@@ -502,7 +502,7 @@ void OpenStreetMap::tileFetcherTask(void *param)
     {
         TileJob job;
         xQueueReceive(osm->jobQueue, &job, portMAX_DELAY);
-        const unsigned long startMS = millis();
+        [[maybe_unused]] const unsigned long startMS = millis();
 
         if (job.z == 255)
             break;
