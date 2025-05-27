@@ -27,17 +27,15 @@ OpenStreetMap::~OpenStreetMap()
 {
     if (jobQueue && tasksStarted)
     {
+        constexpr TileJob poison = {0, 0, 255, nullptr};
         for (int i = 0; i < numberOfWorkers; ++i)
-        {
-            TileJob poison = {};
-            poison.z = 255;
             if (xQueueSend(jobQueue, &poison, portMAX_DELAY) != pdPASS)
                 log_e("Failed to send poison pill to tile worker %d", i);
-        }
 
         for (int i = 0; i < numberOfWorkers; ++i)
             ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
+        ownerTask = nullptr;
         tasksStarted = false;
         numberOfWorkers = 0;
 
