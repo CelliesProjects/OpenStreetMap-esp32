@@ -537,7 +537,13 @@ bool OpenStreetMap::startTileWorkerTasks()
     ownerTask = xTaskGetCurrentTaskHandle();
     numberOfWorkers = OSM_FORCE_SINGLECORE ? 1 : ESP.getChipCores();
     for (int core = 0; core < numberOfWorkers; ++core)
-        if (!xTaskCreatePinnedToCore(tileFetcherTask, nullptr, OSM_TASK_STACKSIZE, this, OSM_TASK_PRIORITY, nullptr, core))
+        if (!xTaskCreatePinnedToCore(tileFetcherTask,
+                                     nullptr,
+                                     OSM_TASK_STACKSIZE,
+                                     this,
+                                     OSM_TASK_PRIORITY,
+                                     nullptr,
+                                     OSM_FORCE_SINGLECORE ? OSM_SINGLECORE_NUMBER : core))
             return false;
 
     tasksStarted = true;
