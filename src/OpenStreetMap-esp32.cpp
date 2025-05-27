@@ -447,13 +447,6 @@ void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
 
 bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result)
 {
-    const uint32_t worldTileWidth = 1 << zoom;
-    if (x >= worldTileWidth || y >= worldTileWidth)
-    {
-        result = "Out of range tile coordinates";
-        return false;
-    }
-
     PNG *png = getPNGForCore();
     if (!png)
     {
@@ -514,9 +507,6 @@ void OpenStreetMap::tileFetcherTask(void *param)
         if (job.z == 255)
             break;
 
-        if (!job.tile)
-            continue;
-
         String result;
         if (!osm->fetchTile(*job.tile, job.x, job.y, job.z, result))
             log_e("Tile fetch failed: %s", result.c_str());
@@ -548,12 +538,8 @@ bool OpenStreetMap::startTileWorkerTasks()
 
     const int numCores = ESP.getChipCores();
     for (int core = 0; core < numCores; ++core)
-    {
-        char taskName[16];
-        snprintf(taskName, sizeof(taskName), "TileWorker%d", core);
-        if (!xTaskCreatePinnedToCore(tileFetcherTask, taskName, OSM_TASK_STACKSIZE, this, OSM_TASK_PRIORITY, nullptr, core))
+        if (!xTaskCreatePinnedToCore(tileFetcherTask, nullptr, OSM_TASK_STACKSIZE, this, OSM_TASK_PRIORITY, nullptr, core))
             return false;
-    }
 
     tasksStarted = true;
 
