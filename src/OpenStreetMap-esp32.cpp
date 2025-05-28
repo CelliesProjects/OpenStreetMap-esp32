@@ -513,6 +513,9 @@ void OpenStreetMap::tileFetcherTask(void *param)
 
 bool OpenStreetMap::startTileWorkerTasks()
 {
+    if (tasksStarted)
+        return true;
+
     if (!jobQueue)
     {
         jobQueue = xQueueCreate(OSM_JOB_QUEUE_SIZE, sizeof(TileJob));
@@ -522,9 +525,6 @@ bool OpenStreetMap::startTileWorkerTasks()
             return false;
         }
     }
-
-    if (tasksStarted)
-        return true;
 
     numberOfWorkers = OSM_FORCE_SINGLECORE ? 1 : ESP.getChipCores();
     for (int core = 0; core < numberOfWorkers; ++core)
