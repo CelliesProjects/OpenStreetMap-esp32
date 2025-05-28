@@ -57,9 +57,9 @@ namespace
     PNG *pngCore0 = nullptr;
     PNG *pngCore1 = nullptr;
 
-    PNG *getPNGForCore()
+    PNG *getPNGForCore(int coreID)
     {
-        auto &ptr = (xPortGetCoreID() == 0) ? pngCore0 : pngCore1;
+        PNG *&ptr = (coreID == 0) ? pngCore0 : pngCore1;
         if (!ptr)
         {
             void *mem = heap_caps_malloc(sizeof(PNG), MALLOC_CAP_SPIRAM);
@@ -68,6 +68,11 @@ namespace
             ptr = new (mem) PNG();
         }
         return ptr;
+    }
+
+    PNG *getPNGCurrentCore()
+    {
+        return getPNGForCore(xPortGetCoreID());
     }
 }
 

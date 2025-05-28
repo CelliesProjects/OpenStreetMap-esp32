@@ -440,18 +440,11 @@ std::optional<std::unique_ptr<MemoryBuffer>> OpenStreetMap::urlToBuffer(const ch
 void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
 {
     uint16_t *destRow = currentInstance->currentTileBuffer + (pDraw->y * OSM_TILESIZE);
-    getPNGForCore()->getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, 0xffffffff);
+    getPNGCurrentCore()->getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, 0xffffffff);
 }
 
 bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result)
 {
-    PNG *png = getPNGForCore();
-    if (!png)
-    {
-        result = "PNG decoder unavailable";
-        return false;
-    }
-
     char url[64];
     snprintf(url, sizeof(url), "https://tile.openstreetmap.org/%u/%u/%u.png",
              static_cast<unsigned int>(zoom),
@@ -462,6 +455,7 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
     if (!buffer)
         return false;
 
+    PNG *png = getPNGCurrentCore();
     const int16_t rc = png->openRAM(buffer.value()->get(), buffer.value()->size(), PNGDraw);
     if (rc != PNG_SUCCESS)
     {
@@ -532,9 +526,19 @@ bool OpenStreetMap::startTileWorkerTasks()
     if (tasksStarted)
         return true;
 
-    ownerTask = xTaskGetCurrentTaskHandle();
     numberOfWorkers = OSM_FORCE_SINGLECORE ? 1 : ESP.getChipCores();
     for (int core = 0; core < numberOfWorkers; ++core)
+    {
+        if (!getPNGForCore(core))
+        {
+            log_e("Failed to initialize PNG decoder on core %d", core);
+            return false;
+        }
+    }
+
+    ownerTask = xTaskGetCurrentTaskHandle();
+    for (int core = 0; core < numberOfWorkers; ++core)
+    {
         if (!xTaskCreatePinnedToCore(tileFetcherTask,
                                      nullptr,
                                      OSM_TASK_STACKSIZE,
@@ -542,7 +546,11 @@ bool OpenStreetMap::startTileWorkerTasks()
                                      OSM_TASK_PRIORITY,
                                      nullptr,
                                      OSM_FORCE_SINGLECORE ? OSM_SINGLECORE_NUMBER : core))
+        {
+            log_e("Failed to create tile fetcher task on core %d", core);
             return false;
+        }
+    }
 
     tasksStarted = true;
 
