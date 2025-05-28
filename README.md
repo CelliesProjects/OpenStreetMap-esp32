@@ -13,7 +13,8 @@ A map is composed from downloaded OSM tiles and returned as a LGFX sprite.
 
 Tile fetching and decoding is performed concurrently across both cores on dualcore ESP32 devices.  
 
-This library is **PlatformIO only** due to use of modern C++ features. The Arduino IDE is **not** supported.
+This library is **PlatformIO only** due to use of modern C++ features. The Arduino IDE is **not** supported.  
+Use [the latest Arduino ESP32 Core version](https://github.com/pioarduino/platform-espressif32/releases/latest) from [pioarduino](https://github.com/pioarduino/platform-espressif32) to compile this library. 
 
 [![map](https://github.com/user-attachments/assets/39a7f287-c59d-4365-888a-d4c3f77a1dd1 "Click to visit OpenStreetMap.org")](https://www.openstreetmap.org/)
 
@@ -200,4 +201,3 @@ void loop()
     delay(1000);
 }
 ```
-
