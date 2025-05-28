@@ -248,9 +248,6 @@ void OpenStreetMap::runJobs(const std::vector<TileJob> &jobs)
 
     while (pendingJobs.load() > 0)
         vTaskDelay(pdMS_TO_TICKS(1));
-
-    for (const TileJob &job : jobs)
-        job.tile->busy = false;
 }
 
 bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, const tileList &requiredTiles, uint8_t zoom)
@@ -471,7 +468,7 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
 
     currentInstance = this;
     currentTileBuffer = tile.buffer;
-
+    tile.busy = false;
     const int decodeResult = png->decode(0, PNG_FAST_PALETTE);
     if (decodeResult != PNG_SUCCESS)
     {
