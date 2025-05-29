@@ -9,36 +9,39 @@
 This library provides a [OpenStreetMap](https://www.openstreetmap.org/) (OSM) map fetching and tile caching system for ESP32-based devices.  
 Under the hood it uses [LovyanGFX](https://github.com/lovyan03/LovyanGFX) and [PNGdec](https://github.com/bitbank2/PNGdec) to do the heavy lifting.
 
-A map is composed from downloaded OSM tiles and returned as a LGFX sprite.
-
-Tile fetching and decoding is performed concurrently across both cores on dualcore ESP32 devices.  
-
-This library is **PlatformIO only** due to use of modern C++ features. The Arduino IDE is **not** supported.  
-Use [the latest Arduino ESP32 Core version](https://github.com/pioarduino/platform-espressif32/releases/latest) from [pioarduino](https://github.com/pioarduino/platform-espressif32) to compile this library. 
-
 [![map](https://github.com/user-attachments/assets/39a7f287-c59d-4365-888a-d4c3f77a1dd1 "Click to visit OpenStreetMap.org")](https://www.openstreetmap.org/)
 
-The returned map can be pushed to the screen, saved to SD or used for further composing.  
+A map is composed from downloaded OSM tiles and returned as a LGFX sprite.  
+Tile fetching and decoding is performed concurrently across both cores on dualcore ESP32 devices.  
+A composed map can be pushed to the screen, saved to SD or used for further composing.  
 Downloaded tiles are cached in psram for reuse.
 
 This library should work on any ESP32 type with psram and a LovyanGFX compatible display.  
-OSM tiles are quite large -128kB per tile- so psram is required.   
+OSM tiles are quite large -128kB per tile- so psram is required.
 
-This project is not endorsed by or affiliated with the OpenStreetMap Foundation.
-
-## License differences between this library and the map data
-
-### This library has a MIT license
-
-The `OpenstreetMap-esp32` library -this library- is licensed under the [MIT license](/LICENSE).
-
-### The downloaded tile data has a ODbL license
-
-OpenStreetMap® is open data, licensed under the [Open Data Commons Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/) by the OpenStreetMap Foundation (OSMF).
-
+This project is not endorsed by or affiliated with the OpenStreetMap Foundation.  
 Use of any OSMF provided service is governed by the [OSMF Terms of Use](https://osmfoundation.org/wiki/Terms_of_Use).
 
-## Functions
+## How to use
+
+This library is **PlatformIO only** due to use of modern C++ features. The Arduino IDE is **not** supported.  
+Use [the latest Arduino ESP32 Core version](https://github.com/pioarduino/platform-espressif32/releases/latest) from [pioarduino](https://github.com/pioarduino/platform-espressif32) to compile this library.  
+See the example PIO settings and example code to get started.
+
+### Example `platformio.ini` settings
+
+These settings use `Arduino Release v3.2.0 based on ESP-IDF v5.4.1` from pioarduino.
+
+```bash
+[env]
+platform = https://github.com/pioarduino/platform-espressif32/releases/download/53.03.20/platform-espressif32.zip
+framework = arduino
+
+lib_deps =
+    celliesprojects/OpenStreetMap-esp32@^1.0.6
+    lovyan03/LovyanGFX@^1.2.7
+    https://github.com/bitbank2/PNGdec@^1.1.3
+```
 
 ### Set map size
 
@@ -201,3 +204,15 @@ void loop()
     delay(1000);
 }
 ```
+
+## License differences between this library and the map data
+
+### This library has a MIT license
+
+The `OpenstreetMap-esp32` library -this library- is licensed under the [MIT license](/LICENSE).
+
+### The downloaded tile data has a ODbL license
+
+OpenStreetMap® is open data, licensed under the [Open Data Commons Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/) by the OpenStreetMap Foundation (OSMF).
+
+Use of any OSMF provided service is governed by the [OSMF Terms of Use](https://osmfoundation.org/wiki/Terms_of_Use).
