@@ -116,21 +116,17 @@ void OpenStreetMap::computeRequiredTiles(double longitude, double latitude, uint
 
     log_v("top left tile indices: %d, %d", startTileIndexX, startTileIndexY);
 
-    requiredTiles.clear();
-
     const int32_t worldTileWidth = 1 << zoom;
-
     for (int32_t y = 0; y < numberOfRows; ++y)
     {
         for (int32_t x = 0; x < numberOfColums; ++x)
         {
             int32_t tileX = startTileIndexX + x;
-            int32_t tileY = startTileIndexY + y;
+            const int32_t tileY = startTileIndexY + y;
 
             // Apply modulo wrapping for tileX
             // see https://godbolt.org/z/96e1x7j7r
             tileX = (tileX % worldTileWidth + worldTileWidth) % worldTileWidth;
-
             requiredTiles.emplace_back(tileX, tileY);
         }
     }
