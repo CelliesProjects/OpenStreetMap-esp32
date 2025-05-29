@@ -1,6 +1,6 @@
 {
     "name": "OpenStreetMap-esp32",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "description": "This library provides a OpenStreetMap (OSM) map fetching and caching system for ESP32-based devices.",
     "keywords": [
         "esp32",
