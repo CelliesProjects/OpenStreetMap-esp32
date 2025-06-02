@@ -94,7 +94,7 @@ public:
 
 private:
     std::vector<CachedTile> tilesCache;
-    static inline thread_local OpenStreetMap *currentInstance = nullptr;
+    static inline OpenStreetMap *currentInstance = nullptr;
     static inline thread_local uint16_t *currentTileBuffer = nullptr;
     static void PNGDraw(PNGDRAW *pDraw);
     double lon2tile(double lon, uint8_t zoom);
