@@ -211,7 +211,7 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
     if (!jobs.empty())
     {
         runJobs(jobs);
-        log_i("Cache updated in %lu ms", millis() - startMS);
+        log_i("Updated %i tiles in %lu ms - %i ms/tile", jobs.size(), millis() - startMS, (millis() - startMS) / jobs.size());
     }
 }
 
@@ -232,7 +232,7 @@ void OpenStreetMap::makeJobList(const tileList &requiredTiles, std::vector<TileJ
 
 void OpenStreetMap::runJobs(const std::vector<TileJob> &jobs)
 {
-    log_i("submitting %i jobs", (int)jobs.size());
+    log_d("submitting %i jobs", (int)jobs.size());
 
     pendingJobs.store(jobs.size());
     for (const TileJob &job : jobs)
@@ -496,7 +496,7 @@ void OpenStreetMap::tileFetcherTask(void *param)
         if (!osm->fetchTile(*job.tile, job.x, job.y, job.z, result))
             log_e("Tile fetch failed: %s", result.c_str());
         else
-            log_i("core %i fetched tile z=%u x=%lu, y=%lu in %lu ms", xPortGetCoreID(), job.z, job.x, job.y, millis() - startMS);
+            log_d("core %i fetched tile z=%u x=%lu, y=%lu in %lu ms", xPortGetCoreID(), job.z, job.x, job.y, millis() - startMS);
         --osm->pendingJobs;
     }
     log_d("task on core %i exiting", xPortGetCoreID());
