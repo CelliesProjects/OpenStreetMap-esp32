@@ -36,36 +36,31 @@ struct TileProvider
     int tileSize;
 };
 
-const TileProvider tileProviders[] =
-    {
-        /*
-        {"OSM Standard",
-         "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-         "(c) OpenStreetMap contributors",
-         false,
-         "",
-         19, 0, 256},
-        */
-        {"Thunderforest Cycle 512px",
-         "https://tile.thunderforest.com/cycle/{z}/{x}/{y}@2x.png?apikey={apiKey}",
-         "(c) Thunderforest, OpenStreetMap contributors",
-         true,
-         "86b06b8ad32644a29f2c087c3ad60d25",
-         22, 0, 512},
+const TileProvider osmStandard = {
+    "OSM Standard",
+    "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    "(c) OpenStreetMap contributors",
+    false,
+    "",
+    19, 0, 256};
 
-        {"Thunderforest Cycle 256px",
-         "https://tile.thunderforest.com/cycle/{z}/{x}/{y}.png?apikey={apiKey}",
-         "(c) Thunderforest, OpenStreetMap contributors",
-         true,
-         "86b06b8ad32644a29f2c087c3ad60d25",
-         22, 0, 256},
+const TileProvider ThunderForestCycle512 = {
+    "Thunderforest Cycle 512px",
+    "https://tile.thunderforest.com/cycle/{z}/{x}/{y}@2x.png?apikey={apiKey}",
+    "(c) Thunderforest, OpenStreetMap contributors",
+    true,
+    "YOUR_THUNDERFOREST_KEY",
+    22, 0, 512};
 
-        {"Mapbox Streets",
-         "https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/512/{z}/{x}/{y}@2x?access_token={apiKey}",
-         "(c) Mapbox, OpenStreetMap contributors",
-         true,
-         "YOUR_MAPBOX_KEY",
-         22, 0, 512}};
+const TileProvider ThunderForestCycle256 = {
+    "Thunderforest Cycle 256px",
+    "https://tile.thunderforest.com/cycle/{z}/{x}/{y}.png?apikey={apiKey}",
+    "(c) Thunderforest, OpenStreetMap contributors",
+    true,
+    "YOUR_THUNDERFOREST_KEY",
+    22, 0, 256};
+
+const TileProvider tileProviders[] = {osmStandard, ThunderForestCycle512, ThunderForestCycle256};
 
 constexpr int OSM_TILEPROVIDERS = sizeof(tileProviders) / sizeof(TileProvider);
 
