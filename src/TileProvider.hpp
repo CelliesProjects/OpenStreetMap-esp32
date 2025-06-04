@@ -39,7 +39,7 @@ struct TileProvider
 const TileProvider osmStandard = {
     "OSM Standard",
     "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-    "(c) OpenStreetMap contributors",
+    "© OpenStreetMap contributors",
     false,
     "",
     19, 0, 256};
@@ -47,7 +47,7 @@ const TileProvider osmStandard = {
 const TileProvider ThunderForestCycle512 = {
     "Thunderforest Cycle 512px",
     "https://tile.thunderforest.com/cycle/{z}/{x}/{y}@2x.png?apikey={apiKey}",
-    "(c) Thunderforest, OpenStreetMap contributors",
+    "© Thunderforest, OpenStreetMap contributors",
     true,
     "YOUR_THUNDERFOREST_KEY",
     22, 0, 512};
@@ -55,12 +55,12 @@ const TileProvider ThunderForestCycle512 = {
 const TileProvider ThunderForestCycle256 = {
     "Thunderforest Cycle 256px",
     "https://tile.thunderforest.com/cycle/{z}/{x}/{y}.png?apikey={apiKey}",
-    "(c) Thunderforest, OpenStreetMap contributors",
+    "© Thunderforest, OpenStreetMap contributors",
     true,
     "YOUR_THUNDERFOREST_KEY",
     22, 0, 256};
 
-//const TileProvider tileProviders[] = {osmStandard, ThunderForestCycle512, ThunderForestCycle256};
+// const TileProvider tileProviders[] = {osmStandard, ThunderForestCycle512, ThunderForestCycle256};
 const TileProvider tileProviders[] = {osmStandard};
 
 constexpr int OSM_TILEPROVIDERS = sizeof(tileProviders) / sizeof(TileProvider);

@@ -291,7 +291,7 @@ bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, const tileList &requiredT
     else
         mapSprite.setTextColor(TFT_BLACK);
     mapSprite.drawRightString(currentProvider->attribution,
-                              mapSprite.width(), mapSprite.height() - 10, &DejaVu9);
+                              mapSprite.width(), mapSprite.height() - 10, &DejaVu9Modded);
     mapSprite.setTextColor(TFT_WHITE, TFT_BLACK);
 
     return true;

@@ -38,6 +38,7 @@
 #include "TileJob.hpp"
 #include "MemoryBuffer.hpp"
 #include "HTTPClientRAII.hpp"
+#include "DejaVu9-modded.h"
 
 constexpr uint16_t OSM_TILE_TIMEOUT_MS = 250;
 constexpr UBaseType_t OSM_TASK_PRIORITY = 10;
