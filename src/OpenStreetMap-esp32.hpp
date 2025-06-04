@@ -33,15 +33,13 @@
 #include <LovyanGFX.hpp>
 #include <PNGdec.h>
 
+#include "TileProvider.hpp"
 #include "CachedTile.hpp"
 #include "TileJob.hpp"
 #include "MemoryBuffer.hpp"
 #include "HTTPClientRAII.hpp"
 
-constexpr uint16_t OSM_TILESIZE = 256;
 constexpr uint16_t OSM_TILE_TIMEOUT_MS = 2500;
-constexpr uint16_t OSM_DEFAULT_CACHE_ITEMS = 10;
-constexpr uint16_t OSM_MAX_ZOOM = 18;
 constexpr UBaseType_t OSM_TASK_PRIORITY = 10;
 constexpr uint32_t OSM_TASK_STACKSIZE = 5120;
 constexpr uint32_t OSM_JOB_QUEUE_SIZE = 50;
@@ -87,12 +85,18 @@ public:
 
     ~OpenStreetMap();
 
+    bool setTileProvider(int index);
     void setSize(uint16_t w, uint16_t h);
+    int getTileCount(int mapWidth, int mapHeight); // returns the max number of tiles needed
     bool resizeTilesCache(uint16_t numberOfTiles);
-    void freeTilesCache();
     bool fetchMap(LGFX_Sprite &sprite, double longitude, double latitude, uint8_t zoom);
+    void freeTilesCache();
 
+    int getMinZoom() const { return currentProvider->minZoom; }
+    int getMaxZoom() const { return currentProvider->maxZoom; }
+    
 private:
+    const TileProvider *currentProvider = &tileProviders[0];
     std::vector<CachedTile> tilesCache;
     static inline OpenStreetMap *currentInstance = nullptr;
     static inline thread_local uint16_t *currentTileBuffer = nullptr;
