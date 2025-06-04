@@ -87,7 +87,7 @@ public:
 
     bool setTileProvider(int index);
     void setSize(uint16_t w, uint16_t h);
-    int getTileCount(int mapWidth, int mapHeight); // returns the max number of tiles needed
+    int getTileCount(int mapWidth, int mapHeight); // returns the worst case number of tiles needed
     bool resizeTilesCache(uint16_t numberOfTiles);
     bool fetchMap(LGFX_Sprite &sprite, double longitude, double latitude, uint8_t zoom);
     void freeTilesCache();
