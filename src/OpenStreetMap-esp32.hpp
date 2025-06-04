@@ -39,7 +39,7 @@
 #include "MemoryBuffer.hpp"
 #include "HTTPClientRAII.hpp"
 
-constexpr uint16_t OSM_TILE_TIMEOUT_MS = 2500;
+constexpr uint16_t OSM_TILE_TIMEOUT_MS = 250;
 constexpr UBaseType_t OSM_TASK_PRIORITY = 10;
 constexpr uint32_t OSM_TASK_STACKSIZE = 5120;
 constexpr uint32_t OSM_JOB_QUEUE_SIZE = 50;

@@ -569,8 +569,6 @@ bool OpenStreetMap::setTileProvider(int index)
         return false;
     }
 
-    log_i("trying to change current provider '%s'", currentProvider->name);
-
     currentProvider = &tileProviders[index];
     if (!resizeTilesCache(getTileCount(mapWidth, mapHeight)))
     {
