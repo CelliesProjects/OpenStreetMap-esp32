@@ -49,7 +49,7 @@ const TileProvider ThunderForestCycle512 = {
     "https://tile.thunderforest.com/cycle/{z}/{x}/{y}@2x.png?apikey={apiKey}",
     "(c) Thunderforest, OpenStreetMap contributors",
     true,
-    "86b06b8ad32644a29f2c087c3ad60d25",
+    "YOUR_THUNDERFOREST_KEY",
     22, 0, 512};
 
 const TileProvider ThunderForestCycle256 = {
