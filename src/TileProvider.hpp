@@ -60,8 +60,8 @@ const TileProvider ThunderForestCycle256 = {
     "YOUR_THUNDERFOREST_KEY",
     22, 0, 256};
 
- const TileProvider tileProviders[] = {osmStandard, ThunderForestCycle512, ThunderForestCycle256};
-//const TileProvider tileProviders[] = {osmStandard};
+//const TileProvider tileProviders[] = {osmStandard, ThunderForestCycle512, ThunderForestCycle256};
+const TileProvider tileProviders[] = {osmStandard};
 
 constexpr int OSM_TILEPROVIDERS = sizeof(tileProviders) / sizeof(TileProvider);
 
