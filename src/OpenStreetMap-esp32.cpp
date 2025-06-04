@@ -317,15 +317,10 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
         return false;
     }
 
-    if (!tilesCache.capacity())
+    if (!tilesCache.capacity() && !resizeTilesCache(getTileCount(mapWidth, mapHeight)))
     {
-        const int worstCase = getTileCount(mapWidth, mapHeight);
-        log_w("Cache not initialized, allocating %i tiles", worstCase);
-        if (!resizeTilesCache(worstCase))
-        {
-            log_e("Could not allocate tile cache");
-            return false;
-        }
+        log_e("Could not allocate tile cache");
+        return false;
     }
 
     longitude = fmod(longitude + 180.0, 360.0) - 180.0;
