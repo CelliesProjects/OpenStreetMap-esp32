@@ -171,10 +171,7 @@ bool OpenStreetMap::isTileCachedOrBusy(uint32_t x, uint32_t y, uint8_t z)
 
 void OpenStreetMap::freeTilesCache()
 {
-    for (auto &tile : tilesCache)
-        tile.free();
-
-    tilesCache.clear();
+    std::vector<CachedTile>().swap(tilesCache);
 }
 
 bool OpenStreetMap::resizeTilesCache(uint16_t numberOfTiles)
@@ -208,7 +205,7 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
     if (!jobs.empty())
     {
         runJobs(jobs);
-        log_i("Updated %i tiles in %lu ms - %i ms/tile", jobs.size(), millis() - startMS, (millis() - startMS) / jobs.size());
+        log_d("Updated %i tiles in %lu ms - %i ms/tile", jobs.size(), millis() - startMS, (millis() - startMS) / jobs.size());
     }
 }
 
@@ -442,7 +439,7 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
     if (!buffer)
         return false;
 
-    url.clear();  //TODO: find out, is this smart? test test test
+    url.clear();
 
     PNG *png = getPNGCurrentCore();
     const int16_t rc = png->openRAM(buffer.value()->get(), buffer.value()->size(), PNGDraw);
@@ -552,7 +549,6 @@ uint16_t OpenStreetMap::tilesToCover(uint16_t mapWidth, uint16_t mapHeight)
     const int tileSize = currentProvider->tileSize;
     int tilesX = (mapWidth + tileSize - 1) / tileSize + 1;
     int tilesY = (mapHeight + tileSize - 1) / tileSize + 1;
-    log_i("need %i tiles for %ipx by %ipx map", tilesX * tilesY, mapWidth, mapHeight);
     return tilesX * tilesY;
 }
 
@@ -565,11 +561,7 @@ bool OpenStreetMap::setTileProvider(int index)
     }
 
     currentProvider = &tileProviders[index];
-    if (!resizeTilesCache(tilesToCover(mapWidth, mapHeight)))
-    {
-        log_e("could not allocate %i tiles for current mapsize", tilesToCover(mapWidth, mapHeight));
-        return false;
-    }
+    freeTilesCache();
     log_i("provider changed to '%s'", currentProvider->name);
     return true;
 }

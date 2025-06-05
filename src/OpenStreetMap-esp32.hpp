@@ -91,7 +91,7 @@ public:
     uint16_t tilesToCover(uint16_t mapWidth, uint16_t mapHeight);
     bool resizeTilesCache(uint16_t numberOfTiles);
     bool fetchMap(LGFX_Sprite &sprite, double longitude, double latitude, uint8_t zoom);
-    void freeTilesCache();
+    inline void freeTilesCache();
 
     const char *getProviderName() { return currentProvider->name; };
     int getMinZoom() const { return currentProvider->minZoom; };
