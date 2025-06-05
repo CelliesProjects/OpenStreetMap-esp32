@@ -51,14 +51,16 @@ void setSize(uint16_t w, uint16_t h)
 ```
 
 - If no size is set a 320px by 240px map will be returned.
+- The tile cache should be resized after setting a new map size.  
+Use `tilesToCover(w, h)` to get a correct cache size.
 
-### Get required cache size
+### Get the number of tiles to cover a map
 
 ```c++
 uint16_t tilesToCover(uint16_t w, uint16_t h)
 ```
 
-This returns the required number of tiles to cover the given map size.  
+This returns the number of tiles required to cover -cache- the given map size.  
 
 ### Resize the tiles cache
 
@@ -72,9 +74,9 @@ bool resizeTilesCache(uint16_t numberOfTiles)
 - Each 512px tile allocates **512kB** psram.
 
 **Don't over-allocate the cache**  
-When resizing the cache, keep in mind that the map sprite also needs psram.  
+When resizing the cache, keep in mind that the map sprite also uses psram.  
 The PNG decoders -~50kB for each core- also live in psram.  
-Use the above `tilesToCover` function to calculate a tile cache size.
+Use the above `tilesToCover` function to calculate a sane tile cache size.  
 
 ### Fetch a map
 
@@ -104,8 +106,8 @@ This will invalidate and possibly resize the cache if the new provider uses a di
 Returns false if no provider at the index is defined or if no cache could be allocated.
 
 **Note:** In the default setup there is only one provider defined.  
-See `src/TileProvider.hpp` for example provider setups for [https://www.thunderforest.com/](https://www.thunderforest.com/) that only require an API key and commenting/uncommenting the currently defined setup.  
-Registration and a hobby tier are available for free!
+See `src/TileProvider.hpp` for example provider setups for [https://www.thunderforest.com/](https://www.thunderforest.com/) that only require an API key and commenting/uncommenting 2 lines of setup.  
+Registration and a hobby tier are available for free.
 
 ## Example code
 
