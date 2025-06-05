@@ -17,7 +17,7 @@ A composed map can be pushed to the screen, saved to SD or used for further comp
 Downloaded tiles are cached in psram for reuse.
 
 This library should work on any ESP32 type with psram and a LovyanGFX compatible display.  
-OSM tiles are quite large -128kB or 512kB per tile- so psram is required.
+OSM tiles are quite large -from 128kB to 512kB per tile- so psram is required.
 
 This project is not endorsed by or affiliated with the OpenStreetMap Foundation.  
 Use of any OSMF provided service is governed by the [OSMF Terms of Use](https://osmfoundation.org/wiki/Terms_of_Use).
@@ -47,7 +47,7 @@ lib_deps =
 ### Set map size
 
 ```c++
-void setSize(w, h)
+void setSize(uint16_t w, uint16_t h)
 ```
 
 - If no size is set a 320px by 240px map will be returned.
@@ -55,11 +55,11 @@ void setSize(w, h)
 ### Get required cache size
 
 ```c++
-uint16_t tilesToCover(w, h)
+uint16_t tilesToCover(uint16_t w, uint16_t h)
 ```
 
 This returns the minimum required number of tiles for the given map size.  
-**Note:** Some 'lucky' coordinates might require less tiles than this.
+**Note:** Some 'lucky' coordinates might require even less tiles than this.
 
 ### Resize the tiles cache
 
