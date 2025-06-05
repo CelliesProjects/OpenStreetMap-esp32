@@ -317,7 +317,7 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
         return false;
     }
 
-    if (!tilesCache.capacity() && !resizeTilesCache(getTileCount(mapWidth, mapHeight)))
+    if (!tilesCache.capacity() && !resizeTilesCache(tilesToCover(mapWidth, mapHeight)))
     {
         log_e("Could not allocate tile cache");
         return false;
@@ -442,7 +442,7 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
     if (!buffer)
         return false;
 
-    url.clear();
+    url.clear();  //TODO: find out, is this smart? test test test
 
     PNG *png = getPNGCurrentCore();
     const int16_t rc = png->openRAM(buffer.value()->get(), buffer.value()->size(), PNGDraw);
@@ -547,7 +547,7 @@ bool OpenStreetMap::startTileWorkerTasks()
     return true;
 }
 
-int OpenStreetMap::getTileCount(int mapWidth, int mapHeight)
+uint16_t OpenStreetMap::tilesToCover(int mapWidth, int mapHeight)
 {
     const int tileSize = currentProvider->tileSize;
     int tilesX = (mapWidth + tileSize - 1) / tileSize + 1;
@@ -565,11 +565,11 @@ bool OpenStreetMap::setTileProvider(int index)
     }
 
     currentProvider = &tileProviders[index];
-    if (!resizeTilesCache(getTileCount(mapWidth, mapHeight)))
+    if (!resizeTilesCache(tilesToCover(mapWidth, mapHeight)))
     {
-        log_e("could not allocate %i tiles for current mapsize", getTileCount(mapWidth, mapHeight));
+        log_e("could not allocate %i tiles for current mapsize", tilesToCover(mapWidth, mapHeight));
         return false;
     }
-    log_i("provider is changed to '%s'", currentProvider->name);
+    log_i("provider changed to '%s'", currentProvider->name);
     return true;
 }

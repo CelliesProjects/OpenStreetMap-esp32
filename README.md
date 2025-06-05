@@ -17,7 +17,7 @@ A composed map can be pushed to the screen, saved to SD or used for further comp
 Downloaded tiles are cached in psram for reuse.
 
 This library should work on any ESP32 type with psram and a LovyanGFX compatible display.  
-OSM tiles are quite large -128kB per tile- so psram is required.
+OSM tiles are quite large -128kB or 512kB per tile- so psram is required.
 
 This project is not endorsed by or affiliated with the OpenStreetMap Foundation.  
 Use of any OSMF provided service is governed by the [OSMF Terms of Use](https://osmfoundation.org/wiki/Terms_of_Use).
@@ -40,42 +40,70 @@ framework = arduino
 lib_deps =
     celliesprojects/OpenStreetMap-esp32@^1.0.6
     lovyan03/LovyanGFX@^1.2.7
-    https://github.com/bitbank2/PNGdec@^1.1.3
+    bitbank2/PNGdec@^1.1.3
 ```
+## Functions 
 
 ### Set map size
 
 ```c++
-void setSize(uint16_t w, uint16_t h);
+void setSize(w, h)
 ```
 
-- If no size is set a 320px by 240px map will be returned by `fetchMap`.
+- If no size is set a 320px by 240px map will be returned.
 
-### Resize cache
+### Get required cache size
 
 ```c++
-bool resizeTilesCache(uint16_t numberOfTiles); 
+uint16_t tilesToCover(w, h)
 ```
 
-- If the cache is not resized before the first call to `fetchMap`, it will auto initialize with space for 10 tiles on the first call.
-- Each tile allocates 128 kB psram.
+This returns the minimum required number of tiles for the given map size.  
+**Note:** Some 'lucky' coordinates might require less tiles than this.
+
+### Resize the tiles cache
+
+```c++
+bool resizeTilesCache(uint16_t numberOfTiles)
+```
+
+- If the cache is not resized before the first call to `fetchMap`, the cache will be auto initialized.
 - The cache content is cleared before resizing.
+- Each 256px tile allocates **128kB** psram.
+- Each 512px tile allocates **512kB** psram.
 
-### Free the memory used by the tile cache
-
-```c++
-void freeTilesCache();
-```
+**Don't overallocate**  
+When resizing the cache, keep in mind that the map sprite itself also needs psram.  
+The PNG decoders -~50kB each- also live in psram.  
 
 ### Fetch a map
 
 ```c++
-bool fetchMap(LGFX_Sprite &map, double longitude, double latitude, uint8_t zoom);
+bool fetchMap(LGFX_Sprite &map, double longitude, double latitude, uint8_t zoom)
 ```
 
 - Overflowing `longitude` are wrapped and normalized to +-180°.
 - Overflowing `latitude` are clamped to +-90°.
 - Valid range for the `zoom` level is 1-18.
+
+### Free the memory used by the tile cache
+
+```c++
+void freeTilesCache()
+```
+
+### Switch tile provider
+
+```c++
+bool setTileProvider(int index)
+```
+
+Switch to a tile provider that is user defined in `src/TileProvider.hpp`.  
+This will invalidate and possibly resize the cache if the new provider uses a different tile size.  
+
+Returns false if no provider at the index is defined or if no cache could be allocated.
+
+**Note:** In the default setup there is only one provider defined. See `src/TileProvider.hpp` for example provider setups.
 
 ## Example code
 

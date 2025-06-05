@@ -38,7 +38,7 @@
 #include "TileJob.hpp"
 #include "MemoryBuffer.hpp"
 #include "HTTPClientRAII.hpp"
-#include "DejaVu9-modded.h"
+#include "fonts/DejaVu9-modded.h"
 
 constexpr uint16_t OSM_TILE_TIMEOUT_MS = 250;
 constexpr UBaseType_t OSM_TASK_PRIORITY = 10;
@@ -88,14 +88,15 @@ public:
 
     bool setTileProvider(int index);
     void setSize(uint16_t w, uint16_t h);
-    int getTileCount(int mapWidth, int mapHeight); // returns the worst case number of tiles needed
+    uint16_t tilesToCover(int mapWidth, int mapHeight);
     bool resizeTilesCache(uint16_t numberOfTiles);
     bool fetchMap(LGFX_Sprite &sprite, double longitude, double latitude, uint8_t zoom);
     void freeTilesCache();
 
-    int getMinZoom() const { return currentProvider->minZoom; }
-    int getMaxZoom() const { return currentProvider->maxZoom; }
-    
+    const char *getProviderName() { return currentProvider->name; };
+    int getMinZoom() const { return currentProvider->minZoom; };
+    int getMaxZoom() const { return currentProvider->maxZoom; };
+
 private:
     const TileProvider *currentProvider = &tileProviders[0];
     std::vector<CachedTile> tilesCache;
