@@ -17,7 +17,7 @@ A composed map can be pushed to the screen, saved to SD or used for further comp
 Downloaded tiles are cached in psram for reuse.
 
 This library should work on any ESP32 type with psram and a LovyanGFX compatible display.  
-OSM tiles are quite large -from 128kB to 512kB per tile- so psram is required.
+OSM tiles are either quite large at 128kB or insane large at 512kB per tile so psram is required.
 
 This project is not endorsed by or affiliated with the OpenStreetMap Foundation.  
 Use of any OSMF provided service is governed by the [OSMF Terms of Use](https://osmfoundation.org/wiki/Terms_of_Use).
@@ -105,7 +105,17 @@ This function will switch to a tile provider (if) that is user defined in `src/T
 - Returns `true` and clears the cache on success.  
 - Returns `false` -and the current tile provider is unchanged- if no provider at the index is defined.
 
-**Note:** In the default setup there is only one provider defined.  
+### Get the number of defined providers
+
+`OSM_TILEPROVIDERS` gives the number of defined providers.  
+
+Example use:  
+
+```c++
+const int numberOfProviders = OSM_TILEPROVIDERS;
+```
+
+In the default setup there is only one provider defined.  
 See `src/TileProvider.hpp` for example provider setups for [https://www.thunderforest.com/](https://www.thunderforest.com/) that only require an API key and commenting/uncommenting 2 lines.  
 Registration and a hobby tier are available for free.
 
