@@ -68,12 +68,15 @@ const TileProvider ThunderForestCycle256 = {
     "YOUR_THUNDERFOREST_KEY",
     22, 0, 256};
 
-// Replace 'YOUR_THUNDERFOREST_KEY' above with a -free- Thunderforest API key and uncomment the following line to use Thunderforest tiles
+// Replace 'YOUR_THUNDERFOREST_KEY' above with a -free- Thunderforest API key 
+// and uncomment one of the following line to use Thunderforest tiles
+
 // const TileProvider tileProviders[] = {osmStandard, ThunderTransportDark256, ThunderForestCycle512, ThunderForestCycle256};
 // const TileProvider tileProviders[] = {ThunderTransportDark256};
 // const TileProvider tileProviders[] = {ThunderForestCycle512};
 // const TileProvider tileProviders[] = {ThunderForestCycle256};
 
+// If one of the above definitions is used, the following line should be commented out
 const TileProvider tileProviders[] = {osmStandard};
 
 constexpr int OSM_TILEPROVIDERS = sizeof(tileProviders) / sizeof(TileProvider);
