@@ -58,8 +58,7 @@ void setSize(uint16_t w, uint16_t h)
 uint16_t tilesToCover(uint16_t w, uint16_t h)
 ```
 
-This returns the minimum required number of tiles for the given map size.  
-**Note:** Some 'lucky' coordinates might require even less tiles than this.
+This returns the required number of tiles to cover the given map size.  
 
 ### Resize the tiles cache
 
@@ -72,9 +71,10 @@ bool resizeTilesCache(uint16_t numberOfTiles)
 - Each 256px tile allocates **128kB** psram.
 - Each 512px tile allocates **512kB** psram.
 
-**Don't overallocate**  
-When resizing the cache, keep in mind that the map sprite itself also needs psram.  
-The PNG decoders -~50kB each- also live in psram.  
+**Don't over-allocate the cache**  
+When resizing the cache, keep in mind that the map sprite also needs psram.  
+The PNG decoders -~50kB for each core- also live in psram.  
+Use the above `tilesToCover` function to calculate a tile cache size.
 
 ### Fetch a map
 
@@ -92,18 +92,20 @@ bool fetchMap(LGFX_Sprite &map, double longitude, double latitude, uint8_t zoom)
 void freeTilesCache()
 ```
 
-### Switch tile provider
+### Switch to a different tile provider
 
 ```c++
 bool setTileProvider(int index)
 ```
 
-Switch to a tile provider that is user defined in `src/TileProvider.hpp`.  
+This function will switch to a tile provider (if) that is user defined in `src/TileProvider.hpp`.  
 This will invalidate and possibly resize the cache if the new provider uses a different tile size.  
 
 Returns false if no provider at the index is defined or if no cache could be allocated.
 
-**Note:** In the default setup there is only one provider defined. See `src/TileProvider.hpp` for example provider setups.
+**Note:** In the default setup there is only one provider defined.  
+See `src/TileProvider.hpp` for example provider setups for [https://www.thunderforest.com/](https://www.thunderforest.com/) that only require an API key and commenting/uncommenting the currently defined setup.  
+Registration and a hobby tier are available for free!
 
 ## Example code
 

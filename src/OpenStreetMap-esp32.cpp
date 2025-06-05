@@ -547,7 +547,7 @@ bool OpenStreetMap::startTileWorkerTasks()
     return true;
 }
 
-uint16_t OpenStreetMap::tilesToCover(int mapWidth, int mapHeight)
+uint16_t OpenStreetMap::tilesToCover(uint16_t mapWidth, uint16_t mapHeight)
 {
     const int tileSize = currentProvider->tileSize;
     int tilesX = (mapWidth + tileSize - 1) / tileSize + 1;

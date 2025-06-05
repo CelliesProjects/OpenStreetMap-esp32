@@ -40,7 +40,7 @@
 #include "HTTPClientRAII.hpp"
 #include "fonts/DejaVu9-modded.h"
 
-constexpr uint16_t OSM_TILE_TIMEOUT_MS = 250;
+constexpr uint16_t OSM_TILE_TIMEOUT_MS = 500;
 constexpr UBaseType_t OSM_TASK_PRIORITY = 10;
 constexpr uint32_t OSM_TASK_STACKSIZE = 5120;
 constexpr uint32_t OSM_JOB_QUEUE_SIZE = 50;
@@ -88,7 +88,7 @@ public:
 
     bool setTileProvider(int index);
     void setSize(uint16_t w, uint16_t h);
-    uint16_t tilesToCover(int mapWidth, int mapHeight);
+    uint16_t tilesToCover(uint16_t mapWidth, uint16_t mapHeight);
     bool resizeTilesCache(uint16_t numberOfTiles);
     bool fetchMap(LGFX_Sprite &sprite, double longitude, double latitude, uint8_t zoom);
     void freeTilesCache();
