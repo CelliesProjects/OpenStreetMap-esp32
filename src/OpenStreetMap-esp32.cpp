@@ -359,7 +359,7 @@ bool OpenStreetMap::fillBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t 
                 result = "Timeout: " + String(OSM_TILE_TIMEOUT_MS) + " ms";
                 return false;
             }
-            vTaskDelay(pdMS_TO_TICKS(1));
+            taskYIELD();
             continue;
         }
 
@@ -375,7 +375,7 @@ bool OpenStreetMap::fillBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t 
             lastReadTime = millis();
         }
         else
-            vTaskDelay(pdMS_TO_TICKS(1));
+            taskYIELD();
     }
     return true;
 }
