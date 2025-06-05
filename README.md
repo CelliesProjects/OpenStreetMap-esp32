@@ -42,6 +42,7 @@ lib_deps =
     lovyan03/LovyanGFX@^1.2.7
     bitbank2/PNGdec@^1.1.3
 ```
+
 ## Functions 
 
 ### Set map size
@@ -50,9 +51,8 @@ lib_deps =
 void setSize(uint16_t w, uint16_t h)
 ```
 
-- If no size is set a 320px by 240px map will be returned.
-- The tile cache should be resized after setting a new map size.  
-Use `tilesToCover(w, h)` to get a correct cache size.
+- If no size is set a 320px by 240px map will be returned.  
+- The tile cache should (maybe) be resized after setting a new map size.  
 
 ### Get the number of tiles to cover a map
 
