@@ -44,6 +44,14 @@ const TileProvider osmStandard = {
     "",
     19, 0, 256};
 
+const TileProvider ThunderTransportDark256 = {
+    "Thunderforest Transport Dark 256px",
+    "https://tile.thunderforest.com/transport-dark/{z}/{x}/{y}.png?apikey={apiKey}",
+    "© Thunderforest, OpenStreetMap contributors",
+    true,
+    "YOUR_THUNDERFOREST_KEY",
+    22, 0, 256};
+
 const TileProvider ThunderForestCycle512 = {
     "Thunderforest Cycle 512px",
     "https://tile.thunderforest.com/cycle/{z}/{x}/{y}@2x.png?apikey={apiKey}",
@@ -60,7 +68,12 @@ const TileProvider ThunderForestCycle256 = {
     "YOUR_THUNDERFOREST_KEY",
     22, 0, 256};
 
-// const TileProvider tileProviders[] = {osmStandard, ThunderForestCycle512, ThunderForestCycle256};
+// Replace 'YOUR_THUNDERFOREST_KEY' above with a -free- Thunderforest API key and uncomment the following line to use Thunderforest tiles
+// const TileProvider tileProviders[] = {osmStandard, ThunderTransportDark256, ThunderForestCycle512, ThunderForestCycle256};
+// const TileProvider tileProviders[] = {ThunderTransportDark256};
+// const TileProvider tileProviders[] = {ThunderForestCycle512};
+// const TileProvider tileProviders[] = {ThunderForestCycle256};
+
 const TileProvider tileProviders[] = {osmStandard};
 
 constexpr int OSM_TILEPROVIDERS = sizeof(tileProviders) / sizeof(TileProvider);
