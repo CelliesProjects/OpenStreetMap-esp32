@@ -76,7 +76,7 @@ bool resizeTilesCache(uint16_t numberOfTiles)
 **Don't over-allocate the cache**  
 When resizing the cache, keep in mind that the map sprite also uses psram.  
 The PNG decoders -~50kB for each core- also live in psram.  
-Use the above `tilesToCover` function to calculate a sane tile cache size.  
+Use the above `tilesToCover` function to calculate a safe and sane cache size.  
 
 ### Fetch a map
 
@@ -101,12 +101,12 @@ bool setTileProvider(int index)
 ```
 
 This function will switch to a tile provider (if) that is user defined in `src/TileProvider.hpp`.  
-This will invalidate and possibly resize the cache if the new provider uses a different tile size.  
 
-Returns false if no provider at the index is defined or if no cache could be allocated.
+- Returns `true` and clears the cache on success.  
+- Returns `false` -and the current tile provider is unchanged- if no provider at the index is defined.
 
 **Note:** In the default setup there is only one provider defined.  
-See `src/TileProvider.hpp` for example provider setups for [https://www.thunderforest.com/](https://www.thunderforest.com/) that only require an API key and commenting/uncommenting 2 lines of setup.  
+See `src/TileProvider.hpp` for example provider setups for [https://www.thunderforest.com/](https://www.thunderforest.com/) that only require an API key and commenting/uncommenting 2 lines.  
 Registration and a hobby tier are available for free.
 
 ## Example code
