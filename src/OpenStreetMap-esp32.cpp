@@ -270,18 +270,14 @@ bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, TileBufferList &tilePoint
 
     for (size_t tileIndex = 0; tileIndex < tilePointers.size(); ++tileIndex)
     {
-        const uint16_t *tile = tilePointers[tileIndex];
         const int drawX = startOffsetX + (tileIndex % numberOfColums) * currentProvider->tileSize;
         const int drawY = startOffsetY + (tileIndex / numberOfColums) * currentProvider->tileSize;
-
+        const uint16_t *tile = tilePointers[tileIndex];
         if (!tile)
         {
-            // TODO: what to do with empty tiles? the map sprite might be declared static so there might still be 'old' map present
-            // fill the area with black? easy and clean solution
-            // write a test program that goes from pole to pole at low zoom to see what looks good
-            continue; 
+            mapSprite.fillRect(drawX, drawY, currentProvider->tileSize, currentProvider->tileSize, OSM_BGCOLOR);
+            continue;
         }
-
         mapSprite.pushImage(drawX, drawY, currentProvider->tileSize, currentProvider->tileSize, tile);
     }
 
