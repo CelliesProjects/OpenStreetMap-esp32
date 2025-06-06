@@ -159,12 +159,15 @@ CachedTile *OpenStreetMap::findUnusedTile(const tileList &requiredTiles, uint8_t
     return nullptr; // no unused tile found
 }
 
-bool OpenStreetMap::isTileCachedOrBusy(uint32_t x, uint32_t y, uint8_t z)
+bool OpenStreetMap::isTileCached(uint32_t x, uint32_t y, uint8_t z, TileBufferList &tilePointers)
 {
     for (const auto &tile : tilesCache)
     {
-        if (tile.x == x && tile.y == y && tile.z == z && (tile.valid || tile.busy))
+        if (tile.x == x && tile.y == y && tile.z == z && tile.valid)
+        {
+            tilePointers.push_back(tile.buffer);
             return true;
+        }
     }
     return false;
 }
@@ -197,11 +200,11 @@ bool OpenStreetMap::resizeTilesCache(uint16_t numberOfTiles)
     return true;
 }
 
-void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
+void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom, TileBufferList &tilePointers)
 {
     [[maybe_unused]] const unsigned long startMS = millis();
     std::vector<TileJob> jobs;
-    makeJobList(requiredTiles, jobs, zoom);
+    makeJobList(requiredTiles, jobs, zoom, tilePointers);
     if (!jobs.empty())
     {
         runJobs(jobs);
@@ -209,18 +212,28 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
     }
 }
 
-void OpenStreetMap::makeJobList(const tileList &requiredTiles, std::vector<TileJob> &jobs, uint8_t zoom)
+void OpenStreetMap::makeJobList(const tileList &requiredTiles, std::vector<TileJob> &jobs, uint8_t zoom, TileBufferList &tilePointers)
 {
     for (const auto &[x, y] : requiredTiles)
     {
-        if (isTileCachedOrBusy(x, y, zoom) || y < 0 || y >= (1 << zoom))
+        if (y < 0 || y >= (1 << zoom))
+        {
+            tilePointers.push_back(nullptr); // we need to keep 1:1 grid alignment with requiredTiles for composeMap
+            continue;
+        }
+
+        if (isTileCached(x, y, zoom, tilePointers)) // isTileCached will push_back a valid ptr if tile is cached
             continue;
 
         CachedTile *tileToReplace = findUnusedTile(requiredTiles, zoom);
         if (!tileToReplace)
-            continue; // Should never happen if cache sizing is correct
+        {
+            tilePointers.push_back(nullptr); // again, keep 1:1 aligned
+            continue;
+        }
 
-        jobs.push_back({x, static_cast<uint32_t>(y), zoom, tileToReplace});
+        tilePointers.push_back(tileToReplace->buffer);                      // push_back the non cached tile ptr
+        jobs.push_back({x, static_cast<uint32_t>(y), zoom, tileToReplace}); // but first we have to download it
     }
 }
 
@@ -240,7 +253,7 @@ void OpenStreetMap::runJobs(const std::vector<TileJob> &jobs)
         vTaskDelay(pdMS_TO_TICKS(1));
 }
 
-bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, const tileList &requiredTiles, uint8_t zoom)
+bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, TileBufferList &tilePointers)
 {
     if (mapSprite.width() != mapWidth || mapSprite.height() != mapHeight)
     {
@@ -255,30 +268,20 @@ bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, const tileList &requiredT
         }
     }
 
-    int tileIndex = 0;
-    for (const auto &[tileX, tileY] : requiredTiles)
+    for (size_t tileIndex = 0; tileIndex < tilePointers.size(); ++tileIndex)
     {
-        if (tileY < 0 || tileY >= (1 << zoom))
+        const uint16_t *tile = tilePointers[tileIndex];
+        const int drawX = startOffsetX + (tileIndex % numberOfColums) * currentProvider->tileSize;
+        const int drawY = startOffsetY + (tileIndex / numberOfColums) * currentProvider->tileSize;
+
+        if (!tile)
         {
-            tileIndex++;
-            continue;
+            // fill the area with black? easy and clean solution-
+            // write a test program that goes from pole to pole at low zoom to see what looks good
+            continue; // TODO: what to do with empty tiles? the map sprite might be declared static so there might still be 'old' map present
         }
 
-        int drawX = startOffsetX + (tileIndex % numberOfColums) * currentProvider->tileSize;
-        int drawY = startOffsetY + (tileIndex / numberOfColums) * currentProvider->tileSize;
-
-        auto it = std::find_if(tilesCache.begin(), tilesCache.end(),
-                               [&](const CachedTile &tile)
-                               {
-                                   return tile.x == tileX && tile.y == tileY && tile.z == zoom && tile.valid;
-                               });
-
-        if (it != tilesCache.end())
-            mapSprite.pushImage(drawX, drawY, currentProvider->tileSize, currentProvider->tileSize, it->buffer);
-        else
-            log_w("Tile (z=%d, x=%d, y=%d) not found in cache", zoom, tileX, tileY);
-
-        tileIndex++;
+        mapSprite.pushImage(drawX, drawY, currentProvider->tileSize, currentProvider->tileSize, tile);
     }
 
     mapSprite.setTextColor(TFT_BLACK);
@@ -324,9 +327,10 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
         return false;
     }
 
-    updateCache(requiredTiles, zoom);
+    TileBufferList tilePointers;
+    updateCache(requiredTiles, zoom, tilePointers);
 
-    if (!composeMap(mapSprite, requiredTiles, zoom))
+    if (!composeMap(mapSprite, tilePointers))
     {
         log_e("Failed to compose map");
         return false;

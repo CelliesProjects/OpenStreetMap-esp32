@@ -50,6 +50,7 @@ constexpr int OSM_SINGLECORE_NUMBER = 1;
 static_assert(OSM_SINGLECORE_NUMBER < 2, "OSM_SINGLECORE_NUMBER must be 0 or 1 (ESP32 has only 2 cores)");
 
 using tileList = std::vector<std::pair<uint32_t, int32_t>>;
+using TileBufferList = std::vector<uint16_t *>;
 
 namespace
 {
@@ -101,16 +102,16 @@ private:
     double lon2tile(double lon, uint8_t zoom);
     double lat2tile(double lat, uint8_t zoom);
     void computeRequiredTiles(double longitude, double latitude, uint8_t zoom, tileList &requiredTiles);
-    void updateCache(const tileList &requiredTiles, uint8_t zoom);
+    void updateCache(const tileList &requiredTiles, uint8_t zoom, TileBufferList &tilePointers);
     bool startTileWorkerTasks();
-    void makeJobList(const tileList &requiredTiles, std::vector<TileJob> &jobs, uint8_t zoom);
+    void makeJobList(const tileList &requiredTiles, std::vector<TileJob> &jobs, uint8_t zoom, TileBufferList &tilePointers);
     void runJobs(const std::vector<TileJob> &jobs);
     CachedTile *findUnusedTile(const tileList &requiredTiles, uint8_t zoom);
-    bool isTileCachedOrBusy(uint32_t x, uint32_t y, uint8_t z);
+    bool isTileCached(uint32_t x, uint32_t y, uint8_t z, TileBufferList &tilePointers);
     bool fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result);
     std::optional<std::unique_ptr<MemoryBuffer>> urlToBuffer(const char *url, String &result);
     bool fillBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t contentSize, String &result);
-    bool composeMap(LGFX_Sprite &mapSprite, const tileList &requiredTiles, uint8_t zoom);
+    bool composeMap(LGFX_Sprite &mapSprite,TileBufferList &tilePointers);
     static void tileFetcherTask(void *param);
     static void PNGDraw(PNGDRAW *pDraw);
 
