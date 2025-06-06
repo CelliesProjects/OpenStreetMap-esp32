@@ -232,7 +232,7 @@ void OpenStreetMap::makeJobList(const tileList &requiredTiles, std::vector<TileJ
             continue;
         }
 
-        tilePointers.push_back(tileToReplace->buffer);                      // push_back the non cached tile ptr
+        tilePointers.push_back(tileToReplace->buffer);                      // push_back the still-to-download tile ptr
         jobs.push_back({x, static_cast<uint32_t>(y), zoom, tileToReplace}); // but first we have to download it
     }
 }
@@ -276,9 +276,10 @@ bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, TileBufferList &tilePoint
 
         if (!tile)
         {
-            // fill the area with black? easy and clean solution-
+            // TODO: what to do with empty tiles? the map sprite might be declared static so there might still be 'old' map present
+            // fill the area with black? easy and clean solution
             // write a test program that goes from pole to pole at low zoom to see what looks good
-            continue; // TODO: what to do with empty tiles? the map sprite might be declared static so there might still be 'old' map present
+            continue; 
         }
 
         mapSprite.pushImage(drawX, drawY, currentProvider->tileSize, currentProvider->tileSize, tile);
