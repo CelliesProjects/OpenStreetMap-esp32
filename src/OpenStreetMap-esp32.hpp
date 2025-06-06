@@ -33,16 +33,15 @@
 #include <LovyanGFX.hpp>
 #include <PNGdec.h>
 
+#include "TileProvider.hpp"
 #include "CachedTile.hpp"
 #include "TileJob.hpp"
 #include "MemoryBuffer.hpp"
 #include "HTTPClientRAII.hpp"
+#include "fonts/DejaVu9-modded.h"
 
-constexpr uint16_t OSM_TILESIZE = 256;
-constexpr uint16_t OSM_TILE_TIMEOUT_MS = 2500;
-constexpr uint16_t OSM_DEFAULT_CACHE_ITEMS = 10;
-constexpr uint16_t OSM_MAX_ZOOM = 18;
-constexpr UBaseType_t OSM_TASK_PRIORITY = 10;
+constexpr uint16_t OSM_TILE_TIMEOUT_MS = 500;
+constexpr UBaseType_t OSM_TASK_PRIORITY = 1;
 constexpr uint32_t OSM_TASK_STACKSIZE = 5120;
 constexpr uint32_t OSM_JOB_QUEUE_SIZE = 50;
 constexpr bool OSM_FORCE_SINGLECORE = false;
@@ -88,19 +87,22 @@ public:
     ~OpenStreetMap();
 
     void setSize(uint16_t w, uint16_t h);
+    uint16_t tilesNeeded(uint16_t mapWidth, uint16_t mapHeight);
     bool resizeTilesCache(uint16_t numberOfTiles);
-    void freeTilesCache();
     bool fetchMap(LGFX_Sprite &sprite, double longitude, double latitude, uint8_t zoom);
+    inline void freeTilesCache();
+
+    bool setTileProvider(int index);
+    const char *getProviderName() { return currentProvider->name; };
+    int getMinZoom() const { return currentProvider->minZoom; };
+    int getMaxZoom() const { return currentProvider->maxZoom; };
 
 private:
-    std::vector<CachedTile> tilesCache;
-    static inline OpenStreetMap *currentInstance = nullptr;
-    static inline thread_local uint16_t *currentTileBuffer = nullptr;
-    static void PNGDraw(PNGDRAW *pDraw);
     double lon2tile(double lon, uint8_t zoom);
     double lat2tile(double lat, uint8_t zoom);
     void computeRequiredTiles(double longitude, double latitude, uint8_t zoom, tileList &requiredTiles);
     void updateCache(const tileList &requiredTiles, uint8_t zoom);
+    bool startTileWorkerTasks();
     void makeJobList(const tileList &requiredTiles, std::vector<TileJob> &jobs, uint8_t zoom);
     void runJobs(const std::vector<TileJob> &jobs);
     CachedTile *findUnusedTile(const tileList &requiredTiles, uint8_t zoom);
@@ -110,8 +112,13 @@ private:
     bool fillBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t contentSize, String &result);
     bool composeMap(LGFX_Sprite &mapSprite, const tileList &requiredTiles, uint8_t zoom);
     static void tileFetcherTask(void *param);
+    static void PNGDraw(PNGDRAW *pDraw);
+
+    static inline OpenStreetMap *currentInstance = nullptr;
+    static inline thread_local uint16_t *currentTileBuffer = nullptr;
+    const TileProvider *currentProvider = &tileProviders[0];
+    std::vector<CachedTile> tilesCache;
     TaskHandle_t ownerTask = nullptr;
-    bool startTileWorkerTasks();
 
     int numberOfWorkers = 0;
     QueueHandle_t jobQueue = nullptr;

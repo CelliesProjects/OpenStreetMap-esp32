@@ -87,26 +87,26 @@ void OpenStreetMap::computeRequiredTiles(double longitude, double latitude, uint
     const int32_t targetTileY = static_cast<int32_t>(exactTileY);
 
     // Compute the offset inside the tile for the given coordinates
-    const int16_t targetOffsetX = (exactTileX - targetTileX) * OSM_TILESIZE;
-    const int16_t targetOffsetY = (exactTileY - targetTileY) * OSM_TILESIZE;
+    const int16_t targetOffsetX = (exactTileX - targetTileX) * currentProvider->tileSize;
+    const int16_t targetOffsetY = (exactTileY - targetTileY) * currentProvider->tileSize;
 
     // Compute the offset for tiles covering the map area to keep the location centered
     const int16_t tilesOffsetX = mapWidth / 2 - targetOffsetX;
     const int16_t tilesOffsetY = mapHeight / 2 - targetOffsetY;
 
     // Compute number of colums required
-    const float colsLeft = 1.0 * tilesOffsetX / OSM_TILESIZE;
-    const float colsRight = float(mapWidth - (tilesOffsetX + OSM_TILESIZE)) / OSM_TILESIZE;
+    const float colsLeft = 1.0 * tilesOffsetX / currentProvider->tileSize;
+    const float colsRight = float(mapWidth - (tilesOffsetX + currentProvider->tileSize)) / currentProvider->tileSize;
     numberOfColums = ceil(colsLeft) + 1 + ceil(colsRight);
 
-    startOffsetX = tilesOffsetX - (ceil(colsLeft) * OSM_TILESIZE);
+    startOffsetX = tilesOffsetX - (ceil(colsLeft) * currentProvider->tileSize);
 
     // Compute number of rows required
-    const float rowsTop = 1.0 * tilesOffsetY / OSM_TILESIZE;
-    const float rowsBottom = float(mapHeight - (tilesOffsetY + OSM_TILESIZE)) / OSM_TILESIZE;
+    const float rowsTop = 1.0 * tilesOffsetY / currentProvider->tileSize;
+    const float rowsBottom = float(mapHeight - (tilesOffsetY + currentProvider->tileSize)) / currentProvider->tileSize;
     const uint32_t numberOfRows = ceil(rowsTop) + 1 + ceil(rowsBottom);
 
-    startOffsetY = tilesOffsetY - (ceil(rowsTop) * OSM_TILESIZE);
+    startOffsetY = tilesOffsetY - (ceil(rowsTop) * currentProvider->tileSize);
 
     log_v(" Need %i * %i tiles. First tile offset is %d,%d",
           numberOfColums, numberOfRows, startOffsetX, startOffsetY);
@@ -171,17 +171,11 @@ bool OpenStreetMap::isTileCachedOrBusy(uint32_t x, uint32_t y, uint8_t z)
 
 void OpenStreetMap::freeTilesCache()
 {
-    for (auto &tile : tilesCache)
-        tile.free();
-
-    tilesCache.clear();
+    std::vector<CachedTile>().swap(tilesCache);
 }
 
 bool OpenStreetMap::resizeTilesCache(uint16_t numberOfTiles)
 {
-    if (tilesCache.size() == numberOfTiles)
-        return true;
-
     if (!numberOfTiles)
     {
         log_e("Invalid cache size: %d", numberOfTiles);
@@ -193,7 +187,7 @@ bool OpenStreetMap::resizeTilesCache(uint16_t numberOfTiles)
 
     for (auto &tile : tilesCache)
     {
-        if (!tile.allocate())
+        if (!tile.allocate(currentProvider->tileSize))
         {
             log_e("Tile cache allocation failed!");
             freeTilesCache();
@@ -211,7 +205,7 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom)
     if (!jobs.empty())
     {
         runJobs(jobs);
-        log_i("Updated %i tiles in %lu ms - %i ms/tile", jobs.size(), millis() - startMS, (millis() - startMS) / jobs.size());
+        log_d("Updated %i tiles in %lu ms - %i ms/tile", jobs.size(), millis() - startMS, (millis() - startMS) / jobs.size());
     }
 }
 
@@ -270,8 +264,8 @@ bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, const tileList &requiredT
             continue;
         }
 
-        int drawX = startOffsetX + (tileIndex % numberOfColums) * OSM_TILESIZE;
-        int drawY = startOffsetY + (tileIndex / numberOfColums) * OSM_TILESIZE;
+        int drawX = startOffsetX + (tileIndex % numberOfColums) * currentProvider->tileSize;
+        int drawY = startOffsetY + (tileIndex / numberOfColums) * currentProvider->tileSize;
 
         auto it = std::find_if(tilesCache.begin(), tilesCache.end(),
                                [&](const CachedTile &tile)
@@ -280,7 +274,7 @@ bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, const tileList &requiredT
                                });
 
         if (it != tilesCache.end())
-            mapSprite.pushImage(drawX, drawY, OSM_TILESIZE, OSM_TILESIZE, it->buffer);
+            mapSprite.pushImage(drawX, drawY, currentProvider->tileSize, currentProvider->tileSize, it->buffer);
         else
             log_w("Tile (z=%d, x=%d, y=%d) not found in cache", zoom, tileX, tileY);
 
@@ -293,8 +287,8 @@ bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, const tileList &requiredT
         mapSprite.setTextColor(TFT_WHITE, TFT_BLACK);
     else
         mapSprite.setTextColor(TFT_BLACK);
-    mapSprite.drawRightString(" Map data from OpenStreetMap.org ",
-                              mapSprite.width(), mapSprite.height() - 10, &DejaVu9);
+    mapSprite.drawRightString(currentProvider->attribution,
+                              mapSprite.width(), mapSprite.height() - 10, &DejaVu9Modded);
     mapSprite.setTextColor(TFT_WHITE, TFT_BLACK);
 
     return true;
@@ -308,7 +302,7 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
         return false;
     }
 
-    if (!zoom || zoom > OSM_MAX_ZOOM)
+    if (zoom < currentProvider->minZoom || zoom > currentProvider->maxZoom)
     {
         log_e("Invalid zoom level: %d", zoom);
         return false;
@@ -320,14 +314,10 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
         return false;
     }
 
-    if (!tilesCache.capacity())
+    if (!tilesCache.capacity() && !resizeTilesCache(tilesNeeded(mapWidth, mapHeight)))
     {
-        log_w("Cache not initialized, setting up a default cache...");
-        if (!resizeTilesCache(OSM_DEFAULT_CACHE_ITEMS))
-        {
-            log_e("Could not allocate tile cache");
-            return false;
-        }
+        log_e("Could not allocate tile cache");
+        return false;
     }
 
     longitude = fmod(longitude + 180.0, 360.0) - 180.0;
@@ -366,7 +356,7 @@ bool OpenStreetMap::fillBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t 
                 result = "Timeout: " + String(OSM_TILE_TIMEOUT_MS) + " ms";
                 return false;
             }
-            vTaskDelay(pdMS_TO_TICKS(1));
+            taskYIELD();
             continue;
         }
 
@@ -382,7 +372,7 @@ bool OpenStreetMap::fillBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t 
             lastReadTime = millis();
         }
         else
-            vTaskDelay(pdMS_TO_TICKS(1));
+            taskYIELD();
     }
     return true;
 }
@@ -432,21 +422,24 @@ std::optional<std::unique_ptr<MemoryBuffer>> OpenStreetMap::urlToBuffer(const ch
 
 void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
 {
-    uint16_t *destRow = currentInstance->currentTileBuffer + (pDraw->y * OSM_TILESIZE);
+    uint16_t *destRow = currentInstance->currentTileBuffer + (pDraw->y * currentInstance->currentProvider->tileSize);
     getPNGCurrentCore()->getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, 0xffffffff);
 }
 
 bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result)
 {
-    char url[64];
-    snprintf(url, sizeof(url), "https://tile.openstreetmap.org/%u/%u/%u.png",
-             static_cast<unsigned int>(zoom),
-             static_cast<unsigned int>(x),
-             static_cast<unsigned int>(y));
+    String url = currentProvider->urlTemplate;
+    url.replace("{x}", String(x));
+    url.replace("{y}", String(y));
+    url.replace("{z}", String(zoom));
+    if (currentProvider->requiresApiKey && strstr(url.c_str(), "{apiKey}"))
+        url.replace("{apiKey}", currentProvider->apiKey);
 
-    const auto buffer = urlToBuffer(url, result);
+    const auto buffer = urlToBuffer(url.c_str(), result);
     if (!buffer)
         return false;
+
+    url.clear();
 
     PNG *png = getPNGCurrentCore();
     const int16_t rc = png->openRAM(buffer.value()->get(), buffer.value()->size(), PNGDraw);
@@ -456,7 +449,7 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
         return false;
     }
 
-    if (png->getWidth() != OSM_TILESIZE || png->getHeight() != OSM_TILESIZE)
+    if (png->getWidth() != currentProvider->tileSize || png->getHeight() != currentProvider->tileSize)
     {
         result = "Unexpected tile size: w=" + String(png->getWidth()) + " h=" + String(png->getHeight());
         return false;
@@ -468,7 +461,7 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
     const int decodeResult = png->decode(0, PNG_FAST_PALETTE);
     if (decodeResult != PNG_SUCCESS)
     {
-        result = "Decoding " + String(url) + " failed with code: " + String(decodeResult);
+        result = "Decoding " + url + " failed with code: " + String(decodeResult);
         tile.valid = false;
         return false;
     }
@@ -548,5 +541,27 @@ bool OpenStreetMap::startTileWorkerTasks()
     tasksStarted = true;
 
     log_i("Started %d tile worker task(s)", numberOfWorkers);
+    return true;
+}
+
+uint16_t OpenStreetMap::tilesNeeded(uint16_t mapWidth, uint16_t mapHeight)
+{
+    const int tileSize = currentProvider->tileSize;
+    int tilesX = (mapWidth + tileSize - 1) / tileSize + 1;
+    int tilesY = (mapHeight + tileSize - 1) / tileSize + 1;
+    return tilesX * tilesY;
+}
+
+bool OpenStreetMap::setTileProvider(int index)
+{
+    if (index < 0 || index >= OSM_TILEPROVIDERS)
+    {
+        log_e("invalid provider index");
+        return false;
+    }
+
+    currentProvider = &tileProviders[index];
+    freeTilesCache();
+    log_i("provider changed to '%s'", currentProvider->name);
     return true;
 }

@@ -50,9 +50,9 @@ struct CachedTile
         free();
     }
 
-    bool allocate()
+    bool allocate(int tileSize)
     {
-        buffer = static_cast<uint16_t *>(heap_caps_malloc(256 * 256 * sizeof(uint16_t), MALLOC_CAP_SPIRAM));
+        buffer = static_cast<uint16_t *>(heap_caps_malloc(tileSize * tileSize * sizeof(uint16_t), MALLOC_CAP_SPIRAM));
         return buffer != nullptr;
     }
 

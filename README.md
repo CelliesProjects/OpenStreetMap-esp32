@@ -17,7 +17,7 @@ A composed map can be pushed to the screen, saved to SD or used for further comp
 Downloaded tiles are cached in psram for reuse.
 
 This library should work on any ESP32 type with psram and a LovyanGFX compatible display.  
-OSM tiles are quite large -128kB per tile- so psram is required.
+OSM tiles are quite large at 128kB or insane large at 512kB per tile, so psram is required.
 
 This project is not endorsed by or affiliated with the OpenStreetMap Foundation.  
 Use of any OSMF provided service is governed by the [OSMF Terms of Use](https://osmfoundation.org/wiki/Terms_of_Use).
@@ -40,42 +40,102 @@ framework = arduino
 lib_deps =
     celliesprojects/OpenStreetMap-esp32@^1.0.6
     lovyan03/LovyanGFX@^1.2.7
-    https://github.com/bitbank2/PNGdec@^1.1.3
+    bitbank2/PNGdec@^1.1.3
 ```
+
+## Functions 
 
 ### Set map size
 
 ```c++
-void setSize(uint16_t w, uint16_t h);
+void setSize(uint16_t w, uint16_t h)
 ```
 
-- If no size is set a 320px by 240px map will be returned by `fetchMap`.
+- If no size is set a 320px by 240px map will be returned.  
+- The tile cache should be freed with `freeTilesCache()` after setting a new bigger map size.  
 
-### Resize cache
+### Get the number of tiles needed to cache a map
 
 ```c++
-bool resizeTilesCache(uint16_t numberOfTiles); 
+uint16_t tilesNeeded(uint16_t w, uint16_t h)
 ```
 
-- If the cache is not resized before the first call to `fetchMap`, it will auto initialize with space for 10 tiles on the first call.
-- Each tile allocates 128 kB psram.
+This returns the number of tiles required to cache the given map size.  
+
+### Resize the tiles cache
+
+```c++
+bool resizeTilesCache(uint16_t numberOfTiles)
+```
+
+- If the cache is not resized before the first call to `fetchMap`, the cache will be auto initialized.
 - The cache content is cleared before resizing.
+- Each 256px tile allocates **128kB** psram.
+- Each 512px tile allocates **512kB** psram.
 
-### Free the memory used by the tile cache
-
-```c++
-void freeTilesCache();
-```
+**Don't over-allocate the cache**  
+When resizing the cache, keep in mind that the map sprite also uses psram.  
+The PNG decoders -~50kB for each core- also live in psram.  
+Use the above `tilesNeeded` function to calculate a safe and sane cache size.  
 
 ### Fetch a map
 
 ```c++
-bool fetchMap(LGFX_Sprite &map, double longitude, double latitude, uint8_t zoom);
+bool fetchMap(LGFX_Sprite &map, double longitude, double latitude, uint8_t zoom)
 ```
 
 - Overflowing `longitude` are wrapped and normalized to +-180°.
 - Overflowing `latitude` are clamped to +-90°.
 - Valid range for the `zoom` level is 1-18.
+
+### Free the memory used by the tile cache
+
+```c++
+void freeTilesCache()
+```
+
+### Switch to a different tile provider
+
+```c++
+bool setTileProvider(int index)
+```
+
+This function will switch to a tile provider (if) that is user defined in `src/TileProvider.hpp`.  
+
+- Returns `true` and clears the cache on success.  
+- Returns `false` -and the current tile provider is unchanged- if no provider at the index is defined.
+
+### Get the number of defined providers
+
+`OSM_TILEPROVIDERS` gives the number of defined providers.  
+
+Example use:  
+
+```c++
+const int numberOfProviders = OSM_TILEPROVIDERS;
+```
+
+In the default setup there is only one provider defined.  
+See `src/TileProvider.hpp` for example setups for [https://www.thunderforest.com/](https://www.thunderforest.com/) that only require an API key and commenting/uncommenting 2 lines.  
+Registration and a hobby tier are available for free.
+
+### Get the provider name
+
+```c++
+char *getProviderName()
+```
+
+### Get the minimum zoom level
+
+```c++
+int getMinZoom()
+```
+
+### Get the maximum zoom level
+
+```c++
+int getMaxZoom()
+```
 
 ## Example code
 
