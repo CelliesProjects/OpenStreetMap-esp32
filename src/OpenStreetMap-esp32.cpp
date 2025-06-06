@@ -314,7 +314,7 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
         return false;
     }
 
-    if (!tilesCache.capacity() && !resizeTilesCache(tilesToCover(mapWidth, mapHeight)))
+    if (!tilesCache.capacity() && !resizeTilesCache(tilesNeeded(mapWidth, mapHeight)))
     {
         log_e("Could not allocate tile cache");
         return false;
@@ -544,7 +544,7 @@ bool OpenStreetMap::startTileWorkerTasks()
     return true;
 }
 
-uint16_t OpenStreetMap::tilesToCover(uint16_t mapWidth, uint16_t mapHeight)
+uint16_t OpenStreetMap::tilesNeeded(uint16_t mapWidth, uint16_t mapHeight)
 {
     const int tileSize = currentProvider->tileSize;
     int tilesX = (mapWidth + tileSize - 1) / tileSize + 1;

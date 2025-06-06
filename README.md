@@ -54,10 +54,10 @@ void setSize(uint16_t w, uint16_t h)
 - If no size is set a 320px by 240px map will be returned.  
 - The tile cache should (maybe) be resized after setting a new map size.  
 
-### Get the number of tiles to cover a map
+### Get the number of tiles needed to cache a map
 
 ```c++
-uint16_t tilesToCover(uint16_t w, uint16_t h)
+uint16_t tilesNeeded(uint16_t w, uint16_t h)
 ```
 
 This returns the number of tiles required to cache the given map size.  
@@ -76,7 +76,7 @@ bool resizeTilesCache(uint16_t numberOfTiles)
 **Don't over-allocate the cache**  
 When resizing the cache, keep in mind that the map sprite also uses psram.  
 The PNG decoders -~50kB for each core- also live in psram.  
-Use the above `tilesToCover` function to calculate a safe and sane cache size.  
+Use the above `tilesNeeded` function to calculate a safe and sane cache size.  
 
 ### Fetch a map
 

@@ -87,7 +87,7 @@ public:
     ~OpenStreetMap();
 
     void setSize(uint16_t w, uint16_t h);
-    uint16_t tilesToCover(uint16_t mapWidth, uint16_t mapHeight);
+    uint16_t tilesNeeded(uint16_t mapWidth, uint16_t mapHeight);
     bool resizeTilesCache(uint16_t numberOfTiles);
     bool fetchMap(LGFX_Sprite &sprite, double longitude, double latitude, uint8_t zoom);
     inline void freeTilesCache();
