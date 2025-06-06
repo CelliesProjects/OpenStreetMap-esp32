@@ -16,14 +16,14 @@ Tile fetching and decoding is performed concurrently across both cores on dualco
 A composed map can be pushed to the screen, saved to SD or used for further composing.  
 Downloaded tiles are cached in psram for reuse.
 
-### Multiple formats and tile providers
-
-Different tile formats or multiple tile providers?  
-Swap tile provider or tile format at runtime?  
-This library can do that and is very easy to configure and use.  
-
-This library should work on any ESP32 type with psram and a LovyanGFX compatible display.  
+This should work on any ESP32 type with psram and a LovyanGFX compatible display.  
 OSM tiles are quite large at 128kB or insane large at 512kB per tile, so psram is required.
+
+### Multiple tile formats and providers are supported
+
+Different tile formats and multiple tile providers?  
+Swap tile provider and tile format at runtime?  
+This library can do that and is very easy to configure and use.  
 
 ## How to use
 
@@ -56,7 +56,6 @@ void setSize(uint16_t w, uint16_t h)
 ```
 
 - If no size is set a 320px by 240px map will be returned.  
-- The tile cache should be freed with `freeTilesCache()` after setting a new bigger map size.  
 
 ### Get the number of tiles needed to cache a map
 
