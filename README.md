@@ -16,7 +16,7 @@ Tile fetching and decoding is performed concurrently across both cores on dualco
 A composed map can be pushed to the screen, saved to SD or used for further composing.  
 Downloaded tiles are cached in psram for reuse.
 
-#### Wait, there's more!
+### Multiple formats and tile providers
 
 Different tile formats or multiple tile providers?  
 Swap tile provider or tile format at runtime?  
