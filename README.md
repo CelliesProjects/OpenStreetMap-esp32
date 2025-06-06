@@ -52,7 +52,7 @@ void setSize(uint16_t w, uint16_t h)
 ```
 
 - If no size is set a 320px by 240px map will be returned.  
-- The tile cache should (probably) be freed with `freeTilesCache()` after setting a new map size.  
+- The tile cache should be freed with `freeTilesCache()` after setting a new map size.  
 
 ### Get the number of tiles needed to cache a map
 
