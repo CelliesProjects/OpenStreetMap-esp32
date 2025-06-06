@@ -118,8 +118,8 @@ private:
     static inline thread_local uint16_t *currentTileBuffer = nullptr;
     const TileProvider *currentProvider = &tileProviders[0];
     std::vector<CachedTile> tilesCache;
-    TaskHandle_t ownerTask = nullptr;
 
+    TaskHandle_t ownerTask = nullptr;
     int numberOfWorkers = 0;
     QueueHandle_t jobQueue = nullptr;
     std::atomic<int> pendingJobs = 0;
