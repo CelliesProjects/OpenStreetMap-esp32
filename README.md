@@ -16,16 +16,20 @@ Tile fetching and decoding is performed concurrently across both cores on dualco
 A composed map can be pushed to the screen, saved to SD or used for further composing.  
 Downloaded tiles are cached in psram for reuse.
 
+### Multiple formats and tile providers
+
+Different tile formats or multiple tile providers?  
+Swap tile provider or tile format at runtime?  
+This library can do that and is very easy to configure and use.  
+
 This library should work on any ESP32 type with psram and a LovyanGFX compatible display.  
 OSM tiles are quite large at 128kB or insane large at 512kB per tile, so psram is required.
-
-This project is not endorsed by or affiliated with the OpenStreetMap Foundation.  
-Use of any OSMF provided service is governed by the [OSMF Terms of Use](https://osmfoundation.org/wiki/Terms_of_Use).
 
 ## How to use
 
 This library is **PlatformIO only** due to use of modern C++ features. The Arduino IDE is **not** supported.  
-Use [the latest Arduino ESP32 Core version](https://github.com/pioarduino/platform-espressif32/releases/latest) from [pioarduino](https://github.com/pioarduino/platform-espressif32) to compile this library.  
+Use [the latest Arduino ESP32 Core version](https://github.com/pioarduino/platform-espressif32/releases/latest) from [pioarduino](https://github.com/pioarduino/platform-espressif32) to compile this library.
+
 See the example PIO settings and example code to get started.
 
 ### Example `platformio.ini` settings
@@ -73,7 +77,7 @@ bool resizeTilesCache(uint16_t numberOfTiles)
 - Each 256px tile allocates **128kB** psram.
 - Each 512px tile allocates **512kB** psram.
 
-**Don't over-allocate the cache**  
+**Don't over-allocate**  
 When resizing the cache, keep in mind that the map sprite also uses psram.  
 The PNG decoders -~50kB for each core- also live in psram.  
 Use the above `tilesNeeded` function to calculate a safe and sane cache size.  
@@ -86,7 +90,7 @@ bool fetchMap(LGFX_Sprite &map, double longitude, double latitude, uint8_t zoom)
 
 - Overflowing `longitude` are wrapped and normalized to +-180°.
 - Overflowing `latitude` are clamped to +-90°.
-- Valid range for the `zoom` level is 1-18.
+- Valid range for the `zoom` level is from `getMinZoom()` to `getMaxZoom()`.  
 
 ### Free the memory used by the tile cache
 
@@ -100,7 +104,7 @@ void freeTilesCache()
 bool setTileProvider(int index)
 ```
 
-This function will switch to a tile provider (if) that is user defined in `src/TileProvider.hpp`.  
+This function will switch to tile provider `index` defined in `src/TileProvider.hpp`.  
 
 - Returns `true` and clears the cache on success.  
 - Returns `false` -and the current tile provider is unchanged- if no provider at the index is defined.
@@ -116,7 +120,8 @@ const int numberOfProviders = OSM_TILEPROVIDERS;
 ```
 
 In the default setup there is only one provider defined.  
-See `src/TileProvider.hpp` for example setups for [https://www.thunderforest.com/](https://www.thunderforest.com/) that only require an API key and commenting/uncommenting 2 lines.  
+See `src/TileProvider.hpp` for example setups for [https://www.thunderforest.com/](https://www.thunderforest.com/) that only require an API key and commenting/uncommenting 2 lines.
+
 Registration and a hobby tier are available for free.
 
 ### Get the provider name
