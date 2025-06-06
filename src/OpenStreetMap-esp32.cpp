@@ -439,8 +439,6 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
     if (!buffer)
         return false;
 
-    url.clear();
-
     PNG *png = getPNGCurrentCore();
     const int16_t rc = png->openRAM(buffer.value()->get(), buffer.value()->size(), PNGDraw);
     if (rc != PNG_SUCCESS)
