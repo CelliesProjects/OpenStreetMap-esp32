@@ -6,7 +6,7 @@
 [![PlatformIO](https://img.shields.io/badge/PlatformIO-Compatible-green?logo=platformio)](https://registry.platformio.org/libraries/celliesprojects/openstreetmap-esp32)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/0961fc2320cd495a9411eb391d5791ca)](https://app.codacy.com/gh/CelliesProjects/OpenStreetMap-esp32/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 
-This library provides a [OpenStreetMap](https://www.openstreetmap.org/) (OSM) map fetching and tile caching system for ESP32-based devices.  
+This PlatformIO library provides a [OpenStreetMap](https://www.openstreetmap.org/) (OSM) map fetching and tile caching system for ESP32-based devices.  
 Under the hood it uses [LovyanGFX](https://github.com/lovyan03/LovyanGFX) and [PNGdec](https://github.com/bitbank2/PNGdec) to do the heavy lifting.
 
 [![map](https://github.com/user-attachments/assets/39a7f287-c59d-4365-888a-d4c3f77a1dd1 "Click to visit OpenStreetMap.org")](https://www.openstreetmap.org/)
@@ -21,9 +21,8 @@ OSM tiles are quite large at 128kB or insane large at 512kB per tile, so psram i
 
 ### Multiple tile formats and providers are supported
 
-Different tile formats and multiple tile providers?  
-Swap tile provider and tile format at runtime?  
-This library can do that and is very easy to configure and use.  
+You can switch provider and tile format at runtime, or set up a different default tile provider if you want.  
+This library can do it all and is very easy to configure and use.  
 
 ## How to use
 
@@ -47,7 +46,19 @@ lib_deps =
     bitbank2/PNGdec@^1.1.3
 ```
 
-## Functions 
+## Functions
+
+### Get the minimum zoom level
+
+```c++
+int getMinZoom()
+```
+
+### Get the maximum zoom level
+
+```c++
+int getMaxZoom()
+```
 
 ### Set map size
 
@@ -71,7 +82,7 @@ This returns the number of tiles required to cache the given map size.
 bool resizeTilesCache(uint16_t numberOfTiles)
 ```
 
-- If the cache is not resized before the first call to `fetchMap`, the cache will be auto initialized.
+- If the cache is not resized before the first call to `fetchMap`, the cache will be auto initialized with the amount of tiles returned by `tilesNeeded(w, h)` where `w` and `h` are the current map width and height.
 - The cache content is cleared before resizing.
 - Each 256px tile allocates **128kB** psram.
 - Each 512px tile allocates **512kB** psram.
@@ -79,7 +90,7 @@ bool resizeTilesCache(uint16_t numberOfTiles)
 **Don't over-allocate**  
 When resizing the cache, keep in mind that the map sprite also uses psram.  
 The PNG decoders -~50kB for each core- also live in psram.  
-Use the above `tilesNeeded` function to calculate a safe and sane cache size.  
+Use the above `tilesNeeded` function to calculate a safe and sane cache size if you change the map size.  
 
 ### Fetch a map
 
@@ -118,27 +129,24 @@ Example use:
 const int numberOfProviders = OSM_TILEPROVIDERS;
 ```
 
-In the default setup there is only one provider defined.  
+**Note:** In the default setup there is only one provider defined.
+
 See `src/TileProvider.hpp` for example setups for [https://www.thunderforest.com/](https://www.thunderforest.com/) that only require an API key and commenting/uncommenting 2 lines.
 
 Registration and a hobby tier are available for free.
+
+### Adding tile providers
+
+Other providers should work if a new definition is created in `src/TileProvider.hpp`.  
+Check out the existing templates to see how this works.
+
+If you encounter a problem or want to request support for a new provider, please check the [issue tracker](../../issues) for existing reports or [open an issue](../../issues/new).
+
 
 ### Get the provider name
 
 ```c++
 char *getProviderName()
-```
-
-### Get the minimum zoom level
-
-```c++
-int getMinZoom()
-```
-
-### Get the maximum zoom level
-
-```c++
-int getMaxZoom()
 ```
 
 ## Example code
