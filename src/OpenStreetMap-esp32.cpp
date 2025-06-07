@@ -477,7 +477,11 @@ void OpenStreetMap::tileFetcherTask(void *param)
 
         String result;
         if (!osm->fetchTile(*job.tile, job.x, job.y, job.z, result))
+        {
+            const size_t tileByteCount = osm->currentProvider->tileSize * osm->currentProvider->tileSize * 2;
+            memset(job.tile->buffer, 0, tileByteCount);
             log_e("Tile fetch failed: %s", result.c_str());
+        }
         else
             log_d("core %i fetched tile z=%u x=%lu, y=%lu in %lu ms", xPortGetCoreID(), job.z, job.x, job.y, millis() - startMS);
         --osm->pendingJobs;
