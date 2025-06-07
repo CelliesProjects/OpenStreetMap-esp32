@@ -40,7 +40,7 @@
 #include "HTTPClientRAII.hpp"
 #include "fonts/DejaVu9-modded.h"
 
-constexpr uint16_t OSM_BGCOLOR = lgfx::color565(0, 0, 0);
+constexpr uint16_t OSM_BGCOLOR = lgfx::color565(100, 110, 120);
 constexpr uint16_t OSM_TILE_TIMEOUT_MS = 500;
 constexpr UBaseType_t OSM_TASK_PRIORITY = 1;
 constexpr uint32_t OSM_TASK_STACKSIZE = 5120;
