@@ -233,7 +233,7 @@ void OpenStreetMap::makeJobList(const tileList &requiredTiles, std::vector<TileJ
         }
 
         tilePointers.push_back(tileToReplace->buffer);                      // push_back the still-to-download tile ptr
-        jobs.push_back({x, static_cast<uint32_t>(y), zoom, tileToReplace}); // but first we have to download it
+        jobs.push_back({x, static_cast<uint32_t>(y), zoom, tileToReplace}); // push_back tile ptr to the job list
     }
 }
 
@@ -326,13 +326,11 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
 
     TileBufferList tilePointers;
     updateCache(requiredTiles, zoom, tilePointers);
-
     if (!composeMap(mapSprite, tilePointers))
     {
         log_e("Failed to compose map");
         return false;
     }
-
     return true;
 }
 
