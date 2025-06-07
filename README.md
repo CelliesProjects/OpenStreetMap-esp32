@@ -67,6 +67,7 @@ void setSize(uint16_t w, uint16_t h)
 ```
 
 - If no size is set a 320px by 240px map will be returned.  
+- The tile cache might need resizing if the size is increased. 
 
 ### Get the number of tiles needed to cache a map
 
@@ -102,11 +103,13 @@ bool fetchMap(LGFX_Sprite &map, double longitude, double latitude, uint8_t zoom)
 - Overflowing `latitude` are clamped to +-90°.
 - Valid range for the `zoom` level is from `getMinZoom()` to `getMaxZoom()`.  
 
-### Free the memory used by the tile cache
+### Free the psram memory used by the tile cache
 
 ```c++
 void freeTilesCache()
 ```
+
+- Does **not** free the PNG decoder(s).
 
 ### Switch to a different tile provider
 
