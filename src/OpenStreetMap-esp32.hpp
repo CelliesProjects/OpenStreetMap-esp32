@@ -116,7 +116,7 @@ private:
     static void tileFetcherTask(void *param);
     static void PNGDraw(PNGDRAW *pDraw);
 
-    static inline OpenStreetMap *currentInstance = nullptr;
+    static inline thread_local OpenStreetMap *currentInstance = nullptr;
     static inline thread_local uint16_t *currentTileBuffer = nullptr;
     const TileProvider *currentProvider = &tileProviders[0];
     std::vector<CachedTile> tilesCache;
