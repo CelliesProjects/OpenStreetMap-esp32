@@ -225,6 +225,15 @@ void OpenStreetMap::makeJobList(const tileList &requiredTiles, std::vector<TileJ
         if (isTileCached(x, y, zoom, tilePointers)) // isTileCached will push_back a valid ptr if tile is cached
             continue;
 
+        // Check if this tile is already in the job list
+        auto existing = std::find_if(jobs.begin(), jobs.end(), [&](const TileJob &job)
+                                     { return job.x == x && job.y == static_cast<uint32_t>(y) && job.z == zoom; });
+        if (existing != jobs.end())
+        {
+            tilePointers.push_back(existing->tile->buffer); // reuse buffer from already queued job
+            continue;
+        }
+
         CachedTile *tileToReplace = findUnusedTile(requiredTiles, zoom);
         if (!tileToReplace)
         {
@@ -232,8 +241,8 @@ void OpenStreetMap::makeJobList(const tileList &requiredTiles, std::vector<TileJ
             continue;
         }
 
-        tilePointers.push_back(tileToReplace->buffer);                      // push_back the still-to-download tile ptr
-        jobs.push_back({x, static_cast<uint32_t>(y), zoom, tileToReplace}); // push_back tile ptr to the job list
+        tilePointers.push_back(tileToReplace->buffer);                      // store buffer for rendering
+        jobs.push_back({x, static_cast<uint32_t>(y), zoom, tileToReplace}); // queue job
     }
 }
 
