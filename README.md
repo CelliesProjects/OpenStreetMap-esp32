@@ -41,7 +41,7 @@ platform = https://github.com/pioarduino/platform-espressif32/releases/download/
 framework = arduino
 
 lib_deps =
-    celliesprojects/OpenStreetMap-esp32@^1.0.6
+    celliesprojects/OpenStreetMap-esp32@^1.1.0
     lovyan03/LovyanGFX@^1.2.7
     bitbank2/PNGdec@^1.1.3
 ```
@@ -83,7 +83,6 @@ This returns the number of tiles required to cache the given map size.
 bool resizeTilesCache(uint16_t numberOfTiles)
 ```
 
-- If the cache is not resized before the first call to `fetchMap`, the cache will be auto initialized with the amount of tiles returned by `tilesNeeded(w, h)` where `w` and `h` are the current map width and height.
 - The cache content is cleared before resizing.
 - Each 256px tile allocates **128kB** psram.
 - Each 512px tile allocates **512kB** psram.
