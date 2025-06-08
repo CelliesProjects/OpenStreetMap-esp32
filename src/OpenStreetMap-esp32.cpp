@@ -225,6 +225,14 @@ void OpenStreetMap::makeJobList(const tileList &requiredTiles, std::vector<TileJ
         if (isTileCached(x, y, zoom, tilePointers)) // isTileCached will push_back a valid ptr if tile is cached
             continue;
 
+        bool alreadyQueued = std::any_of(jobs.begin(), jobs.end(), [&](const TileJob &job)
+                                         { return job.x == x && job.y == static_cast<uint32_t>(y) && job.z == zoom; });
+        if (alreadyQueued)
+        {
+            tilePointers.push_back(nullptr); // maintain alignment
+            continue;
+        }
+
         CachedTile *tileToReplace = findUnusedTile(requiredTiles, zoom);
         if (!tileToReplace)
         {
