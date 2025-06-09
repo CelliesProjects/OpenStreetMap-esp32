@@ -159,12 +159,12 @@ CachedTile *OpenStreetMap::findUnusedTile(const tileList &requiredTiles, uint8_t
     return nullptr; // no unused tile found
 }
 
-uint16_t *OpenStreetMap::isTileCached(uint32_t x, uint32_t y, uint8_t z)
+CachedTile *OpenStreetMap::isTileCached(uint32_t x, uint32_t y, uint8_t z)
 {
-    for (const auto &tile : tilesCache)
+    for (auto &tile : tilesCache)
     {
         if (tile.x == x && tile.y == y && tile.z == z && tile.valid)
-            return tile.buffer;
+            return &tile;
     }
     return nullptr;
 }
@@ -219,10 +219,10 @@ void OpenStreetMap::makeJobList(const tileList &requiredTiles, std::vector<TileJ
             continue;
         }
 
-        uint16_t *tilePointer = isTileCached(x, y, zoom);
-        if (tilePointer)
+        const CachedTile *tile = isTileCached(x, y, zoom);
+        if (tile)
         {
-            tilePointers.push_back(tilePointer);
+            tilePointers.push_back(tile->buffer);
             continue;
         }
 
