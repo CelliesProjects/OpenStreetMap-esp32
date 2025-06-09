@@ -28,7 +28,6 @@
 #include <WiFiClient.h>
 #include <SD.h>
 #include <vector>
-#include <optional>
 #include <atomic>
 #include <LovyanGFX.hpp>
 #include <PNGdec.h>
@@ -110,7 +109,7 @@ private:
     CachedTile *findUnusedTile(const tileList &requiredTiles, uint8_t zoom);
     CachedTile *isTileCached(uint32_t x, uint32_t y, uint8_t z);
     bool fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result);
-    std::optional<std::unique_ptr<MemoryBuffer>> urlToBuffer(const char *url, String &result);
+    std::unique_ptr<MemoryBuffer> urlToBuffer(const char *url, String &result);
     bool fillBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t contentSize, String &result);
     bool composeMap(LGFX_Sprite &mapSprite, TileBufferList &tilePointers);
     static void tileFetcherTask(void *param);
