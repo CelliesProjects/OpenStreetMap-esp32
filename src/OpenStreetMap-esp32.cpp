@@ -421,7 +421,6 @@ bool OpenStreetMap::fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, ui
 
     currentInstance = this;
     currentTileBuffer = tile.buffer;
-    tile.busy = false;
     const int decodeResult = png->decode(0, PNG_FAST_PALETTE);
     if (decodeResult != PNG_SUCCESS)
     {
@@ -459,6 +458,8 @@ void OpenStreetMap::tileFetcherTask(void *param)
         }
         else
             log_i("core %i fetched tile z=%u x=%lu, y=%lu in %lu ms", xPortGetCoreID(), job.z, job.x, job.y, millis() - startMS);
+
+        job.tile->busy = false;
         --osm->pendingJobs;
     }
     log_d("task on core %i exiting", xPortGetCoreID());
