@@ -159,17 +159,14 @@ CachedTile *OpenStreetMap::findUnusedTile(const tileList &requiredTiles, uint8_t
     return nullptr; // no unused tile found
 }
 
-bool OpenStreetMap::isTileCached(uint32_t x, uint32_t y, uint8_t z, TileBufferList &tilePointers)
+uint16_t *OpenStreetMap::isTileCached(uint32_t x, uint32_t y, uint8_t z)
 {
     for (const auto &tile : tilesCache)
     {
         if (tile.x == x && tile.y == y && tile.z == z && tile.valid)
-        {
-            tilePointers.push_back(tile.buffer);
-            return true;
-        }
+            return tile.buffer;
     }
-    return false;
+    return nullptr;
 }
 
 void OpenStreetMap::freeTilesCache()
@@ -222,8 +219,12 @@ void OpenStreetMap::makeJobList(const tileList &requiredTiles, std::vector<TileJ
             continue;
         }
 
-        if (isTileCached(x, y, zoom, tilePointers)) // isTileCached will push_back a valid ptr if tile is cached
+        uint16_t *tilePointer = isTileCached(x, y, zoom);
+        if (tilePointer)
+        {
+            tilePointers.push_back(tilePointer);
             continue;
+        }
 
         // Check if this tile is already in the job list
         auto existing = std::find_if(jobs.begin(), jobs.end(), [&](const TileJob &job)

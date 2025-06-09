@@ -108,11 +108,11 @@ private:
     void makeJobList(const tileList &requiredTiles, std::vector<TileJob> &jobs, uint8_t zoom, TileBufferList &tilePointers);
     void runJobs(const std::vector<TileJob> &jobs);
     CachedTile *findUnusedTile(const tileList &requiredTiles, uint8_t zoom);
-    bool isTileCached(uint32_t x, uint32_t y, uint8_t z, TileBufferList &tilePointers);
+    uint16_t *isTileCached(uint32_t x, uint32_t y, uint8_t z);
     bool fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result);
     std::optional<std::unique_ptr<MemoryBuffer>> urlToBuffer(const char *url, String &result);
     bool fillBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t contentSize, String &result);
-    bool composeMap(LGFX_Sprite &mapSprite,TileBufferList &tilePointers);
+    bool composeMap(LGFX_Sprite &mapSprite, TileBufferList &tilePointers);
     static void tileFetcherTask(void *param);
     static void PNGDraw(PNGDRAW *pDraw);
 
