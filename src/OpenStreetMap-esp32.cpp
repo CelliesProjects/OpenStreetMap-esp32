@@ -219,19 +219,19 @@ void OpenStreetMap::makeJobList(const tileList &requiredTiles, std::vector<TileJ
             continue;
         }
 
-        const CachedTile *tile = isTileCached(x, y, zoom);
-        if (tile)
+        const CachedTile *cachedTile = isTileCached(x, y, zoom);
+        if (cachedTile)
         {
-            tilePointers.push_back(tile->buffer);
+            tilePointers.push_back(cachedTile->buffer);
             continue;
         }
 
         // Check if this tile is already in the job list
-        auto existing = std::find_if(jobs.begin(), jobs.end(), [&](const TileJob &job)
+        auto job = std::find_if(jobs.begin(), jobs.end(), [&](const TileJob &job)
                                      { return job.x == x && job.y == static_cast<uint32_t>(y) && job.z == zoom; });
-        if (existing != jobs.end())
+        if (job != jobs.end())
         {
-            tilePointers.push_back(existing->tile->buffer); // reuse buffer from already queued job
+            tilePointers.push_back(job->tile->buffer); // reuse buffer from already queued job
             continue;
         }
 
