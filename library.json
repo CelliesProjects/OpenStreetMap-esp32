@@ -1,6 +1,6 @@
 {
     "name": "OpenStreetMap-esp32",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "description": "This PlatformIO library provides a OpenStreetMap (OSM) map fetching and caching system for ESP32-based devices.",
     "keywords": [
         "esp32",
