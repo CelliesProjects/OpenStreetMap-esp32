@@ -227,7 +227,7 @@ void OpenStreetMap::makeJobList(const tileList &requiredTiles, std::vector<TileJ
         }
 
         // Check if this tile is already in the job list
-        auto job = std::find_if(jobs.begin(), jobs.end(), [&](const TileJob &job)
+        const auto job = std::find_if(jobs.begin(), jobs.end(), [&](const TileJob &job)
                                      { return job.x == x && job.y == static_cast<uint32_t>(y) && job.z == zoom; });
         if (job != jobs.end())
         {
