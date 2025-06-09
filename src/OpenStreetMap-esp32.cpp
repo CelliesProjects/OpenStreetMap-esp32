@@ -457,7 +457,7 @@ void OpenStreetMap::tileFetcherTask(void *param)
             log_e("Tile fetch failed: %s", result.c_str());
         }
         else
-            log_i("core %i fetched tile z=%u x=%lu, y=%lu in %lu ms", xPortGetCoreID(), job.z, job.x, job.y, millis() - startMS);
+            log_d("core %i fetched tile z=%u x=%lu, y=%lu in %lu ms", xPortGetCoreID(), job.z, job.x, job.y, millis() - startMS);
 
         job.tile->busy = false;
         --osm->pendingJobs;
