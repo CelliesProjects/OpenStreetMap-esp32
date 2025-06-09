@@ -41,7 +41,7 @@ platform = https://github.com/pioarduino/platform-espressif32/releases/download/
 framework = arduino
 
 lib_deps =
-    celliesprojects/OpenStreetMap-esp32@^1.1.0
+    celliesprojects/OpenStreetMap-esp32@^1.1.1
     lovyan03/LovyanGFX@^1.2.7
     bitbank2/PNGdec@^1.1.3
 ```
