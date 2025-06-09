@@ -228,7 +228,7 @@ void OpenStreetMap::makeJobList(const tileList &requiredTiles, std::vector<TileJ
 
         // Check if this tile is already in the job list
         const auto job = std::find_if(jobs.begin(), jobs.end(), [&](const TileJob &job)
-                                     { return job.x == x && job.y == static_cast<uint32_t>(y) && job.z == zoom; });
+                                      { return job.x == x && job.y == static_cast<uint32_t>(y) && job.z == zoom; });
         if (job != jobs.end())
         {
             tilePointers.push_back(job->tile->buffer); // reuse buffer from already queued job
@@ -380,45 +380,45 @@ bool OpenStreetMap::fillBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t 
     return true;
 }
 
-std::optional<std::unique_ptr<MemoryBuffer>> OpenStreetMap::urlToBuffer(const char *url, String &result)
+std::unique_ptr<MemoryBuffer> OpenStreetMap::urlToBuffer(const char *url, String &result)
 {
     HTTPClientRAII http;
     if (!http.begin(url))
     {
         result = "Failed to initialize HTTP client";
-        return std::nullopt;
+        return nullptr;
     }
 
     const int httpCode = http.GET();
     if (httpCode != HTTP_CODE_OK)
     {
         result = "HTTP Error: " + String(httpCode);
-        return std::nullopt;
+        return nullptr;
     }
 
     const size_t contentSize = http.getSize();
     if (contentSize < 1)
     {
         result = "Empty or chunked response";
-        return std::nullopt;
+        return nullptr;
     }
 
     WiFiClient *stream = http.getStreamPtr();
     if (!stream)
     {
         result = "Failed to get HTTP stream";
-        return std::nullopt;
+        return nullptr;
     }
 
     auto buffer = std::make_unique<MemoryBuffer>(contentSize);
     if (!buffer->isAllocated())
     {
         result = "Failed to allocate buffer";
-        return std::nullopt;
+        return nullptr;
     }
 
     if (!fillBuffer(stream, *buffer, contentSize, result))
-        return std::nullopt;
+        return nullptr;
 
     return buffer;
 }
@@ -438,12 +438,12 @@ bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t 
     if (currentProvider->requiresApiKey && strstr(url.c_str(), "{apiKey}"))
         url.replace("{apiKey}", currentProvider->apiKey);
 
-    const auto buffer = urlToBuffer(url.c_str(), result);
+    const std::unique_ptr<MemoryBuffer> buffer = urlToBuffer(url.c_str(), result);
     if (!buffer)
         return false;
 
     PNG *png = getPNGCurrentCore();
-    const int16_t rc = png->openRAM(buffer.value()->get(), buffer.value()->size(), PNGDraw);
+    const int16_t rc = png->openRAM(buffer->get(), buffer->size(), PNGDraw);
     if (rc != PNG_SUCCESS)
     {
         result = "PNG Decoder Error: " + String(rc);
