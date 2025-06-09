@@ -237,6 +237,7 @@ void OpenStreetMap::makeJobList(const tileList &requiredTiles, std::vector<TileJ
         CachedTile *tileToReplace = findUnusedTile(requiredTiles, zoom);
         if (!tileToReplace)
         {
+            log_e("Cache error, no unused tile found, could not store tile %lu, %i, %u", x, y, zoom);
             tilePointers.push_back(nullptr); // again, keep 1:1 aligned
             continue;
         }
@@ -290,7 +291,7 @@ bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, TileBufferList &tilePoint
         mapSprite.pushImage(drawX, drawY, currentProvider->tileSize, currentProvider->tileSize, tile);
     }
 
-    mapSprite.setTextColor(TFT_BLACK);
+    mapSprite.setTextColor(TFT_WHITE, OSM_BGCOLOR);
     mapSprite.drawRightString(currentProvider->attribution, mapSprite.width(), mapSprite.height() - 10, &DejaVu9Modded);
     mapSprite.setTextColor(TFT_WHITE, TFT_BLACK);
     return true;
