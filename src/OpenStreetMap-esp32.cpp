@@ -250,7 +250,7 @@ void OpenStreetMap::makeJobList(const tileList &requiredTiles, std::vector<TileJ
 
 void OpenStreetMap::runJobs(const std::vector<TileJob> &jobs)
 {
-    log_i("submitting %i jobs", (int)jobs.size());
+    log_d("submitting %i jobs", (int)jobs.size());
 
     pendingJobs.store(jobs.size());
     for (const TileJob &job : jobs)
@@ -380,9 +380,46 @@ bool OpenStreetMap::fillBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t 
     return true;
 }
 
-std::unique_ptr<MemoryBuffer> OpenStreetMap::urlToBuffer(const char *url, String &result, ReusableTileFetcher &fetcher)
+std::unique_ptr<MemoryBuffer> OpenStreetMap::urlToBuffer(const char *url, String &result)
 {
-    auto buffer = fetcher.fetchToBuffer(url, result);
+    HTTPClientRAII http;
+    if (!http.begin(url))
+    {
+        result = "Failed to initialize HTTP client";
+        return nullptr;
+    }
+
+    const int httpCode = http.GET();
+    if (httpCode != HTTP_CODE_OK)
+    {
+        result = "HTTP Error: " + String(httpCode);
+        return nullptr;
+    }
+
+    const size_t contentSize = http.getSize();
+    if (contentSize < 1)
+    {
+        result = "Empty or chunked response";
+        return nullptr;
+    }
+
+    WiFiClient *stream = http.getStreamPtr();
+    if (!stream)
+    {
+        result = "Failed to get HTTP stream";
+        return nullptr;
+    }
+
+    auto buffer = std::make_unique<MemoryBuffer>(contentSize);
+    if (!buffer->isAllocated())
+    {
+        result = "Failed to allocate buffer";
+        return nullptr;
+    }
+
+    if (!fillBuffer(stream, *buffer, contentSize, result))
+        return nullptr;
+
     return buffer;
 }
 
@@ -392,7 +429,7 @@ void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
     getPNGCurrentCore()->getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, 0xffffffff);
 }
 
-bool OpenStreetMap::fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result)
+bool OpenStreetMap::fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result)
 {
     String url = currentProvider->urlTemplate;
     url.replace("{x}", String(x));
@@ -401,7 +438,7 @@ bool OpenStreetMap::fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, ui
     if (currentProvider->requiresApiKey && strstr(url.c_str(), "{apiKey}"))
         url.replace("{apiKey}", currentProvider->apiKey);
 
-    const std::unique_ptr<MemoryBuffer> buffer = urlToBuffer(url.c_str(), result, fetcher);
+    const std::unique_ptr<MemoryBuffer> buffer = urlToBuffer(url.c_str(), result);
     if (!buffer)
         return false;
 
@@ -439,7 +476,6 @@ bool OpenStreetMap::fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, ui
 void OpenStreetMap::tileFetcherTask(void *param)
 {
     OpenStreetMap *osm = static_cast<OpenStreetMap *>(param);
-    ReusableTileFetcher fetcher;
     while (true)
     {
         TileJob job;
@@ -450,7 +486,7 @@ void OpenStreetMap::tileFetcherTask(void *param)
             break;
 
         String result;
-        if (!osm->fetchTile(fetcher, *job.tile, job.x, job.y, job.z, result))
+        if (!osm->fetchTile(*job.tile, job.x, job.y, job.z, result))
         {
             const size_t tileByteCount = osm->currentProvider->tileSize * osm->currentProvider->tileSize * 2;
             memset(job.tile->buffer, 0, tileByteCount);
