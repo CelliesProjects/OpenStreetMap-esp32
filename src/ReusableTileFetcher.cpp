@@ -116,9 +116,14 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, String &result)
     bool start = true;
     while (client.connected())
     {
-        line = client.readStringUntil('\n');
-        line.trim();
+        if (!readLineWithTimeout(line, 100))
+        {
+            result = "Header timeout";
+            disconnect();
+            return false;
+        }
 
+        line.trim();
         if (start)
         {
             if (!line.startsWith("HTTP/1.1"))
@@ -184,4 +189,23 @@ bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, S
     }
 
     return true;
+}
+
+bool ReusableTileFetcher::readLineWithTimeout(String &line, uint32_t timeoutMs)
+{
+    line = "";
+    uint32_t start = millis();
+    while ((millis() - start) < timeoutMs)
+    {
+        while (client.available())
+        {
+            char c = client.read();
+            if (c == '\n')
+                return true;
+            if (c != '\r')
+                line += c;
+        }
+        taskYIELD();
+    }
+    return false;
 }

@@ -49,4 +49,5 @@ private:
     void sendHttpRequest(const String &host, const String &path);
     bool readHttpHeaders(size_t &contentLength, String &result);
     bool readBody(MemoryBuffer &buffer, size_t contentLength, String &result);
+    bool readLineWithTimeout(String &line, uint32_t timeoutMs);
 };

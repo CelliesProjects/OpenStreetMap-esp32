@@ -205,7 +205,7 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom, Til
     if (!jobs.empty())
     {
         runJobs(jobs);
-        log_i("Updated %i tiles in %lu ms - %i ms/tile", jobs.size(), millis() - startMS, (millis() - startMS) / jobs.size());
+        log_i("Ran %i jobs in %lu ms - %i ms/job", jobs.size(), millis() - startMS, (millis() - startMS) / jobs.size());
     }
 }
 
