@@ -37,6 +37,7 @@ public:
     ReusableTileFetcher &operator=(const ReusableTileFetcher &) = delete;
 
     std::unique_ptr<MemoryBuffer> fetchToBuffer(const String &url, String &result);
+    void close();
 
 private:
     WiFiClient client;
