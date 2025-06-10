@@ -37,11 +37,10 @@
 #include "TileJob.hpp"
 #include "MemoryBuffer.hpp"
 #include "HTTPClientRAII.hpp"
-#include "ReusableTileFetcher.hpp"
 #include "fonts/DejaVu9-modded.h"
 
 constexpr uint16_t OSM_BGCOLOR = lgfx::color565(32, 32, 128);
-constexpr uint16_t OSM_TILE_TIMEOUT_MS = 500;
+constexpr uint16_t OSM_TILE_TIMEOUT_MS = 1000;
 constexpr UBaseType_t OSM_TASK_PRIORITY = 1;
 constexpr uint32_t OSM_TASK_STACKSIZE = 5120;
 constexpr uint32_t OSM_JOB_QUEUE_SIZE = 50;
@@ -109,8 +108,8 @@ private:
     void runJobs(const std::vector<TileJob> &jobs);
     CachedTile *findUnusedTile(const tileList &requiredTiles, uint8_t zoom);
     CachedTile *isTileCached(uint32_t x, uint32_t y, uint8_t z);
-    bool fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result);
-    std::unique_ptr<MemoryBuffer> urlToBuffer(const char *url, String &result, ReusableTileFetcher &fetcher);
+    std::unique_ptr<MemoryBuffer> urlToBuffer(const char *url, String &result);
+    bool fetchTile(CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result);
     bool fillBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t contentSize, String &result);
     bool composeMap(LGFX_Sprite &mapSprite, TileBufferList &tilePointers);
     static void tileFetcherTask(void *param);
