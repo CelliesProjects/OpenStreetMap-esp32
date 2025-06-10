@@ -431,7 +431,6 @@ void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
 
 bool OpenStreetMap::fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result)
 {
-
     String url = currentProvider->urlTemplate;
     url.replace("{x}", String(x));
     url.replace("{y}", String(y));
@@ -502,7 +501,7 @@ void OpenStreetMap::tileFetcherTask(void *param)
         job.tile->busy = false;
         --osm->pendingJobs;
         if (!uxQueueMessagesWaiting(osm->jobQueue))
-            fetcher.close();
+            fetcher.disconnect();
     }
     log_d("task on core %i exiting", xPortGetCoreID());
     xTaskNotifyGive(osm->ownerTask);

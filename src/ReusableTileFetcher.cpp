@@ -24,7 +24,23 @@
 #include "ReusableTileFetcher.hpp"
 
 ReusableTileFetcher::ReusableTileFetcher() {}
-ReusableTileFetcher::~ReusableTileFetcher() { client.stop(); }
+ReusableTileFetcher::~ReusableTileFetcher() { disconnect(); }
+
+void ReusableTileFetcher::sendHttpRequest(const String &host, const String &path)
+{
+    client.print(String("GET ") + path + " HTTP/1.1\r\n");
+    client.print(String("Host: ") + host + "\r\n");
+    client.print("User-Agent: OpenStreetMap-esp32/1.0 (+https://github.com/CelliesProjects/OpenStreetMap-esp32)\r\n");
+    client.print("Connection: keep-alive\r\n");
+    client.print("\r\n");
+}
+
+void ReusableTileFetcher::disconnect()
+{
+    client.stop();
+    currentHost = "";
+    currentPort = 80;
+}
 
 std::unique_ptr<MemoryBuffer> ReusableTileFetcher::fetchToBuffer(const String &url, String &result)
 {
@@ -80,7 +96,8 @@ bool ReusableTileFetcher::ensureConnection(const String &host, uint16_t port, St
 {
     if (!client.connected() || host != currentHost || port != currentPort)
     {
-        client.stop(); // Close old connection if mismatched
+        disconnect();
+        client.setConnectionTimeout(100);
         if (!client.connect(host.c_str(), port))
         {
             result = "Connection failed to " + host;
@@ -92,23 +109,27 @@ bool ReusableTileFetcher::ensureConnection(const String &host, uint16_t port, St
     return true;
 }
 
-void ReusableTileFetcher::sendHttpRequest(const String &host, const String &path)
-{
-    client.print(String("GET ") + path + " HTTP/1.1\r\n");
-    client.print(String("Host: ") + host + "\r\n");
-    client.print("User-Agent: OpenStreetMap-esp32/1.0 (+https://github.com/CelliesProjects/OpenStreetMap-esp32)\r\n");
-    client.print("Connection: keep-alive\r\n");
-    client.print("\r\n");
-}
-
 bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, String &result)
 {
     String line;
     contentLength = 0;
+    bool start = true;
     while (client.connected())
     {
         line = client.readStringUntil('\n');
         line.trim();
+
+        if (start)
+        {
+            if (!line.startsWith("HTTP/1.1"))
+            {
+                result = "Bad HTTP response: " + line;
+                disconnect();
+                return false;
+            }
+            start = false;
+        }
+
         if (line.length() == 0)
             break; // End of headers
 
@@ -118,22 +139,12 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, String &result)
             val.trim();
             contentLength = val.toInt();
         }
-
-        else if (line.startsWith("HTTP/1.1"))
-        {
-            if (!line.startsWith("HTTP/1.1 200"))
-            {
-                result = "HTTP error: " + line;
-                client.stop();
-                return false;
-            }
-        }
     }
 
     if (contentLength == 0)
     {
         result = "Missing or invalid Content-Length";
-        client.stop();
+        disconnect();
         return false;
     }
 
@@ -158,7 +169,7 @@ bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, S
         else if (len < 0)
         {
             result = "Read error";
-            client.stop();
+            disconnect();
             return false;
         }
         else
@@ -168,15 +179,9 @@ bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, S
     if (remaining > 0)
     {
         result = "Incomplete read";
-        client.stop();
+        disconnect();
         return false;
     }
 
     return true;
-}
-
-void ReusableTileFetcher::close()
-{
-    if (client)
-        client.stop();
 }
