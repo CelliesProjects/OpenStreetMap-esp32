@@ -113,13 +113,18 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, String &result)
             break; // End of headers
 
         if (line.startsWith("Content-Length:"))
-            contentLength = line.substring(15).toInt();
+        {
+            String val = line.substring(15);
+            val.trim();
+            contentLength = val.toInt();
+        }
 
         else if (line.startsWith("HTTP/1.1"))
         {
             if (!line.startsWith("HTTP/1.1 200"))
             {
                 result = "HTTP error: " + line;
+                client.stop();
                 return false;
             }
         }
@@ -128,6 +133,7 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, String &result)
     if (contentLength == 0)
     {
         result = "Missing or invalid Content-Length";
+        client.stop();
         return false;
     }
 
@@ -152,6 +158,7 @@ bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, S
         else if (len < 0)
         {
             result = "Read error";
+            client.stop();
             return false;
         }
         else
@@ -161,6 +168,7 @@ bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, S
     if (remaining > 0)
     {
         result = "Incomplete read";
+        client.stop();
         return false;
     }
 
