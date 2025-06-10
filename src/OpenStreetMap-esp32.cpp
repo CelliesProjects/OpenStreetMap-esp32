@@ -474,8 +474,8 @@ bool OpenStreetMap::fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, ui
 
 void OpenStreetMap::tileFetcherTask(void *param)
 {
-    OpenStreetMap *osm = static_cast<OpenStreetMap *>(param);
     ReusableTileFetcher fetcher;
+    OpenStreetMap *osm = static_cast<OpenStreetMap *>(param);
     while (true)
     {
         TileJob job;
@@ -490,18 +490,19 @@ void OpenStreetMap::tileFetcherTask(void *param)
         {
             const size_t tileByteCount = osm->currentProvider->tileSize * osm->currentProvider->tileSize * 2;
             memset(job.tile->buffer, 0, tileByteCount);
-            log_e("Tile fetch failed: %s", result.c_str());
             job.tile->valid = false;
+            log_e("Tile fetch failed: %s", result.c_str());
         }
         else
         {
-            log_d("core %i fetched tile z=%u x=%lu, y=%lu in %lu ms", xPortGetCoreID(), job.z, job.x, job.y, millis() - startMS);
             job.tile->valid = true;
+            log_d("core %i fetched tile z=%u x=%lu, y=%lu in %lu ms", xPortGetCoreID(), job.z, job.x, job.y, millis() - startMS);
         }
 
-        
         job.tile->busy = false;
         --osm->pendingJobs;
+        if (!uxQueueMessagesWaiting(osm->jobQueue))
+            fetcher.close();
     }
     log_d("task on core %i exiting", xPortGetCoreID());
     xTaskNotifyGive(osm->ownerTask);

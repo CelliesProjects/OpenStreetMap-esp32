@@ -174,3 +174,9 @@ bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, S
 
     return true;
 }
+
+void ReusableTileFetcher::close()
+{
+    if (client)
+        client.stop();
+}
