@@ -360,12 +360,12 @@ bool OpenStreetMap::fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, ui
     if (currentProvider->requiresApiKey && strstr(url.c_str(), "{apiKey}"))
         url.replace("{apiKey}", currentProvider->apiKey);
 
-    const std::unique_ptr<MemoryBuffer> buffer = fetcher.fetchToBuffer(url, result, renderMode);
-    if (!buffer)
+    MemoryBuffer buffer = fetcher.fetchToBuffer(url, result, renderMode);
+    if (!buffer.isAllocated())
         return false;
 
     PNG *png = getPNGCurrentCore();
-    const int16_t rc = png->openRAM(buffer->get(), buffer->size(), PNGDraw);
+    const int16_t rc = png->openRAM(buffer.get(), buffer.size(), PNGDraw);
     if (rc != PNG_SUCCESS)
     {
         result = "PNG Decoder Error: " + String(rc);

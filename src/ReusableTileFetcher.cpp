@@ -42,7 +42,7 @@ void ReusableTileFetcher::disconnect()
     currentPort = 80;
 }
 
-std::unique_ptr<MemoryBuffer> ReusableTileFetcher::fetchToBuffer(const String &url, String &result, RenderMode mode)
+MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &result, RenderMode mode)
 {
     renderMode = mode;
     String host, path;
@@ -50,26 +50,26 @@ std::unique_ptr<MemoryBuffer> ReusableTileFetcher::fetchToBuffer(const String &u
     if (!parseUrl(url, host, path, port))
     {
         result = "Invalid URL";
-        return nullptr;
+        return MemoryBuffer::empty();
     }
 
     if (!ensureConnection(host, port, result))
-        return nullptr;
+        return MemoryBuffer::empty();
 
     sendHttpRequest(host, path);
     size_t contentLength = 0;
     if (!readHttpHeaders(contentLength, result))
-        return nullptr;
+        return MemoryBuffer::empty();
 
-    auto buffer = std::make_unique<MemoryBuffer>(contentLength);
-    if (!buffer->isAllocated())
+    auto buffer = MemoryBuffer(contentLength);
+    if (!buffer.isAllocated())
     {
         result = "Buffer allocation failed";
-        return nullptr;
+        return MemoryBuffer::empty();
     }
 
-    if (!readBody(*buffer, contentLength, result))
-        return nullptr;
+    if (!readBody(buffer, contentLength, result))
+        return MemoryBuffer::empty();
 
     return buffer;
 }

@@ -39,7 +39,7 @@ public:
     ReusableTileFetcher(const ReusableTileFetcher &) = delete;
     ReusableTileFetcher &operator=(const ReusableTileFetcher &) = delete;
 
-    std::unique_ptr<MemoryBuffer> fetchToBuffer(const String &url, String &result, RenderMode mode);
+    MemoryBuffer fetchToBuffer(const String &url, String &result, RenderMode mode);
     void disconnect();
 
 private:

@@ -44,3 +44,8 @@ bool MemoryBuffer::isAllocated()
 {
     return buffer_.get() != nullptr;
 }
+
+MemoryBuffer MemoryBuffer::empty()
+{
+    return MemoryBuffer(0);
+}
