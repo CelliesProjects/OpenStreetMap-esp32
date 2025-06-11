@@ -165,11 +165,11 @@ bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, S
     size_t remaining = contentLength;
     size_t offset = 0;
 
-    unsigned long start = millis();
-    const int timeoutMS = renderMode == RenderMode::FAST ? 300 : 5000;
+    const unsigned long start = millis();
+    const int timeoutMS = (renderMode == RenderMode::FAST) ? 300 : 5000;
     while (remaining > 0 && millis() - start < timeoutMS)
     {
-        int len = client.read(dest + offset, remaining);
+        const int len = client.read(dest + offset, remaining);
         if (len > 0)
         {
             remaining -= len;
@@ -198,12 +198,12 @@ bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, S
 bool ReusableTileFetcher::readLineWithTimeout(String &line, uint32_t timeoutMs)
 {
     line = "";
-    uint32_t start = millis();
+    const uint32_t start = millis();
     while ((millis() - start) < timeoutMs)
     {
         while (client.available())
         {
-            char c = client.read();
+            const char c = client.read();
             if (c == '\n')
                 return true;
             if (c != '\r')
