@@ -48,7 +48,6 @@ constexpr uint32_t OSM_JOB_QUEUE_SIZE = 50;
 constexpr bool OSM_FORCE_SINGLECORE = false;
 constexpr int OSM_SINGLECORE_NUMBER = 1;
 
-
 static_assert(OSM_SINGLECORE_NUMBER < 2, "OSM_SINGLECORE_NUMBER must be 0 or 1 (ESP32 has only 2 cores)");
 
 using tileList = std::vector<std::pair<uint32_t, int32_t>>;

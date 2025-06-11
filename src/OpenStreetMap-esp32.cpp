@@ -422,8 +422,6 @@ void OpenStreetMap::tileFetcherTask(void *param)
 
         job.tile->busy = false;
         --osm->pendingJobs;
-        //if (!uxQueueMessagesWaiting(osm->jobQueue))
-            //fetcher.disconnect();
     }
     log_d("task on core %i exiting", xPortGetCoreID());
     xTaskNotifyGive(osm->ownerTask);
