@@ -159,37 +159,40 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, String &result)
     return true;
 }
 
+// TODO: Check this implementation with the one at https://github.com/CelliesProjects/OpenStreetMap-esp32/blob/3b933b792e5b9d7551d8154e9c5780f45af85bd7/src/OpenStreetMap-esp32.cpp
 bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, String &result)
 {
     uint8_t *dest = buffer.get();
-    size_t remaining = contentLength;
-    size_t offset = 0;
+    size_t readSize = 0;
+    unsigned long lastReadTime = millis();
+    const unsigned long timeoutMs = (renderMode == RenderMode::FAST) ? 300 : 5000;
 
-    const unsigned long start = millis();
-    const int timeoutMS = (renderMode == RenderMode::FAST) ? 300 : 5000;
-    while (remaining > 0 && millis() - start < timeoutMS)
+    while (readSize < contentLength)
     {
-        const int len = client.read(dest + offset, remaining);
-        if (len > 0)
+        size_t availableData = client.available();
+        if (availableData == 0)
         {
-            remaining -= len;
-            offset += len;
+            if (millis() - lastReadTime >= timeoutMs)
+            {
+                result = "Timeout: " + String(timeoutMs) + " ms";
+                disconnect();
+                return false;
+            }
+            taskYIELD();
+            continue;
         }
-        else if (len < 0)
+
+        size_t remaining = contentLength - readSize;
+        size_t toRead = std::min(availableData, remaining);
+
+        int bytesRead = client.readBytes(dest + readSize, toRead);
+        if (bytesRead > 0)
         {
-            result = "Read error";
-            disconnect();
-            return false;
+            readSize += bytesRead;
+            lastReadTime = millis();
         }
         else
             taskYIELD();
-    }
-
-    if (remaining > 0)
-    {
-        result = "Incomplete read";
-        disconnect();
-        return false;
     }
 
     return true;
@@ -198,21 +201,27 @@ bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, S
 bool ReusableTileFetcher::readLineWithTimeout(String &line, uint32_t timeoutMs)
 {
     line = "";
-    const uint32_t start = millis();
-    while ((millis() - start) < timeoutMs)
+    line.reserve(OSM_MAX_HEADERLENGTH);
+
+    const uint32_t deadline = millis() + timeoutMs;
+
+    while (millis() < deadline)
     {
         while (client.available())
         {
-            const char c = client.read();
+            char c = client.read();
             if (c == '\n')
                 return true;
             if (c != '\r')
+            {
+                if (line.length() >= OSM_MAX_HEADERLENGTH)
+                    return false;
                 line += c;
-
-            if (line.length() >= OSM_MAX_HEADERLENGTH)
-                return false;
+            }
         }
         taskYIELD();
     }
+
     return false;
 }
+
