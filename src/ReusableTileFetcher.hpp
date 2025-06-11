@@ -28,6 +28,8 @@
 #include "MemoryBuffer.hpp"
 #include "RenderMode.hpp"
 
+constexpr int OSM_MAX_HEADERLENGTH = 256;
+
 class ReusableTileFetcher
 {
 public:

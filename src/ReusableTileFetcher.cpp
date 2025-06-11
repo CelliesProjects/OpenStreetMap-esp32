@@ -106,6 +106,7 @@ bool ReusableTileFetcher::ensureConnection(const String &host, uint16_t port, St
         }
         currentHost = host;
         currentPort = port;
+        log_i("(Re)connected on core %i", xPortGetCoreID());
     }
     return true;
 }
@@ -113,6 +114,7 @@ bool ReusableTileFetcher::ensureConnection(const String &host, uint16_t port, St
 bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, String &result)
 {
     String line;
+    line.reserve(OSM_MAX_HEADERLENGTH);
     contentLength = 0;
     bool start = true;
     while (client.connected())
@@ -206,6 +208,9 @@ bool ReusableTileFetcher::readLineWithTimeout(String &line, uint32_t timeoutMs)
                 return true;
             if (c != '\r')
                 line += c;
+
+            if (line.length() >= OSM_MAX_HEADERLENGTH)
+                return false;
         }
         taskYIELD();
     }
