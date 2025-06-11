@@ -26,6 +26,7 @@
 #include <WiFiClient.h>
 #include <memory>
 #include "MemoryBuffer.hpp"
+#include "RenderMode.hpp"
 
 class ReusableTileFetcher
 {
@@ -36,13 +37,14 @@ public:
     ReusableTileFetcher(const ReusableTileFetcher &) = delete;
     ReusableTileFetcher &operator=(const ReusableTileFetcher &) = delete;
 
-    std::unique_ptr<MemoryBuffer> fetchToBuffer(const String &url, String &result);
+    std::unique_ptr<MemoryBuffer> fetchToBuffer(const String &url, String &result, RenderMode mode);
     void disconnect();
 
 private:
     WiFiClient client;
     String currentHost;
     uint16_t currentPort = 80;
+    RenderMode renderMode;
 
     bool parseUrl(const String &url, String &host, String &path, uint16_t &port);
     bool ensureConnection(const String &host, uint16_t port, String &result);

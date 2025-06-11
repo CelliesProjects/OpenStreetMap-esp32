@@ -360,7 +360,7 @@ bool OpenStreetMap::fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, ui
     if (currentProvider->requiresApiKey && strstr(url.c_str(), "{apiKey}"))
         url.replace("{apiKey}", currentProvider->apiKey);
 
-    const std::unique_ptr<MemoryBuffer> buffer = fetcher.fetchToBuffer(url, result);
+    const std::unique_ptr<MemoryBuffer> buffer = fetcher.fetchToBuffer(url, result, renderMode);
     if (!buffer)
         return false;
 
@@ -422,8 +422,8 @@ void OpenStreetMap::tileFetcherTask(void *param)
 
         job.tile->busy = false;
         --osm->pendingJobs;
-        if (!uxQueueMessagesWaiting(osm->jobQueue))
-            fetcher.disconnect();
+        //if (!uxQueueMessagesWaiting(osm->jobQueue))
+            //fetcher.disconnect();
     }
     log_d("task on core %i exiting", xPortGetCoreID());
     xTaskNotifyGive(osm->ownerTask);
@@ -497,4 +497,9 @@ bool OpenStreetMap::setTileProvider(int index)
     freeTilesCache();
     log_i("provider changed to '%s'", currentProvider->name);
     return true;
+}
+
+void OpenStreetMap::setRenderMode(RenderMode mode)
+{
+    renderMode = mode;
 }

@@ -38,6 +38,7 @@
 #include "MemoryBuffer.hpp"
 #include "ReusableTileFetcher.hpp"
 #include "fonts/DejaVu9-modded.h"
+#include "RenderMode.hpp"
 
 constexpr uint16_t OSM_BGCOLOR = lgfx::color565(32, 32, 128);
 constexpr uint16_t OSM_TILE_TIMEOUT_MS = 1000;
@@ -46,6 +47,7 @@ constexpr uint32_t OSM_TASK_STACKSIZE = 5120;
 constexpr uint32_t OSM_JOB_QUEUE_SIZE = 50;
 constexpr bool OSM_FORCE_SINGLECORE = false;
 constexpr int OSM_SINGLECORE_NUMBER = 1;
+
 
 static_assert(OSM_SINGLECORE_NUMBER < 2, "OSM_SINGLECORE_NUMBER must be 0 or 1 (ESP32 has only 2 cores)");
 
@@ -93,6 +95,7 @@ public:
     bool fetchMap(LGFX_Sprite &sprite, double longitude, double latitude, uint8_t zoom);
     inline void freeTilesCache();
 
+    void setRenderMode(RenderMode mode);
     bool setTileProvider(int index);
     const char *getProviderName() { return currentProvider->name; };
     int getMinZoom() const { return currentProvider->minZoom; };
@@ -115,6 +118,7 @@ private:
 
     static inline thread_local OpenStreetMap *currentInstance = nullptr;
     static inline thread_local uint16_t *currentTileBuffer = nullptr;
+    RenderMode renderMode = RenderMode::ACCURATE;
     const TileProvider *currentProvider = &tileProviders[0];
     std::vector<CachedTile> tilesCache;
 

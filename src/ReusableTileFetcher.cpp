@@ -42,8 +42,9 @@ void ReusableTileFetcher::disconnect()
     currentPort = 80;
 }
 
-std::unique_ptr<MemoryBuffer> ReusableTileFetcher::fetchToBuffer(const String &url, String &result)
+std::unique_ptr<MemoryBuffer> ReusableTileFetcher::fetchToBuffer(const String &url, String &result, RenderMode mode)
 {
+    renderMode = mode;
     String host, path;
     uint16_t port;
     if (!parseUrl(url, host, path, port))
@@ -97,7 +98,7 @@ bool ReusableTileFetcher::ensureConnection(const String &host, uint16_t port, St
     if (!client.connected() || host != currentHost || port != currentPort)
     {
         disconnect();
-        client.setConnectionTimeout(100);
+        client.setConnectionTimeout(renderMode == RenderMode::FAST ? 100 : 1000);
         if (!client.connect(host.c_str(), port))
         {
             result = "Connection failed to " + host;
@@ -116,7 +117,7 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, String &result)
     bool start = true;
     while (client.connected())
     {
-        if (!readLineWithTimeout(line, 100))
+        if (!readLineWithTimeout(line, renderMode == RenderMode::FAST ? 100 : 1000))
         {
             result = "Header timeout";
             disconnect();
@@ -163,7 +164,8 @@ bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, S
     size_t offset = 0;
 
     unsigned long start = millis();
-    while (remaining > 0 && millis() - start < 3000)
+    const int timeoutMS = renderMode == RenderMode::FAST ? 300 : 5000;
+    while (remaining > 0 && millis() - start < timeoutMS)
     {
         int len = client.read(dest + offset, remaining);
         if (len > 0)
