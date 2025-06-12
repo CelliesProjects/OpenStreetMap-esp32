@@ -26,6 +26,9 @@
 #include <WiFiClient.h>
 #include <memory>
 #include "MemoryBuffer.hpp"
+#include "RenderMode.hpp"
+
+constexpr int OSM_MAX_HEADERLENGTH = 256;
 
 class ReusableTileFetcher
 {
@@ -36,17 +39,19 @@ public:
     ReusableTileFetcher(const ReusableTileFetcher &) = delete;
     ReusableTileFetcher &operator=(const ReusableTileFetcher &) = delete;
 
-    std::unique_ptr<MemoryBuffer> fetchToBuffer(const String &url, String &result);
-    void close();
+    MemoryBuffer fetchToBuffer(const String &url, String &result, RenderMode mode);
+    void disconnect();
 
 private:
     WiFiClient client;
     String currentHost;
     uint16_t currentPort = 80;
+    RenderMode renderMode;
 
     bool parseUrl(const String &url, String &host, String &path, uint16_t &port);
     bool ensureConnection(const String &host, uint16_t port, String &result);
     void sendHttpRequest(const String &host, const String &path);
     bool readHttpHeaders(size_t &contentLength, String &result);
     bool readBody(MemoryBuffer &buffer, size_t contentLength, String &result);
+    bool readLineWithTimeout(String &line, uint32_t timeoutMs);
 };

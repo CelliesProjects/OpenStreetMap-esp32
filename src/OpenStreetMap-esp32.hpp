@@ -36,9 +36,9 @@
 #include "CachedTile.hpp"
 #include "TileJob.hpp"
 #include "MemoryBuffer.hpp"
-#include "HTTPClientRAII.hpp"
 #include "ReusableTileFetcher.hpp"
 #include "fonts/DejaVu9-modded.h"
+#include "RenderMode.hpp"
 
 constexpr uint16_t OSM_BGCOLOR = lgfx::color565(32, 32, 128);
 constexpr uint16_t OSM_TILE_TIMEOUT_MS = 1000;
@@ -94,6 +94,7 @@ public:
     bool fetchMap(LGFX_Sprite &sprite, double longitude, double latitude, uint8_t zoom);
     inline void freeTilesCache();
 
+    void setRenderMode(RenderMode mode);
     bool setTileProvider(int index);
     const char *getProviderName() { return currentProvider->name; };
     int getMinZoom() const { return currentProvider->minZoom; };
@@ -109,15 +110,14 @@ private:
     void runJobs(const std::vector<TileJob> &jobs);
     CachedTile *findUnusedTile(const tileList &requiredTiles, uint8_t zoom);
     CachedTile *isTileCached(uint32_t x, uint32_t y, uint8_t z);
-    std::unique_ptr<MemoryBuffer> urlToBuffer(const char *url, String &result);
     bool fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result);
-    bool fillBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t contentSize, String &result);
     bool composeMap(LGFX_Sprite &mapSprite, TileBufferList &tilePointers);
     static void tileFetcherTask(void *param);
     static void PNGDraw(PNGDRAW *pDraw);
 
     static inline thread_local OpenStreetMap *currentInstance = nullptr;
     static inline thread_local uint16_t *currentTileBuffer = nullptr;
+    RenderMode renderMode = RenderMode::ACCURATE;
     const TileProvider *currentProvider = &tileProviders[0];
     std::vector<CachedTile> tilesCache;
 

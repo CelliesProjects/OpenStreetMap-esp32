@@ -151,6 +151,23 @@ If you encounter a problem or want to request support for a new provider, please
 char *getProviderName()
 ```
 
+### Set the render mode
+
+```c++
+void setRenderMode(RenderMode mode)
+```
+
+Available modes:
+
+- `RenderMode::ACCURATE` (default)  
+Downloads map tiles **without a timeout**, ensuring a complete map with **no missing tiles** in most cases.  
+Best suited for reliability and full-quality rendering.
+
+- `RenderMode::FAST`
+Downloads map tiles **with a timeout**.  
+This mode can produce the map **more quickly**, but some **tiles may be missing** if a request times out.  
+Ideal when operating under time constraints.
+
 ## Example code
 
 ### Example returning the default 320x240 map

@@ -205,7 +205,7 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom, Til
     if (!jobs.empty())
     {
         runJobs(jobs);
-        log_i("Updated %i tiles in %lu ms - %i ms/tile", jobs.size(), millis() - startMS, (millis() - startMS) / jobs.size());
+        log_d("Finished %i jobs in %lu ms - %i ms/job", jobs.size(), millis() - startMS, (millis() - startMS) / jobs.size());
     }
 }
 
@@ -345,84 +345,6 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
     return true;
 }
 
-bool OpenStreetMap::fillBuffer(WiFiClient *stream, MemoryBuffer &buffer, size_t contentSize, String &result)
-{
-    size_t readSize = 0;
-    unsigned long lastReadTime = millis();
-    while (readSize < contentSize)
-    {
-        const size_t availableData = stream->available();
-        if (!availableData)
-        {
-            if (millis() - lastReadTime >= OSM_TILE_TIMEOUT_MS)
-            {
-                result = "Timeout: " + String(OSM_TILE_TIMEOUT_MS) + " ms";
-                return false;
-            }
-            taskYIELD();
-            continue;
-        }
-
-        const size_t remaining = contentSize - readSize;
-        const size_t toRead = std::min(availableData, remaining);
-        if (toRead == 0)
-            continue;
-
-        const int bytesRead = stream->readBytes(buffer.get() + readSize, toRead);
-        if (bytesRead > 0)
-        {
-            readSize += bytesRead;
-            lastReadTime = millis();
-        }
-        else
-            taskYIELD();
-    }
-    return true;
-}
-
-std::unique_ptr<MemoryBuffer> OpenStreetMap::urlToBuffer(const char *url, String &result)
-{
-    HTTPClientRAII http;
-    if (!http.begin(url))
-    {
-        result = "Failed to initialize HTTP client";
-        return nullptr;
-    }
-
-    const int httpCode = http.GET();
-    if (httpCode != HTTP_CODE_OK)
-    {
-        result = "HTTP Error: " + String(httpCode);
-        return nullptr;
-    }
-
-    const size_t contentSize = http.getSize();
-    if (contentSize < 1)
-    {
-        result = "Empty or chunked response";
-        return nullptr;
-    }
-
-    WiFiClient *stream = http.getStreamPtr();
-    if (!stream)
-    {
-        result = "Failed to get HTTP stream";
-        return nullptr;
-    }
-
-    auto buffer = std::make_unique<MemoryBuffer>(contentSize);
-    if (!buffer->isAllocated())
-    {
-        result = "Failed to allocate buffer";
-        return nullptr;
-    }
-
-    if (!fillBuffer(stream, *buffer, contentSize, result))
-        return nullptr;
-
-    return buffer;
-}
-
 void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
 {
     uint16_t *destRow = currentInstance->currentTileBuffer + (pDraw->y * currentInstance->currentProvider->tileSize);
@@ -431,7 +353,6 @@ void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
 
 bool OpenStreetMap::fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result)
 {
-
     String url = currentProvider->urlTemplate;
     url.replace("{x}", String(x));
     url.replace("{y}", String(y));
@@ -439,12 +360,12 @@ bool OpenStreetMap::fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, ui
     if (currentProvider->requiresApiKey && strstr(url.c_str(), "{apiKey}"))
         url.replace("{apiKey}", currentProvider->apiKey);
 
-    const std::unique_ptr<MemoryBuffer> buffer = fetcher.fetchToBuffer(url, result);
-    if (!buffer)
+    MemoryBuffer buffer = fetcher.fetchToBuffer(url, result, renderMode);
+    if (!buffer.isAllocated())
         return false;
 
     PNG *png = getPNGCurrentCore();
-    const int16_t rc = png->openRAM(buffer->get(), buffer->size(), PNGDraw);
+    const int16_t rc = png->openRAM(buffer.get(), buffer.size(), PNGDraw);
     if (rc != PNG_SUCCESS)
     {
         result = "PNG Decoder Error: " + String(rc);
@@ -488,21 +409,18 @@ void OpenStreetMap::tileFetcherTask(void *param)
         String result;
         if (!osm->fetchTile(fetcher, *job.tile, job.x, job.y, job.z, result))
         {
+            log_e("Tile fetch failed: %s", result.c_str());
+            job.tile->valid = false;
             const size_t tileByteCount = osm->currentProvider->tileSize * osm->currentProvider->tileSize * 2;
             memset(job.tile->buffer, 0, tileByteCount);
-            job.tile->valid = false;
-            log_e("Tile fetch failed: %s", result.c_str());
         }
         else
         {
             job.tile->valid = true;
             log_d("core %i fetched tile z=%u x=%lu, y=%lu in %lu ms", xPortGetCoreID(), job.z, job.x, job.y, millis() - startMS);
         }
-
         job.tile->busy = false;
         --osm->pendingJobs;
-        if (!uxQueueMessagesWaiting(osm->jobQueue))
-            fetcher.close();
     }
     log_d("task on core %i exiting", xPortGetCoreID());
     xTaskNotifyGive(osm->ownerTask);
@@ -576,4 +494,9 @@ bool OpenStreetMap::setTileProvider(int index)
     freeTilesCache();
     log_i("provider changed to '%s'", currentProvider->name);
     return true;
+}
+
+void OpenStreetMap::setRenderMode(RenderMode mode)
+{
+    renderMode = mode;
 }

@@ -23,36 +23,53 @@
 
 #include "ReusableTileFetcher.hpp"
 
-ReusableTileFetcher::ReusableTileFetcher() {}
-ReusableTileFetcher::~ReusableTileFetcher() { client.stop(); }
+ReusableTileFetcher::ReusableTileFetcher() { renderMode = RenderMode::ACCURATE; }
+ReusableTileFetcher::~ReusableTileFetcher() { disconnect(); }
 
-std::unique_ptr<MemoryBuffer> ReusableTileFetcher::fetchToBuffer(const String &url, String &result)
+void ReusableTileFetcher::sendHttpRequest(const String &host, const String &path)
 {
+    client.print(String("GET ") + path + " HTTP/1.1\r\n");
+    client.print(String("Host: ") + host + "\r\n");
+    client.print("User-Agent: OpenStreetMap-esp32/1.0 (+https://github.com/CelliesProjects/OpenStreetMap-esp32)\r\n");
+    client.print("Connection: keep-alive\r\n");
+    client.print("\r\n");
+}
+
+void ReusableTileFetcher::disconnect()
+{
+    client.stop();
+    currentHost = "";
+    currentPort = 80;
+}
+
+MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &result, RenderMode mode)
+{
+    renderMode = mode;
     String host, path;
     uint16_t port;
     if (!parseUrl(url, host, path, port))
     {
         result = "Invalid URL";
-        return nullptr;
+        return MemoryBuffer::empty();
     }
 
     if (!ensureConnection(host, port, result))
-        return nullptr;
+        return MemoryBuffer::empty();
 
     sendHttpRequest(host, path);
     size_t contentLength = 0;
     if (!readHttpHeaders(contentLength, result))
-        return nullptr;
+        return MemoryBuffer::empty();
 
-    auto buffer = std::make_unique<MemoryBuffer>(contentLength);
-    if (!buffer->isAllocated())
+    auto buffer = MemoryBuffer(contentLength);
+    if (!buffer.isAllocated())
     {
         result = "Buffer allocation failed";
-        return nullptr;
+        return MemoryBuffer::empty();
     }
 
-    if (!readBody(*buffer, contentLength, result))
-        return nullptr;
+    if (!readBody(buffer, contentLength, result))
+        return MemoryBuffer::empty();
 
     return buffer;
 }
@@ -80,35 +97,47 @@ bool ReusableTileFetcher::ensureConnection(const String &host, uint16_t port, St
 {
     if (!client.connected() || host != currentHost || port != currentPort)
     {
-        client.stop(); // Close old connection if mismatched
-        if (!client.connect(host.c_str(), port))
+        disconnect();
+        client.setConnectionTimeout(renderMode == RenderMode::FAST ? 100 : 5000);
+        if (!client.connect(host.c_str(), port, renderMode == RenderMode::FAST ? 100 : 5000))
         {
             result = "Connection failed to " + host;
             return false;
         }
         currentHost = host;
         currentPort = port;
+        log_i("(Re)connected on core %i", xPortGetCoreID());
     }
     return true;
-}
-
-void ReusableTileFetcher::sendHttpRequest(const String &host, const String &path)
-{
-    client.print(String("GET ") + path + " HTTP/1.1\r\n");
-    client.print(String("Host: ") + host + "\r\n");
-    client.print("User-Agent: OpenStreetMap-esp32/1.0 (+https://github.com/CelliesProjects/OpenStreetMap-esp32)\r\n");
-    client.print("Connection: keep-alive\r\n");
-    client.print("\r\n");
 }
 
 bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, String &result)
 {
     String line;
+    line.reserve(OSM_MAX_HEADERLENGTH);
     contentLength = 0;
+    bool start = true;
     while (client.connected())
     {
-        line = client.readStringUntil('\n');
+        if (!readLineWithTimeout(line, renderMode == RenderMode::FAST ? 300 : 5000))
+        {
+            result = "Header timeout";
+            disconnect();
+            return false;
+        }
+
         line.trim();
+        if (start)
+        {
+            if (!line.startsWith("HTTP/1.1"))
+            {
+                result = "Bad HTTP response: " + line;
+                disconnect();
+                return false;
+            }
+            start = false;
+        }
+
         if (line.length() == 0)
             break; // End of headers
 
@@ -118,22 +147,12 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, String &result)
             val.trim();
             contentLength = val.toInt();
         }
-
-        else if (line.startsWith("HTTP/1.1"))
-        {
-            if (!line.startsWith("HTTP/1.1 200"))
-            {
-                result = "HTTP error: " + line;
-                client.stop();
-                return false;
-            }
-        }
     }
 
     if (contentLength == 0)
     {
         result = "Missing or invalid Content-Length";
-        client.stop();
+        disconnect();
         return false;
     }
 
@@ -143,40 +162,60 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, String &result)
 bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, String &result)
 {
     uint8_t *dest = buffer.get();
-    size_t remaining = contentLength;
-    size_t offset = 0;
+    size_t readSize = 0;
+    unsigned long lastReadTime = millis();
+    const unsigned long timeoutMs = (renderMode == RenderMode::FAST) ? 300 : 5000;
 
-    unsigned long start = millis();
-    while (remaining > 0 && millis() - start < 3000)
+    while (readSize < contentLength)
     {
-        int len = client.read(dest + offset, remaining);
-        if (len > 0)
+        size_t availableData = client.available();
+        if (availableData == 0)
         {
-            remaining -= len;
-            offset += len;
+            if (millis() - lastReadTime >= timeoutMs)
+            {
+                result = "Timeout: " + String(timeoutMs) + " ms";
+                disconnect();
+                return false;
+            }
+            taskYIELD();
+            continue;
         }
-        else if (len < 0)
+
+        size_t remaining = contentLength - readSize;
+        size_t toRead = std::min(availableData, remaining);
+
+        int bytesRead = client.readBytes(dest + readSize, toRead);
+        if (bytesRead > 0)
         {
-            result = "Read error";
-            client.stop();
-            return false;
+            readSize += bytesRead;
+            lastReadTime = millis();
         }
         else
             taskYIELD();
     }
-
-    if (remaining > 0)
-    {
-        result = "Incomplete read";
-        client.stop();
-        return false;
-    }
-
     return true;
 }
 
-void ReusableTileFetcher::close()
+bool ReusableTileFetcher::readLineWithTimeout(String &line, uint32_t timeoutMs)
 {
-    if (client)
-        client.stop();
+    line = "";
+    const uint32_t deadline = millis() + timeoutMs;
+
+    while (millis() < deadline)
+    {
+        if (client.available())
+        {
+            String part = client.readStringUntil('\n');
+            if ((line.length() + part.length()) >= OSM_MAX_HEADERLENGTH)
+                return false;
+
+            line += part;
+            return true;  // Found end of line
+        }
+        taskYIELD();
+    }
+
+    return false;  // Timed out
 }
+
+
