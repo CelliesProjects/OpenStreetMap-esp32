@@ -98,8 +98,8 @@ bool ReusableTileFetcher::ensureConnection(const String &host, uint16_t port, St
     if (!client.connected() || host != currentHost || port != currentPort)
     {
         disconnect();
-        client.setConnectionTimeout(renderMode == RenderMode::FAST ? 100 : 1000);
-        if (!client.connect(host.c_str(), port))
+        client.setConnectionTimeout(renderMode == RenderMode::FAST ? 100 : 5000);
+        if (!client.connect(host.c_str(), port, renderMode == RenderMode::FAST ? 100 : 5000))
         {
             result = "Connection failed to " + host;
             return false;
@@ -119,7 +119,7 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, String &result)
     bool start = true;
     while (client.connected())
     {
-        if (!readLineWithTimeout(line, renderMode == RenderMode::FAST ? 100 : 1000))
+        if (!readLineWithTimeout(line, renderMode == RenderMode::FAST ? 300 : 5000))
         {
             result = "Header timeout";
             disconnect();
@@ -203,20 +203,19 @@ bool ReusableTileFetcher::readLineWithTimeout(String &line, uint32_t timeoutMs)
 
     while (millis() < deadline)
     {
-        while (client.available())
+        if (client.available())
         {
-            char c = client.read();
-            if (c == '\n')
-                return true;
-            if (c != '\r')
-            {
-                if (line.length() >= OSM_MAX_HEADERLENGTH)
-                    return false;
-                line += c;
-            }
+            String part = client.readStringUntil('\n');
+            if ((line.length() + part.length()) >= OSM_MAX_HEADERLENGTH)
+                return false;
+
+            line += part;
+            return true;  // Found end of line
         }
         taskYIELD();
     }
 
-    return false;
+    return false;  // Timed out
 }
+
+

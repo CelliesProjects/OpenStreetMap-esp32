@@ -378,15 +378,11 @@ bool OpenStreetMap::fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, ui
         return false;
     }
 
-    tile.busy = false;
     currentInstance = this;
     currentTileBuffer = tile.buffer;
     const int decodeResult = png->decode(0, PNG_FAST_PALETTE);
     if (decodeResult != PNG_SUCCESS)
     {
-        tile.valid = false;
-        const size_t tileByteCount = currentProvider->tileSize * currentProvider->tileSize * 2;
-        memset(tile.buffer, 0, tileByteCount);
         result = "Decoding " + url + " failed with code: " + String(decodeResult);
         return false;
     }
@@ -394,7 +390,6 @@ bool OpenStreetMap::fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, ui
     tile.x = x;
     tile.y = y;
     tile.z = zoom;
-    tile.valid = true;
     return true;
 }
 
@@ -413,9 +408,18 @@ void OpenStreetMap::tileFetcherTask(void *param)
 
         String result;
         if (!osm->fetchTile(fetcher, *job.tile, job.x, job.y, job.z, result))
+        {
             log_e("Tile fetch failed: %s", result.c_str());
+            job.tile->valid = false;
+            const size_t tileByteCount = osm->currentProvider->tileSize * osm->currentProvider->tileSize * 2;
+            memset(job.tile->buffer, 0, tileByteCount);
+        }
         else
+        {
+            job.tile->valid = true;
             log_d("core %i fetched tile z=%u x=%lu, y=%lu in %lu ms", xPortGetCoreID(), job.z, job.x, job.y, millis() - startMS);
+        }
+        job.tile->busy = false;
         --osm->pendingJobs;
     }
     log_d("task on core %i exiting", xPortGetCoreID());
