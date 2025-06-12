@@ -159,7 +159,6 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, String &result)
     return true;
 }
 
-// TODO: Check this implementation with the one at https://github.com/CelliesProjects/OpenStreetMap-esp32/blob/3b933b792e5b9d7551d8154e9c5780f45af85bd7/src/OpenStreetMap-esp32.cpp
 bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, String &result)
 {
     uint8_t *dest = buffer.get();
@@ -194,15 +193,12 @@ bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, S
         else
             taskYIELD();
     }
-
     return true;
 }
 
 bool ReusableTileFetcher::readLineWithTimeout(String &line, uint32_t timeoutMs)
 {
     line = "";
-    line.reserve(OSM_MAX_HEADERLENGTH);
-
     const uint32_t deadline = millis() + timeoutMs;
 
     while (millis() < deadline)
