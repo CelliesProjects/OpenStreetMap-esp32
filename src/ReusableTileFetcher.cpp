@@ -23,7 +23,7 @@
 
 #include "ReusableTileFetcher.hpp"
 
-ReusableTileFetcher::ReusableTileFetcher() {}
+ReusableTileFetcher::ReusableTileFetcher() { renderMode = RenderMode::ACCURATE; }
 ReusableTileFetcher::~ReusableTileFetcher() { disconnect(); }
 
 void ReusableTileFetcher::sendHttpRequest(const String &host, const String &path)
@@ -220,4 +220,3 @@ bool ReusableTileFetcher::readLineWithTimeout(String &line, uint32_t timeoutMs)
 
     return false;
 }
-
