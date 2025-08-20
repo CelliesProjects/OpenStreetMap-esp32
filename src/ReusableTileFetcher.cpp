@@ -205,7 +205,7 @@ bool ReusableTileFetcher::readLineWithTimeout(String &line, uint32_t timeoutMs)
     {
         if (client.available())
         {
-            // cppcheck-suppress uncheckedRead
+            // codacy ignore next line
             const char c = client.read();
 
             if (c == '\r')
