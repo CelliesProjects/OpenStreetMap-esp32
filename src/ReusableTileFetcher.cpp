@@ -199,23 +199,26 @@ bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, S
 bool ReusableTileFetcher::readLineWithTimeout(String &line, uint32_t timeoutMs)
 {
     line = "";
-    const uint32_t deadline = millis() + timeoutMs;
+    const uint32_t start = millis();
 
-    while (millis() < deadline)
+    while ((millis() - start) < timeoutMs)
     {
         if (client.available())
         {
-            String part = client.readStringUntil('\n');
-            if ((line.length() + part.length()) >= OSM_MAX_HEADERLENGTH)
+            const char c = client.read();
+            if (c == '\r')
+                continue;
+
+            if (c == '\n')
+                return true;
+
+            if (line.length() >= OSM_MAX_HEADERLENGTH - 1)
                 return false;
 
-            line += part;
-            return true;  // Found end of line
+            line += c;
         }
-        taskYIELD();
+        else
+            taskYIELD();
     }
-
-    return false;  // Timed out
+    return false; // Timed out
 }
-
-
