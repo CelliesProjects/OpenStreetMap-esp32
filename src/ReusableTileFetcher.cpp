@@ -205,22 +205,19 @@ bool ReusableTileFetcher::readLineWithTimeout(String &line, uint32_t timeoutMs)
     {
         if (client.available())
         {
-            const int r = client.read();
-            if (r >= 0)
-            {
-                char c = (char)r;
+            // cppcheck-suppress uncheckedRead
+            const char c = client.read();
 
-                if (c == '\r')
-                    continue;
+            if (c == '\r')
+                continue;
 
-                if (c == '\n')
-                    return true;
+            if (c == '\n')
+                return true;
 
-                if (line.length() >= OSM_MAX_HEADERLENGTH - 1)
-                    return false;
+            if (line.length() >= OSM_MAX_HEADERLENGTH - 1)
+                return false;
 
-                line += c;
-            }
+            line += c;
         }
         else
             taskYIELD();
