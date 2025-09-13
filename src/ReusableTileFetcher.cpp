@@ -23,7 +23,7 @@
 
 #include "ReusableTileFetcher.hpp"
 
-ReusableTileFetcher::ReusableTileFetcher() { renderMode = RenderMode::ACCURATE; }
+ReusableTileFetcher::ReusableTileFetcher() {}
 ReusableTileFetcher::~ReusableTileFetcher() { disconnect(); }
 
 void ReusableTileFetcher::sendHttpRequest(const String &host, const String &path)
@@ -42,9 +42,8 @@ void ReusableTileFetcher::disconnect()
     currentPort = 80;
 }
 
-MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &result, RenderMode mode, unsigned long timeout)
+MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &result, unsigned long timeout)
 {
-    renderMode = mode;
     String host, path;
     uint16_t port;
     if (!parseUrl(url, host, path, port))
@@ -58,7 +57,7 @@ MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &resul
 
     sendHttpRequest(host, path);
     size_t contentLength = 0;
-    if (!readHttpHeaders(contentLength, result))
+    if (!readHttpHeaders(contentLength, timeout, result))
         return MemoryBuffer::empty();
 
     auto buffer = MemoryBuffer(contentLength);
@@ -68,7 +67,7 @@ MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &resul
         return MemoryBuffer::empty();
     }
 
-    if (!readBody(buffer, contentLength, result))
+    if (!readBody(buffer, contentLength, timeout, result))
         return MemoryBuffer::empty();
 
     return buffer;
@@ -111,7 +110,7 @@ bool ReusableTileFetcher::ensureConnection(const String &host, uint16_t port, un
     return true;
 }
 
-bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, String &result)
+bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long timeout, String &result)
 {
     String line;
     line.reserve(OSM_MAX_HEADERLENGTH);
@@ -119,7 +118,7 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, String &result)
     bool start = true;
     while (client.connected())
     {
-        if (!readLineWithTimeout(line, renderMode == RenderMode::FAST ? 300 : 5000))
+        if (!readLineWithTimeout(line, timeout ? 300 : 5000))
         {
             result = "Header timeout";
             disconnect();
@@ -159,12 +158,12 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, String &result)
     return true;
 }
 
-bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, String &result)
+bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, unsigned long timeout, String &result)
 {
     uint8_t *dest = buffer.get();
     size_t readSize = 0;
     unsigned long lastReadTime = millis();
-    const unsigned long timeoutMs = (renderMode == RenderMode::FAST) ? 300 : 5000;
+    const unsigned long timeoutMs = timeout ? 300 : 5000;
 
     while (readSize < contentLength)
     {

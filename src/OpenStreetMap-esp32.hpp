@@ -94,7 +94,6 @@ public:
     bool fetchMap(LGFX_Sprite &sprite, double longitude, double latitude, uint8_t zoom);
     inline void freeTilesCache();
 
-    void setRenderMode(RenderMode mode);
     bool setTileProvider(int index);
     const char *getProviderName() { return currentProvider->name; };
     int getMinZoom() const { return currentProvider->minZoom; };
@@ -118,7 +117,6 @@ private:
 
     static inline thread_local OpenStreetMap *currentInstance = nullptr;
     static inline thread_local uint16_t *currentTileBuffer = nullptr;
-    RenderMode renderMode = RenderMode::ACCURATE;
     const TileProvider *currentProvider = &tileProviders[0];
     std::vector<CachedTile> tilesCache;
 
