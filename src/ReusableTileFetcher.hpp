@@ -39,7 +39,7 @@ public:
     ReusableTileFetcher(const ReusableTileFetcher &) = delete;
     ReusableTileFetcher &operator=(const ReusableTileFetcher &) = delete;
 
-    MemoryBuffer fetchToBuffer(const String &url, String &result, RenderMode mode);
+    MemoryBuffer fetchToBuffer(const String &url, String &result, RenderMode mode, unsigned long timeout);
     void disconnect();
 
 private:
@@ -49,7 +49,7 @@ private:
     RenderMode renderMode;
 
     bool parseUrl(const String &url, String &host, String &path, uint16_t &port);
-    bool ensureConnection(const String &host, uint16_t port, String &result);
+    bool ensureConnection(const String &host, uint16_t port, unsigned long timeout, String &result);
     void sendHttpRequest(const String &host, const String &path);
     bool readHttpHeaders(size_t &contentLength, String &result);
     bool readBody(MemoryBuffer &buffer, size_t contentLength, String &result);

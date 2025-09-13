@@ -42,7 +42,7 @@ void ReusableTileFetcher::disconnect()
     currentPort = 80;
 }
 
-MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &result, RenderMode mode)
+MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &result, RenderMode mode, unsigned long timeout)
 {
     renderMode = mode;
     String host, path;
@@ -53,7 +53,7 @@ MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &resul
         return MemoryBuffer::empty();
     }
 
-    if (!ensureConnection(host, port, result))
+    if (!ensureConnection(host, port, timeout, result))
         return MemoryBuffer::empty();
 
     sendHttpRequest(host, path);
@@ -93,13 +93,13 @@ bool ReusableTileFetcher::parseUrl(const String &url, String &host, String &path
     return true;
 }
 
-bool ReusableTileFetcher::ensureConnection(const String &host, uint16_t port, String &result)
+bool ReusableTileFetcher::ensureConnection(const String &host, uint16_t port, unsigned long timeout, String &result)
 {
     if (!client.connected() || host != currentHost || port != currentPort)
     {
         disconnect();
-        client.setConnectionTimeout(renderMode == RenderMode::FAST ? 100 : 5000);
-        if (!client.connect(host.c_str(), port, renderMode == RenderMode::FAST ? 100 : 5000))
+        client.setConnectionTimeout(timeout ? 100 : 5000);
+        if (!client.connect(host.c_str(), port, timeout ? 100 : 5000))
         {
             result = "Connection failed to " + host;
             return false;

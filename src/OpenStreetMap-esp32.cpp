@@ -351,7 +351,7 @@ void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
     getPNGCurrentCore()->getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, 0xffffffff);
 }
 
-bool OpenStreetMap::fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result)
+bool OpenStreetMap::fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result, unsigned long timeout)
 {
     String url = currentProvider->urlTemplate;
     url.replace("{x}", String(x));
@@ -360,7 +360,7 @@ bool OpenStreetMap::fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, ui
     if (currentProvider->requiresApiKey && strstr(url.c_str(), "{apiKey}"))
         url.replace("{apiKey}", currentProvider->apiKey);
 
-    MemoryBuffer buffer = fetcher.fetchToBuffer(url, result, renderMode);
+    MemoryBuffer buffer = fetcher.fetchToBuffer(url, result, renderMode, timeout);
     if (!buffer.isAllocated())
         return false;
 

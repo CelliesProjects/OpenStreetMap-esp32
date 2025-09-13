@@ -38,7 +38,7 @@
 #include "MemoryBuffer.hpp"
 #include "ReusableTileFetcher.hpp"
 #include "fonts/DejaVu9-modded.h"
-#include "RenderMode.hpp"
+//#include "RenderMode.hpp"
 
 constexpr uint16_t OSM_BGCOLOR = lgfx::color565(32, 32, 128);
 constexpr uint16_t OSM_TILE_TIMEOUT_MS = 1000;
@@ -99,6 +99,7 @@ public:
     const char *getProviderName() { return currentProvider->name; };
     int getMinZoom() const { return currentProvider->minZoom; };
     int getMaxZoom() const { return currentProvider->maxZoom; };
+    unsigned long timeout() { return mapTimeout; };
 
 private:
     double lon2tile(double lon, uint8_t zoom);
@@ -110,7 +111,7 @@ private:
     void runJobs(const std::vector<TileJob> &jobs);
     CachedTile *findUnusedTile(const tileList &requiredTiles, uint8_t zoom);
     CachedTile *isTileCached(uint32_t x, uint32_t y, uint8_t z);
-    bool fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result);
+    bool fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result, unsigned long timeout = 0);
     bool composeMap(LGFX_Sprite &mapSprite, TileBufferList &tilePointers);
     static void tileFetcherTask(void *param);
     static void PNGDraw(PNGDRAW *pDraw);
@@ -126,6 +127,8 @@ private:
     QueueHandle_t jobQueue = nullptr;
     std::atomic<int> pendingJobs = 0;
     bool tasksStarted = false;
+
+    unsigned long mapTimeout = 0; // 0 means no timeout
 
     uint16_t mapWidth = 320;
     uint16_t mapHeight = 240;
