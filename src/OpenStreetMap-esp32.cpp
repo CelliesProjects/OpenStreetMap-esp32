@@ -411,27 +411,34 @@ void OpenStreetMap::tileFetcherTask(void *param)
         const uint32_t elapsedMS = millis() - osm->startJobsMS;
         if (osm->mapTimeoutMS && elapsedMS >= osm->mapTimeoutMS)
         {
-            log_w("timeout reached, ignoring queued item");
-            const size_t tileByteCount = osm->currentProvider->tileSize * osm->currentProvider->tileSize * 2;
-            memset(job.tile->buffer, 0, tileByteCount);
-            job.tile->valid = false;
-            job.tile->busy = false;
+            log_w("Map timeout (%lu ms) exceeded after %lu ms, dropping job",
+                  osm->mapTimeoutMS, elapsedMS);
+
+            osm->invalidateTile(job.tile);
             --osm->pendingJobs;
             continue;
         }
 
+        // compute remaining time budget for this job
+        uint32_t remainingMS = 0;
+        if (osm->mapTimeoutMS > 0)
+        {
+            remainingMS = osm->mapTimeoutMS - elapsedMS;
+            if (remainingMS == 0)
+                remainingMS = 1; // minimum non-zero
+        }
+
         String result;
-        if (!osm->fetchTile(fetcher, *job.tile, job.x, job.y, job.z, result, osm->mapTimeoutMS))
+        if (!osm->fetchTile(fetcher, *job.tile, job.x, job.y, job.z, result, remainingMS))
         {
             log_e("Tile fetch failed: %s", result.c_str());
-            job.tile->valid = false;
-            const size_t tileByteCount = osm->currentProvider->tileSize * osm->currentProvider->tileSize * 2;
-            memset(job.tile->buffer, 0, tileByteCount);
+            osm->invalidateTile(job.tile);
         }
         else
         {
             job.tile->valid = true;
-            log_d("core %i fetched tile z=%u x=%lu, y=%lu in %lu ms", xPortGetCoreID(), job.z, job.x, job.y, millis() - startMS);
+            log_d("core %i fetched tile z=%u x=%lu, y=%lu in %lu ms",
+                  xPortGetCoreID(), job.z, job.x, job.y, millis() - startMS);
         }
         job.tile->busy = false;
         --osm->pendingJobs;
@@ -508,4 +515,16 @@ bool OpenStreetMap::setTileProvider(int index)
     freeTilesCache();
     log_i("provider changed to '%s'", currentProvider->name);
     return true;
+}
+
+void OpenStreetMap::invalidateTile(CachedTile *tile)
+{
+    if (!tile)
+        return;
+
+    const size_t tileByteCount = currentProvider->tileSize * currentProvider->tileSize * 2;
+    memset(tile->buffer, 0, tileByteCount);
+
+    tile->valid = false;
+    tile->busy = false;
 }

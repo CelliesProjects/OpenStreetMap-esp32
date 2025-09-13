@@ -92,33 +92,39 @@ bool ReusableTileFetcher::parseUrl(const String &url, String &host, String &path
     return true;
 }
 
-bool ReusableTileFetcher::ensureConnection(const String &host, uint16_t port, unsigned long timeout, String &result)
+bool ReusableTileFetcher::ensureConnection(const String &host, uint16_t port, unsigned long timeoutMS, String &result)
 {
     if (!client.connected() || host != currentHost || port != currentPort)
     {
         disconnect();
-        client.setConnectionTimeout(timeout ? 100 : 5000);
-        if (!client.connect(host.c_str(), port, timeout ? 100 : 5000))
+
+        // If caller didn’t set a timeout, fall back to 5000ms
+        uint32_t connectTimeout = timeoutMS > 0 ? timeoutMS : 5000UL;
+        if (!client.connect(host.c_str(), port, connectTimeout))
         {
             result = "Connection failed to " + host;
             return false;
         }
         currentHost = host;
         currentPort = port;
-        log_i("(Re)connected on core %i", xPortGetCoreID());
+        log_i("(Re)connected on core %i (timeout=%lu ms)", xPortGetCoreID(), connectTimeout);
     }
     return true;
 }
 
-bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long timeout, String &result)
+bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long timeoutMS, String &result)
 {
     String line;
     line.reserve(OSM_MAX_HEADERLENGTH);
     contentLength = 0;
     bool start = true;
+
+    // Fall back to 5000ms if no timeout is set
+    uint32_t headerTimeout = timeoutMS > 0 ? timeoutMS : 5000UL;
+
     while (client.connected())
     {
-        if (!readLineWithTimeout(line, timeout ? 300 : 5000))
+        if (!readLineWithTimeout(line, headerTimeout))
         {
             result = "Header timeout";
             disconnect();
@@ -128,7 +134,7 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
         line.trim();
         if (start)
         {
-            if (!line.startsWith("HTTP/1.1"))
+            if (!line.startsWith("HTTP/1."))
             {
                 result = "Bad HTTP response: " + line;
                 disconnect();
@@ -150,29 +156,30 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
 
     if (contentLength == 0)
     {
-        result = "Missing or invalid Content-Length";
-        disconnect();
-        return false;
+        // treat as valid but empty buffer
+        log_w("Content-Length was 0");
     }
 
     return true;
 }
 
-bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, unsigned long timeout, String &result)
+bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, unsigned long timeoutMS, String &result)
 {
     uint8_t *dest = buffer.get();
     size_t readSize = 0;
     unsigned long lastReadTime = millis();
-    const unsigned long timeoutMs = timeout ? 300 : 5000;
+
+    // Respect caller’s remaining budget, default to 5000ms if none
+    const unsigned long maxStall = timeoutMS > 0 ? timeoutMS : 5000UL;
 
     while (readSize < contentLength)
     {
         size_t availableData = client.available();
         if (availableData == 0)
         {
-            if (millis() - lastReadTime >= timeoutMs)
+            if (millis() - lastReadTime >= maxStall)
             {
-                result = "Timeout: " + String(timeoutMs) + " ms";
+                result = "Body read stalled for " + String(maxStall) + " ms";
                 disconnect();
                 return false;
             }
@@ -190,7 +197,9 @@ bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, u
             lastReadTime = millis();
         }
         else
+        {
             taskYIELD();
+        }
     }
     return true;
 }

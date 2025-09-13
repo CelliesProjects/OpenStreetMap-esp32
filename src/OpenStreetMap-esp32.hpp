@@ -109,10 +109,11 @@ private:
     void runJobs(const std::vector<TileJob> &jobs);
     CachedTile *findUnusedTile(const tileList &requiredTiles, uint8_t zoom);
     CachedTile *isTileCached(uint32_t x, uint32_t y, uint8_t z);
-    bool fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result, unsigned long timeout = 0);
+    bool fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result, unsigned long timeoutMS);
     bool composeMap(LGFX_Sprite &mapSprite, TileBufferList &tilePointers);
     static void tileFetcherTask(void *param);
     static void PNGDraw(PNGDRAW *pDraw);
+    void invalidateTile(CachedTile *tile);
 
     static inline thread_local OpenStreetMap *currentInstance = nullptr;
     static inline thread_local uint16_t *currentTileBuffer = nullptr;
