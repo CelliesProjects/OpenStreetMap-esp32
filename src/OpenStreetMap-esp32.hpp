@@ -91,14 +91,13 @@ public:
     void setSize(uint16_t w, uint16_t h);
     uint16_t tilesNeeded(uint16_t mapWidth, uint16_t mapHeight);
     bool resizeTilesCache(uint16_t numberOfTiles);
-    bool fetchMap(LGFX_Sprite &sprite, double longitude, double latitude, uint8_t zoom);
+    bool fetchMap(LGFX_Sprite &sprite, double longitude, double latitude, uint8_t zoom, unsigned long timeoutMS = 0);
     inline void freeTilesCache();
 
     bool setTileProvider(int index);
     const char *getProviderName() { return currentProvider->name; };
     int getMinZoom() const { return currentProvider->minZoom; };
     int getMaxZoom() const { return currentProvider->maxZoom; };
-    unsigned long timeout() { return mapTimeout; };
 
 private:
     double lon2tile(double lon, uint8_t zoom);
@@ -126,7 +125,8 @@ private:
     std::atomic<int> pendingJobs = 0;
     bool tasksStarted = false;
 
-    unsigned long mapTimeout = 0; // 0 means no timeout
+    unsigned long mapTimeoutMS = 0; // 0 means no timeout
+    unsigned long startJobsMS = 0;
 
     uint16_t mapWidth = 320;
     uint16_t mapHeight = 240;

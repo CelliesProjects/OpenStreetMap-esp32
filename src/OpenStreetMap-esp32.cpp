@@ -253,6 +253,7 @@ void OpenStreetMap::runJobs(const std::vector<TileJob> &jobs)
     log_d("submitting %i jobs", (int)jobs.size());
 
     pendingJobs.store(jobs.size());
+    startJobsMS = millis();
     for (const TileJob &job : jobs)
         if (xQueueSend(jobQueue, &job, portMAX_DELAY) != pdPASS)
         {
@@ -298,7 +299,7 @@ bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, TileBufferList &tilePoint
     return true;
 }
 
-bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double latitude, uint8_t zoom)
+bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double latitude, uint8_t zoom, unsigned long timeoutMS)
 {
     if (!tasksStarted && !startTileWorkerTasks())
     {
@@ -335,6 +336,7 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
         return false;
     }
 
+    mapTimeoutMS = timeoutMS;
     TileBufferList tilePointers;
     updateCache(requiredTiles, zoom, tilePointers);
     if (!composeMap(mapSprite, tilePointers))
@@ -406,8 +408,20 @@ void OpenStreetMap::tileFetcherTask(void *param)
         if (job.z == 255)
             break;
 
+        const uint32_t elapsedMS = millis() - osm->startJobsMS;
+        if (osm->mapTimeoutMS && elapsedMS >= osm->mapTimeoutMS)
+        {
+            log_w("timeout reached, ignoring queued item");
+            const size_t tileByteCount = osm->currentProvider->tileSize * osm->currentProvider->tileSize * 2;
+            memset(job.tile->buffer, 0, tileByteCount);
+            job.tile->valid = false;
+            job.tile->busy = false;
+            --osm->pendingJobs;
+            continue;
+        }
+
         String result;
-        if (!osm->fetchTile(fetcher, *job.tile, job.x, job.y, job.z, result))
+        if (!osm->fetchTile(fetcher, *job.tile, job.x, job.y, job.z, result, osm->mapTimeoutMS))
         {
             log_e("Tile fetch failed: %s", result.c_str());
             job.tile->valid = false;
