@@ -156,7 +156,7 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
 
     if (contentLength == 0)
     {
-        // treat as valid but empty buffer
+        // treat as valid but empty buffer TODO: reason about this because I think this is plain wrong without setting up a empty tile somehow
         log_w("Content-Length was 0");
     }
 

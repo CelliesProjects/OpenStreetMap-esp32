@@ -38,7 +38,6 @@
 #include "MemoryBuffer.hpp"
 #include "ReusableTileFetcher.hpp"
 #include "fonts/DejaVu9-modded.h"
-//#include "RenderMode.hpp"
 
 constexpr uint16_t OSM_BGCOLOR = lgfx::color565(32, 32, 128);
 constexpr uint16_t OSM_TILE_TIMEOUT_MS = 1000;
