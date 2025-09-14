@@ -28,6 +28,7 @@
 #include "MemoryBuffer.hpp"
 
 constexpr int OSM_MAX_HEADERLENGTH = 256;
+constexpr int OSM_DEFAULT_TIMEOUT_MS = 5000;
 
 class ReusableTileFetcher
 {

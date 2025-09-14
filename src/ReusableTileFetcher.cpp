@@ -60,6 +60,12 @@ MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &resul
     if (!readHttpHeaders(contentLength, timeout, result))
         return MemoryBuffer::empty();
 
+    if (contentLength == 0)
+    {
+        result = "Empty response (Content-Length=0)";
+        return MemoryBuffer::empty();
+    }
+
     auto buffer = MemoryBuffer(contentLength);
     if (!buffer.isAllocated())
     {
@@ -99,7 +105,7 @@ bool ReusableTileFetcher::ensureConnection(const String &host, uint16_t port, un
         disconnect();
 
         // If caller didn’t set a timeout, fall back to 5000ms
-        uint32_t connectTimeout = timeoutMS > 0 ? timeoutMS : 5000UL;
+        uint32_t connectTimeout = timeoutMS > 0 ? timeoutMS : OSM_DEFAULT_TIMEOUT_MS;
         if (!client.connect(host.c_str(), port, connectTimeout))
         {
             result = "Connection failed to " + host;
@@ -119,8 +125,7 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
     contentLength = 0;
     bool start = true;
 
-    // Fall back to 5000ms if no timeout is set
-    uint32_t headerTimeout = timeoutMS > 0 ? timeoutMS : 5000UL;
+    uint32_t headerTimeout = timeoutMS > 0 ? timeoutMS : OSM_DEFAULT_TIMEOUT_MS;
 
     while (client.connected())
     {
@@ -155,10 +160,7 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
     }
 
     if (contentLength == 0)
-    {
-        // treat as valid but empty buffer TODO: reason about this because I think this is plain wrong without setting up a empty tile somehow
-        log_w("Content-Length was 0");
-    }
+        log_w("Content-Length = 0 (valid empty body)");
 
     return true;
 }
@@ -170,7 +172,7 @@ bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, u
     unsigned long lastReadTime = millis();
 
     // Respect caller’s remaining budget, default to 5000ms if none
-    const unsigned long maxStall = timeoutMS > 0 ? timeoutMS : 5000UL;
+    const unsigned long maxStall = timeoutMS > 0 ? timeoutMS : OSM_DEFAULT_TIMEOUT_MS;
 
     while (readSize < contentLength)
     {
@@ -197,9 +199,7 @@ bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, u
             lastReadTime = millis();
         }
         else
-        {
             taskYIELD();
-        }
     }
     return true;
 }
