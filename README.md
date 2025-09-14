@@ -143,7 +143,7 @@ const int numberOfProviders = OSM_TILEPROVIDERS;
 char *getProviderName()
 ```
 
-### Adding tile providers
+## Adding tile providers
 
 See `src/TileProvider.hpp` for example setups for [https://www.thunderforest.com/](https://www.thunderforest.com/) that only require you to register for a **free** API key and adjusting/uncommenting 2 lines in the config.  
 Register for a ThunderForest free tier [here](https://manage.thunderforest.com/users/sign_up?price=hobby-project-usd) without needing a creditcard to sign up.
