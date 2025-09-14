@@ -419,13 +419,17 @@ void OpenStreetMap::tileFetcherTask(void *param)
             continue;
         }
 
-        // compute remaining time budget for this job
         uint32_t remainingMS = 0;
         if (osm->mapTimeoutMS > 0)
         {
             remainingMS = osm->mapTimeoutMS - elapsedMS;
             if (remainingMS == 0)
-                remainingMS = 1; // minimum non-zero
+            {
+                log_w("No budget left for job, dropping");
+                osm->invalidateTile(job.tile);
+                --osm->pendingJobs;
+                continue;
+            }
         }
 
         String result;
