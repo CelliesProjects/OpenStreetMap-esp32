@@ -75,7 +75,7 @@ void setSize(uint16_t w, uint16_t h)
 uint16_t tilesNeeded(uint16_t w, uint16_t h)
 ```
 
-This returns the number of tiles required to cache the given map size.  
+This returns the -most pessimistic- number of tiles required to cache the given map size.  
 
 ### Resize the tiles cache
 
