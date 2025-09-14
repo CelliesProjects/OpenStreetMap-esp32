@@ -42,7 +42,7 @@ void ReusableTileFetcher::disconnect()
     currentPort = 80;
 }
 
-MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &result, unsigned long timeout)
+MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &result, unsigned long timeoutMS)
 {
     String host, path;
     uint16_t port;
@@ -52,12 +52,12 @@ MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &resul
         return MemoryBuffer::empty();
     }
 
-    if (!ensureConnection(host, port, timeout, result))
+    if (!ensureConnection(host, port, timeoutMS, result))
         return MemoryBuffer::empty();
 
     sendHttpRequest(host, path);
     size_t contentLength = 0;
-    if (!readHttpHeaders(contentLength, timeout, result))
+    if (!readHttpHeaders(contentLength, timeoutMS, result))
         return MemoryBuffer::empty();
 
     if (contentLength == 0)
@@ -73,7 +73,7 @@ MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &resul
         return MemoryBuffer::empty();
     }
 
-    if (!readBody(buffer, contentLength, timeout, result))
+    if (!readBody(buffer, contentLength, timeoutMS, result))
         return MemoryBuffer::empty();
 
     return buffer;
