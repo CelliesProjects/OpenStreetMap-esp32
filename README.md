@@ -95,12 +95,16 @@ Use the above `tilesNeeded` function to calculate a safe and sane cache size if 
 ### Fetch a map
 
 ```c++
-bool fetchMap(LGFX_Sprite &map, double longitude, double latitude, uint8_t zoom)
+bool fetchMap(LGFX_Sprite &map, double longitude, double latitude, uint8_t zoom, unsigned long timeoutMS = 0)
 ```
 
 - Overflowing `longitude` are wrapped and normalized to +-180°.
 - Overflowing `latitude` are clamped to +-90°.
 - Valid range for the `zoom` level is from `getMinZoom()` to `getMaxZoom()`.  
+- `timeoutMS` can be used to throttle the amount of downloaded tiles per call.  
+Setting it to anything other than `0` sets a timeout. Sane values start around ~100ms.  
+**Note:** No more tiles will be downloaded after the timeout expires, but tiles that are downloading will be finished.  
+**Note:** You might end up with missing map tiles. Or no map at all if you set the timeout too short.
 
 ### Free the psram memory used by the tile cache
 
@@ -133,9 +137,8 @@ const int numberOfProviders = OSM_TILEPROVIDERS;
 
 **Note:** In the default setup there is only one provider defined.
 
-See `src/TileProvider.hpp` for example setups for [https://www.thunderforest.com/](https://www.thunderforest.com/) that only require an API key and commenting/uncommenting 2 lines.
-
-Registration and a hobby tier are available for free.
+See `src/TileProvider.hpp` for example setups for [https://www.thunderforest.com/](https://www.thunderforest.com/) that only require you to register for a **free** API key and adjusting/uncommenting 2 lines in the config.  
+Register for a ThunderForest free tier [here](https://manage.thunderforest.com/users/sign_up?price=hobby-project-usd) without needing a creditcard to sign up.
 
 ### Adding tile providers
 
@@ -150,23 +153,6 @@ If you encounter a problem or want to request support for a new provider, please
 ```c++
 char *getProviderName()
 ```
-
-### Set the render mode
-
-```c++
-void setRenderMode(RenderMode mode)
-```
-
-Available modes:
-
-- `RenderMode::ACCURATE` (default)  
-Downloads map tiles **without a timeout**, ensuring a complete map with **no missing tiles** in most cases.  
-Best suited for reliability and full-quality rendering.
-
-- `RenderMode::FAST`
-Downloads map tiles **with a timeout**.  
-This mode can produce the map **more quickly**, but some **tiles may be missing** if a request times out.  
-Ideal when operating under time constraints.
 
 ## Example code
 
