@@ -137,22 +137,18 @@ const int numberOfProviders = OSM_TILEPROVIDERS;
 
 **Note:** In the default setup there is only one provider defined.
 
-See `src/TileProvider.hpp` for example setups for [https://www.thunderforest.com/](https://www.thunderforest.com/) that only require you to register for a **free** API key and adjusting/uncommenting 2 lines in the config.  
-Register for a ThunderForest free tier [here](https://manage.thunderforest.com/users/sign_up?price=hobby-project-usd) without needing a creditcard to sign up.
-
-### Adding tile providers
-
-Other providers should work if a new definition is created in `src/TileProvider.hpp`.  
-Check out the existing templates to see how this works.
-
-If you encounter a problem or want to request support for a new provider, please check the [issue tracker](../../issues) for existing reports or [open an issue](../../issues/new).
-
-
 ### Get the provider name
 
 ```c++
 char *getProviderName()
 ```
+
+### Adding tile providers
+
+See `src/TileProvider.hpp` for example setups for [https://www.thunderforest.com/](https://www.thunderforest.com/) that only require you to register for a **free** API key and adjusting/uncommenting 2 lines in the config.  
+Register for a ThunderForest free tier [here](https://manage.thunderforest.com/users/sign_up?price=hobby-project-usd) without needing a creditcard to sign up.
+
+If you encounter a problem or want to request support for a new provider, please check the [issue tracker](../../issues) for existing reports or [open an issue](../../issues/new).
 
 ## Example code
 
