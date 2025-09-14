@@ -253,6 +253,7 @@ void OpenStreetMap::runJobs(const std::vector<TileJob> &jobs)
     log_d("submitting %i jobs", (int)jobs.size());
 
     pendingJobs.store(jobs.size());
+    startJobsMS = millis();
     for (const TileJob &job : jobs)
         if (xQueueSend(jobQueue, &job, portMAX_DELAY) != pdPASS)
         {
@@ -298,7 +299,7 @@ bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, TileBufferList &tilePoint
     return true;
 }
 
-bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double latitude, uint8_t zoom)
+bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double latitude, uint8_t zoom, unsigned long timeoutMS)
 {
     if (!tasksStarted && !startTileWorkerTasks())
     {
@@ -335,6 +336,7 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
         return false;
     }
 
+    mapTimeoutMS = timeoutMS;
     TileBufferList tilePointers;
     updateCache(requiredTiles, zoom, tilePointers);
     if (!composeMap(mapSprite, tilePointers))
@@ -351,7 +353,7 @@ void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
     getPNGCurrentCore()->getLineAsRGB565(pDraw, destRow, PNG_RGB565_BIG_ENDIAN, 0xffffffff);
 }
 
-bool OpenStreetMap::fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result)
+bool OpenStreetMap::fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result, unsigned long timeout)
 {
     String url = currentProvider->urlTemplate;
     url.replace("{x}", String(x));
@@ -360,7 +362,7 @@ bool OpenStreetMap::fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, ui
     if (currentProvider->requiresApiKey && strstr(url.c_str(), "{apiKey}"))
         url.replace("{apiKey}", currentProvider->apiKey);
 
-    MemoryBuffer buffer = fetcher.fetchToBuffer(url, result, renderMode);
+    MemoryBuffer buffer = fetcher.fetchToBuffer(url, result, timeout);
     if (!buffer.isAllocated())
         return false;
 
@@ -406,18 +408,37 @@ void OpenStreetMap::tileFetcherTask(void *param)
         if (job.z == 255)
             break;
 
+        const uint32_t elapsedMS = millis() - osm->startJobsMS;
+        if (osm->mapTimeoutMS && elapsedMS >= osm->mapTimeoutMS)
+        {
+            log_w("Map timeout (%lu ms) exceeded after %lu ms, dropping job",
+                  osm->mapTimeoutMS, elapsedMS);
+
+            osm->invalidateTile(job.tile);
+            --osm->pendingJobs;
+            continue;
+        }
+
+        // compute remaining time budget for this job
+        uint32_t remainingMS = 0;
+        if (osm->mapTimeoutMS > 0)
+        {
+            remainingMS = osm->mapTimeoutMS - elapsedMS;
+            if (remainingMS == 0)
+                remainingMS = 1; // minimum non-zero
+        }
+
         String result;
-        if (!osm->fetchTile(fetcher, *job.tile, job.x, job.y, job.z, result))
+        if (!osm->fetchTile(fetcher, *job.tile, job.x, job.y, job.z, result, remainingMS))
         {
             log_e("Tile fetch failed: %s", result.c_str());
-            job.tile->valid = false;
-            const size_t tileByteCount = osm->currentProvider->tileSize * osm->currentProvider->tileSize * 2;
-            memset(job.tile->buffer, 0, tileByteCount);
+            osm->invalidateTile(job.tile);
         }
         else
         {
             job.tile->valid = true;
-            log_d("core %i fetched tile z=%u x=%lu, y=%lu in %lu ms", xPortGetCoreID(), job.z, job.x, job.y, millis() - startMS);
+            log_d("core %i fetched tile z=%u x=%lu, y=%lu in %lu ms",
+                  xPortGetCoreID(), job.z, job.x, job.y, millis() - startMS);
         }
         job.tile->busy = false;
         --osm->pendingJobs;
@@ -496,7 +517,14 @@ bool OpenStreetMap::setTileProvider(int index)
     return true;
 }
 
-void OpenStreetMap::setRenderMode(RenderMode mode)
+void OpenStreetMap::invalidateTile(CachedTile *tile)
 {
-    renderMode = mode;
+    if (!tile)
+        return;
+
+    const size_t tileByteCount = currentProvider->tileSize * currentProvider->tileSize * 2;
+    memset(tile->buffer, 0, tileByteCount);
+
+    tile->valid = false;
+    tile->busy = false;
 }

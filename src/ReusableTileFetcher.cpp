@@ -23,7 +23,7 @@
 
 #include "ReusableTileFetcher.hpp"
 
-ReusableTileFetcher::ReusableTileFetcher() { renderMode = RenderMode::ACCURATE; }
+ReusableTileFetcher::ReusableTileFetcher() {}
 ReusableTileFetcher::~ReusableTileFetcher() { disconnect(); }
 
 void ReusableTileFetcher::sendHttpRequest(const String &host, const String &path)
@@ -42,9 +42,8 @@ void ReusableTileFetcher::disconnect()
     currentPort = 80;
 }
 
-MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &result, RenderMode mode)
+MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &result, unsigned long timeoutMS)
 {
-    renderMode = mode;
     String host, path;
     uint16_t port;
     if (!parseUrl(url, host, path, port))
@@ -53,13 +52,19 @@ MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &resul
         return MemoryBuffer::empty();
     }
 
-    if (!ensureConnection(host, port, result))
+    if (!ensureConnection(host, port, timeoutMS, result))
         return MemoryBuffer::empty();
 
     sendHttpRequest(host, path);
     size_t contentLength = 0;
-    if (!readHttpHeaders(contentLength, result))
+    if (!readHttpHeaders(contentLength, timeoutMS, result))
         return MemoryBuffer::empty();
+
+    if (contentLength == 0)
+    {
+        result = "Empty response (Content-Length=0)";
+        return MemoryBuffer::empty();
+    }
 
     auto buffer = MemoryBuffer(contentLength);
     if (!buffer.isAllocated())
@@ -68,7 +73,7 @@ MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &resul
         return MemoryBuffer::empty();
     }
 
-    if (!readBody(buffer, contentLength, result))
+    if (!readBody(buffer, contentLength, timeoutMS, result))
         return MemoryBuffer::empty();
 
     return buffer;
@@ -93,33 +98,38 @@ bool ReusableTileFetcher::parseUrl(const String &url, String &host, String &path
     return true;
 }
 
-bool ReusableTileFetcher::ensureConnection(const String &host, uint16_t port, String &result)
+bool ReusableTileFetcher::ensureConnection(const String &host, uint16_t port, unsigned long timeoutMS, String &result)
 {
     if (!client.connected() || host != currentHost || port != currentPort)
     {
         disconnect();
-        client.setConnectionTimeout(renderMode == RenderMode::FAST ? 100 : 5000);
-        if (!client.connect(host.c_str(), port, renderMode == RenderMode::FAST ? 100 : 5000))
+
+        // If caller didn’t set a timeout, fall back to 5000ms
+        uint32_t connectTimeout = timeoutMS > 0 ? timeoutMS : OSM_DEFAULT_TIMEOUT_MS;
+        if (!client.connect(host.c_str(), port, connectTimeout))
         {
             result = "Connection failed to " + host;
             return false;
         }
         currentHost = host;
         currentPort = port;
-        log_i("(Re)connected on core %i", xPortGetCoreID());
+        log_i("(Re)connected on core %i (timeout=%lu ms)", xPortGetCoreID(), connectTimeout);
     }
     return true;
 }
 
-bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, String &result)
+bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long timeoutMS, String &result)
 {
     String line;
     line.reserve(OSM_MAX_HEADERLENGTH);
     contentLength = 0;
     bool start = true;
+
+    uint32_t headerTimeout = timeoutMS > 0 ? timeoutMS : OSM_DEFAULT_TIMEOUT_MS;
+
     while (client.connected())
     {
-        if (!readLineWithTimeout(line, renderMode == RenderMode::FAST ? 300 : 5000))
+        if (!readLineWithTimeout(line, headerTimeout))
         {
             result = "Header timeout";
             disconnect();
@@ -129,7 +139,7 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, String &result)
         line.trim();
         if (start)
         {
-            if (!line.startsWith("HTTP/1.1"))
+            if (!line.startsWith("HTTP/1."))
             {
                 result = "Bad HTTP response: " + line;
                 disconnect();
@@ -150,30 +160,28 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, String &result)
     }
 
     if (contentLength == 0)
-    {
-        result = "Missing or invalid Content-Length";
-        disconnect();
-        return false;
-    }
+        log_w("Content-Length = 0 (valid empty body)");
 
     return true;
 }
 
-bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, String &result)
+bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, unsigned long timeoutMS, String &result)
 {
     uint8_t *dest = buffer.get();
     size_t readSize = 0;
     unsigned long lastReadTime = millis();
-    const unsigned long timeoutMs = (renderMode == RenderMode::FAST) ? 300 : 5000;
+
+    // Respect caller’s remaining budget, default to 5000ms if none
+    const unsigned long maxStall = timeoutMS > 0 ? timeoutMS : OSM_DEFAULT_TIMEOUT_MS;
 
     while (readSize < contentLength)
     {
         size_t availableData = client.available();
         if (availableData == 0)
         {
-            if (millis() - lastReadTime >= timeoutMs)
+            if (millis() - lastReadTime >= maxStall)
             {
-                result = "Timeout: " + String(timeoutMs) + " ms";
+                result = "Body read stalled for " + String(maxStall) + " ms";
                 disconnect();
                 return false;
             }

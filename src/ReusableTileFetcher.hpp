@@ -26,9 +26,9 @@
 #include <WiFiClient.h>
 #include <memory>
 #include "MemoryBuffer.hpp"
-#include "RenderMode.hpp"
 
 constexpr int OSM_MAX_HEADERLENGTH = 256;
+constexpr int OSM_DEFAULT_TIMEOUT_MS = 5000;
 
 class ReusableTileFetcher
 {
@@ -39,19 +39,18 @@ public:
     ReusableTileFetcher(const ReusableTileFetcher &) = delete;
     ReusableTileFetcher &operator=(const ReusableTileFetcher &) = delete;
 
-    MemoryBuffer fetchToBuffer(const String &url, String &result, RenderMode mode);
+    MemoryBuffer fetchToBuffer(const String &url, String &result, unsigned long timeoutMS);
     void disconnect();
 
 private:
     WiFiClient client;
     String currentHost;
     uint16_t currentPort = 80;
-    RenderMode renderMode;
 
     bool parseUrl(const String &url, String &host, String &path, uint16_t &port);
-    bool ensureConnection(const String &host, uint16_t port, String &result);
+    bool ensureConnection(const String &host, uint16_t port, unsigned long timeoutMS, String &result);
     void sendHttpRequest(const String &host, const String &path);
-    bool readHttpHeaders(size_t &contentLength, String &result);
-    bool readBody(MemoryBuffer &buffer, size_t contentLength, String &result);
+    bool readHttpHeaders(size_t &contentLength, unsigned long timeoutMS, String &result);
+    bool readBody(MemoryBuffer &buffer, size_t contentLength, unsigned long timeoutMS, String &result);
     bool readLineWithTimeout(String &line, uint32_t timeoutMs);
 };

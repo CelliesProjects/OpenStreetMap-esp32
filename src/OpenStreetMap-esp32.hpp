@@ -38,10 +38,8 @@
 #include "MemoryBuffer.hpp"
 #include "ReusableTileFetcher.hpp"
 #include "fonts/DejaVu9-modded.h"
-#include "RenderMode.hpp"
 
 constexpr uint16_t OSM_BGCOLOR = lgfx::color565(32, 32, 128);
-constexpr uint16_t OSM_TILE_TIMEOUT_MS = 1000;
 constexpr UBaseType_t OSM_TASK_PRIORITY = 1;
 constexpr uint32_t OSM_TASK_STACKSIZE = 5120;
 constexpr uint32_t OSM_JOB_QUEUE_SIZE = 50;
@@ -91,10 +89,9 @@ public:
     void setSize(uint16_t w, uint16_t h);
     uint16_t tilesNeeded(uint16_t mapWidth, uint16_t mapHeight);
     bool resizeTilesCache(uint16_t numberOfTiles);
-    bool fetchMap(LGFX_Sprite &sprite, double longitude, double latitude, uint8_t zoom);
+    bool fetchMap(LGFX_Sprite &sprite, double longitude, double latitude, uint8_t zoom, unsigned long timeoutMS = 0);
     inline void freeTilesCache();
 
-    void setRenderMode(RenderMode mode);
     bool setTileProvider(int index);
     const char *getProviderName() { return currentProvider->name; };
     int getMinZoom() const { return currentProvider->minZoom; };
@@ -110,14 +107,14 @@ private:
     void runJobs(const std::vector<TileJob> &jobs);
     CachedTile *findUnusedTile(const tileList &requiredTiles, uint8_t zoom);
     CachedTile *isTileCached(uint32_t x, uint32_t y, uint8_t z);
-    bool fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result);
+    bool fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result, unsigned long timeoutMS);
     bool composeMap(LGFX_Sprite &mapSprite, TileBufferList &tilePointers);
     static void tileFetcherTask(void *param);
     static void PNGDraw(PNGDRAW *pDraw);
+    void invalidateTile(CachedTile *tile);
 
     static inline thread_local OpenStreetMap *currentInstance = nullptr;
     static inline thread_local uint16_t *currentTileBuffer = nullptr;
-    RenderMode renderMode = RenderMode::ACCURATE;
     const TileProvider *currentProvider = &tileProviders[0];
     std::vector<CachedTile> tilesCache;
 
@@ -126,6 +123,9 @@ private:
     QueueHandle_t jobQueue = nullptr;
     std::atomic<int> pendingJobs = 0;
     bool tasksStarted = false;
+
+    unsigned long mapTimeoutMS = 0; // 0 means no timeout
+    unsigned long startJobsMS = 0;
 
     uint16_t mapWidth = 320;
     uint16_t mapHeight = 240;
