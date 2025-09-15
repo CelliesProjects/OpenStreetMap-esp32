@@ -99,11 +99,11 @@ bool fetchMap(LGFX_Sprite &map, double longitude, double latitude, uint8_t zoom,
 ```
 
 - Overflowing `longitude` are wrapped and normalized to +-180°.
-- Overflowing `latitude` are clamped to +-90°.
+- Overflowing `latitude` are clamped to +-85°.
 - Valid range for the `zoom` level is from `getMinZoom()` to `getMaxZoom()`.  
 - `timeoutMS` can be used to throttle the amount of downloaded tiles per call.  
 Setting it to anything other than `0` sets a timeout. Sane values start around ~100ms.  
-**Note:** No more tiles will be downloaded after the timeout expires, but tiles that are downloading will be finished.  
+**Note:** No more tile downloads will be started after the timeout expires, but tiles that are downloading will be finished.  
 **Note:** You might end up with missing map tiles. Or no map at all if you set the timeout too short.
 
 ### Free the psram memory used by the tile cache
