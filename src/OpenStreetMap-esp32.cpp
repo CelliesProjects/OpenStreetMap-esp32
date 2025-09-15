@@ -325,8 +325,13 @@ bool OpenStreetMap::fetchMap(LGFX_Sprite &mapSprite, double longitude, double la
         return false;
     }
 
+    // Web Mercator projection only supports latitudes up to ~85.0511°.
+    // See https://en.wikipedia.org/wiki/Web_Mercator_projection#Formulas
+    // We use 85.0° as a safe and simple boundary.
+    constexpr double MAX_MERCATOR_LAT = 85.0;
+
     longitude = fmod(longitude + 180.0, 360.0) - 180.0;
-    latitude = std::clamp(latitude, -90.0, 90.0);
+    latitude = std::clamp(latitude, -MAX_MERCATOR_LAT, MAX_MERCATOR_LAT);
 
     tileList requiredTiles;
     computeRequiredTiles(longitude, latitude, zoom, requiredTiles);
