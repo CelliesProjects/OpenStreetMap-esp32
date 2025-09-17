@@ -215,14 +215,14 @@ void OpenStreetMap::makeJobList(const tileList &requiredTiles, std::vector<TileJ
     {
         if (y < 0 || y >= (1 << zoom))
         {
-            tilePointers.emplace_back(nullptr, false); // keep alignment
+            tilePointers.emplace_back(nullptr); // keep alignment
             continue;
         }
 
         const CachedTile *cachedTile = isTileCached(x, y, zoom);
         if (cachedTile)
         {
-            tilePointers.emplace_back(cachedTile->buffer, cachedTile->valid);
+            tilePointers.emplace_back(const_cast<CachedTile *>(cachedTile));
             continue;
         }
 
@@ -230,8 +230,7 @@ void OpenStreetMap::makeJobList(const tileList &requiredTiles, std::vector<TileJ
                                       { return job.x == x && job.y == static_cast<uint32_t>(y) && job.z == zoom; });
         if (job != jobs.end())
         {
-            // job->tile may or may not be valid yet
-            tilePointers.emplace_back(job->tile->buffer, job->tile->valid);
+            tilePointers.emplace_back(const_cast<CachedTile *>(cachedTile));
             continue;
         }
 
@@ -239,13 +238,13 @@ void OpenStreetMap::makeJobList(const tileList &requiredTiles, std::vector<TileJ
         if (!tileToReplace)
         {
             log_e("Cache error, no unused tile found, could not store tile %lu, %i, %u", x, y, zoom);
-            tilePointers.emplace_back(nullptr, false); // keep alignment
+            tilePointers.emplace_back(nullptr); // keep alignment
             continue;
         }
 
         // store buffer and current validity for rendering
-        tilePointers.emplace_back(tileToReplace->buffer, tileToReplace->valid);
-        jobs.push_back({x, static_cast<uint32_t>(y), zoom, tileToReplace}); // queue job
+        tilePointers.emplace_back(tileToReplace);
+        jobs.push_back({x, static_cast<uint32_t>(y), zoom, tileToReplace});
     }
 }
 
@@ -285,15 +284,18 @@ bool OpenStreetMap::composeMap(LGFX_Sprite &mapSprite, TileBufferList &tilePoint
     {
         const int drawX = startOffsetX + (tileIndex % numberOfColums) * currentProvider->tileSize;
         const int drawY = startOffsetY + (tileIndex / numberOfColums) * currentProvider->tileSize;
-        const TileBuffer &tile = tilePointers[tileIndex];
+        const TileBuffer &tb = tilePointers[tileIndex];
+        CachedTile *ct = tb.cached;
 
-        // If pointer missing or tile not yet valid, draw background
-        if (!tile.ptr || !tile.valid)
+        // draw background if no tile or tile not valid yet
+        if (!ct || !ct->valid || !ct->buffer)
         {
-            mapSprite.fillRect(drawX, drawY, currentProvider->tileSize, currentProvider->tileSize, 0);
+            mapSprite.fillRect(drawX, drawY, currentProvider->tileSize, currentProvider->tileSize, OSM_BGCOLOR);
             continue;
         }
-        mapSprite.pushImage(drawX, drawY, currentProvider->tileSize, currentProvider->tileSize, tile.ptr);
+
+        // draw from live cached buffer
+        mapSprite.pushImage(drawX, drawY, currentProvider->tileSize, currentProvider->tileSize, ct->buffer);
     }
 
     mapSprite.setTextColor(TFT_WHITE, OSM_BGCOLOR);

@@ -52,10 +52,9 @@ using tileList = std::vector<std::pair<uint32_t, int32_t>>;
 
 struct TileBuffer
 {
-    const uint16_t *ptr;
-    bool valid;
-    TileBuffer() : ptr(nullptr), valid(false) {}
-    TileBuffer(const uint16_t *p, bool v) : ptr(p), valid(v) {}
+    CachedTile *cached; // nullptr = tile not present / out-of-range
+    TileBuffer() : cached(nullptr) {}
+    TileBuffer(CachedTile *c) : cached(c) {}
 };
 
 using TileBufferList = std::vector<TileBuffer>;
