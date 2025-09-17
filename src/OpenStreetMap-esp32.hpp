@@ -49,7 +49,16 @@ constexpr int OSM_SINGLECORE_NUMBER = 1;
 static_assert(OSM_SINGLECORE_NUMBER < 2, "OSM_SINGLECORE_NUMBER must be 0 or 1 (ESP32 has only 2 cores)");
 
 using tileList = std::vector<std::pair<uint32_t, int32_t>>;
-using TileBufferList = std::vector<uint16_t *>;
+
+struct TileBuffer
+{
+    const uint16_t *ptr;
+    bool valid;
+    TileBuffer() : ptr(nullptr), valid(false) {}
+    TileBuffer(const uint16_t *p, bool v) : ptr(p), valid(v) {}
+};
+
+using TileBufferList = std::vector<TileBuffer>;
 
 namespace
 {
