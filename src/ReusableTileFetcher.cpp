@@ -28,7 +28,7 @@ ReusableTileFetcher::~ReusableTileFetcher() { disconnect(); }
 
 void ReusableTileFetcher::sendHttpRequest(const String &host, const String &path)
 {
-    Stream *s = currentIsTLS ? static_cast<Stream*>(&secureClient) : static_cast<Stream*>(&client);
+    Stream *s = currentIsTLS ? static_cast<Stream *>(&secureClient) : static_cast<Stream *>(&client);
 
     s->print(String("GET ") + path + " HTTP/1.1\r\n");
     s->print(String("Host: ") + host + "\r\n");
@@ -36,7 +36,6 @@ void ReusableTileFetcher::sendHttpRequest(const String &host, const String &path
     s->print("Connection: keep-alive\r\n");
     s->print("\r\n");
 }
-
 
 void ReusableTileFetcher::disconnect()
 {
@@ -88,7 +87,14 @@ MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &resul
         if (statusCode >= 300 && statusCode < 400 && location.length() > 0)
         {
             // If server says close, close current socket
-            if (connClose) { if (currentIsTLS) secureClient.stop(); else client.stop(); currentHost = ""; }
+            if (connClose)
+            {
+                if (currentIsTLS)
+                    secureClient.stop();
+                else
+                    client.stop();
+                currentHost = "";
+            }
 
             // Follow Location (may be absolute URL)
             currentUrl = location;
@@ -99,14 +105,28 @@ MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &resul
         if (statusCode < 200 || statusCode >= 300)
         {
             result = "HTTP status " + String(statusCode);
-            if (connClose) { if (currentIsTLS) secureClient.stop(); else client.stop(); currentHost = ""; }
+            if (connClose)
+            {
+                if (currentIsTLS)
+                    secureClient.stop();
+                else
+                    client.stop();
+                currentHost = "";
+            }
             return MemoryBuffer::empty();
         }
 
         if (contentLength == 0)
         {
             result = "Empty response (Content-Length=0)";
-            if (connClose) { if (currentIsTLS) secureClient.stop(); else client.stop(); currentHost = ""; }
+            if (connClose)
+            {
+                if (currentIsTLS)
+                    secureClient.stop();
+                else
+                    client.stop();
+                currentHost = "";
+            }
             return MemoryBuffer::empty();
         }
 
@@ -114,7 +134,14 @@ MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &resul
         if (!buffer.isAllocated())
         {
             result = "Buffer allocation failed";
-            if (connClose) { if (currentIsTLS) secureClient.stop(); else client.stop(); currentHost = ""; }
+            if (connClose)
+            {
+                if (currentIsTLS)
+                    secureClient.stop();
+                else
+                    client.stop();
+                currentHost = "";
+            }
             return MemoryBuffer::empty();
         }
 
@@ -125,8 +152,12 @@ MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &resul
         }
 
         // If server indicated Connection: close, drop socket now so next request will handshake again
-        if (connClose) {
-            if (currentIsTLS) secureClient.stop(); else client.stop();
+        if (connClose)
+        {
+            if (currentIsTLS)
+                secureClient.stop();
+            else
+                client.stop();
             currentHost = "";
             currentPort = 0;
             currentIsTLS = false;
@@ -144,19 +175,25 @@ bool ReusableTileFetcher::parseUrl(const String &url, String &host, String &path
     useTLS = false;
     port = 80;
 
-    if (url.startsWith("https://")) {
+    if (url.startsWith("https://"))
+    {
         useTLS = true;
         port = 443;
-    } else if (url.startsWith("http://")) {
+    }
+    else if (url.startsWith("http://"))
+    {
         useTLS = false;
         port = 80;
-    } else {
+    }
+    else
+    {
         return false;
     }
 
     int idxHostStart = useTLS ? 8 : 7; // length of "https://" : "http://"
     int idxPath = url.indexOf('/', idxHostStart);
-    if (idxPath == -1) {
+    if (idxPath == -1)
+    {
         // allow bare host (no path) by setting path to "/"
         host = url.substring(idxHostStart);
         path = "/";
@@ -171,16 +208,22 @@ bool ReusableTileFetcher::parseUrl(const String &url, String &host, String &path
 bool ReusableTileFetcher::ensureConnection(const String &host, uint16_t port, bool useTLS, unsigned long timeoutMS, String &result)
 {
     // If we already have a connection to exact host/port/scheme and it's connected, keep it.
-    if ((useTLS == currentIsTLS) && (host == currentHost) && (port == currentPort) && 
-        ((useTLS && secureClient.connected()) || (!useTLS && client.connected()))) {
+    if ((useTLS == currentIsTLS) && (host == currentHost) && (port == currentPort) &&
+        ((useTLS && secureClient.connected()) || (!useTLS && client.connected())))
+    {
         return true;
     }
 
     // Not connected or different target: close previous
-    if (currentIsTLS) {
-        if (secureClient) secureClient.stop();
-    } else {
-        if (client) client.stop();
+    if (currentIsTLS)
+    {
+        if (secureClient)
+            secureClient.stop();
+    }
+    else
+    {
+        if (client)
+            client.stop();
     }
     currentHost = "";
     currentPort = 0;
@@ -189,17 +232,22 @@ bool ReusableTileFetcher::ensureConnection(const String &host, uint16_t port, bo
     // Choose client pointer
     uint32_t connectTimeout = timeoutMS > 0 ? timeoutMS : OSM_DEFAULT_TIMEOUT_MS;
 
-    if (useTLS) {
+    if (useTLS)
+    {
         // Optionally: secureClient.setInsecure(); or setCACert(...)
         // Do not recreate secureClient — reuse same object so mbedTLS can reuse the session.
-        secureClient.setInsecure(); 
-        if (!secureClient.connect(host.c_str(), port, connectTimeout)) {
+        secureClient.setInsecure();
+        if (!secureClient.connect(host.c_str(), port, connectTimeout))
+        {
             result = "TLS connect failed to " + host;
             return false;
         }
         currentIsTLS = true;
-    } else {
-        if (!client.connect(host.c_str(), port, connectTimeout)) {
+    }
+    else
+    {
+        if (!client.connect(host.c_str(), port, connectTimeout))
+        {
             result = "TCP connect failed to " + host;
             return false;
         }
@@ -223,7 +271,7 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
 
     uint32_t headerTimeout = timeoutMS > 0 ? timeoutMS : OSM_DEFAULT_TIMEOUT_MS;
 
-    Stream *s = currentIsTLS ? static_cast<Stream*>(&secureClient) : static_cast<Stream*>(&client);
+    // Stream *s = currentIsTLS ? static_cast<Stream *>(&secureClient) : static_cast<Stream *>(&client);
 
     while ((currentIsTLS ? secureClient.connected() : client.connected()))
     {
@@ -231,7 +279,10 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
         {
             result = "Header timeout";
             // disconnect
-            if (currentIsTLS) secureClient.stop(); else client.stop();
+            if (currentIsTLS)
+                secureClient.stop();
+            else
+                client.stop();
             return false;
         }
 
@@ -242,16 +293,22 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
             if (!line.startsWith("HTTP/1."))
             {
                 result = "Bad HTTP response: " + line;
-                if (currentIsTLS) secureClient.stop(); else client.stop();
+                if (currentIsTLS)
+                    secureClient.stop();
+                else
+                    client.stop();
                 return false;
             }
             // Extract status code
             int sp1 = line.indexOf(' ');
-            if (sp1 >= 0) {
+            if (sp1 >= 0)
+            {
                 int sp2 = line.indexOf(' ', sp1 + 1);
                 String codeStr;
-                if (sp2 > sp1) codeStr = line.substring(sp1 + 1, sp2);
-                else codeStr = line.substring(sp1 + 1);
+                if (sp2 > sp1)
+                    codeStr = line.substring(sp1 + 1, sp2);
+                else
+                    codeStr = line.substring(sp1 + 1);
                 statusCode = codeStr.toInt();
             }
             start = false;
@@ -275,7 +332,8 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
         {
             String val = line.substring(String("Connection:").length());
             val.trim();
-            if (val.equalsIgnoreCase("close")) outConnectionClose = true;
+            if (val.equalsIgnoreCase("close"))
+                outConnectionClose = true;
         }
     }
 
@@ -293,7 +351,7 @@ bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, u
 
     const unsigned long maxStall = timeoutMS > 0 ? timeoutMS : OSM_DEFAULT_TIMEOUT_MS;
 
-    Stream *s = currentIsTLS ? static_cast<Stream*>(&secureClient) : static_cast<Stream*>(&client);
+    // Stream *s = currentIsTLS ? static_cast<Stream *>(&secureClient) : static_cast<Stream *>(&client);
 
     while (readSize < contentLength)
     {
@@ -304,7 +362,10 @@ bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, u
             {
                 result = "Body read stalled for " + String(maxStall) + " ms";
                 // disconnect underlying client
-                if (currentIsTLS) secureClient.stop(); else client.stop();
+                if (currentIsTLS)
+                    secureClient.stop();
+                else
+                    client.stop();
                 currentHost = "";
                 currentPort = 0;
                 currentIsTLS = false;
