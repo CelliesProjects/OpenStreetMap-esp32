@@ -38,7 +38,7 @@ struct TileProvider
 
 const TileProvider osmStandard = {
     "OSM Standard",
-    "http://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
     "© OpenStreetMap contributors",
     false,
     "",
