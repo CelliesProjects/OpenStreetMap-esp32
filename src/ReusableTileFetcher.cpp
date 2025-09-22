@@ -39,9 +39,11 @@ void ReusableTileFetcher::sendHttpRequest(const String &host, const String &path
 
 void ReusableTileFetcher::disconnect()
 {
-    client.stop();
+    if (currentIsTLS)
+        secureClient.stop();
+    else
+        client.stop();
     currentHost = "";
-    currentPort = 80;
 }
 
 MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &result, unsigned long timeoutMS)
@@ -50,124 +52,63 @@ MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &resul
     uint16_t port;
     bool useTLS;
 
+    log_i("url: %s", url.c_str());
+
     if (!parseUrl(url, host, path, port, useTLS))
     {
         result = "Invalid URL";
         return MemoryBuffer::empty();
     }
 
-    // Follow redirects up to 3
-    const int MAX_REDIRECTS = 3;
-    int redirects = 0;
-    String currentUrl = url;
+    if (!ensureConnection(host, port, useTLS, timeoutMS, result))
+        return MemoryBuffer::empty();
 
-    while (redirects <= MAX_REDIRECTS)
+    sendHttpRequest(host, path);
+
+    size_t contentLength = 0;
+    int statusCode = 0;
+    String location;
+    bool connClose = false;
+
+    if (!readHttpHeaders(contentLength, timeoutMS, result, statusCode, location, connClose))
     {
-        // parse currentUrl each loop
-        if (!parseUrl(currentUrl, host, path, port, useTLS))
-        {
-            result = "Invalid redirect URL: " + currentUrl;
-            return MemoryBuffer::empty();
-        }
-
-        if (!ensureConnection(host, port, useTLS, timeoutMS, result))
-            return MemoryBuffer::empty();
-
-        sendHttpRequest(host, path);
-
-        size_t contentLength = 0;
-        int statusCode = 0;
-        String location = "";
-        bool connClose = false;
-
-        if (!readHttpHeaders(contentLength, timeoutMS, result, statusCode, location, connClose))
-            return MemoryBuffer::empty();
-
-        // Handle redirects (3xx)
-        if (statusCode >= 300 && statusCode < 400 && location.length() > 0)
-        {
-            // If server says close, close current socket
-            if (connClose)
-            {
-                if (currentIsTLS)
-                    secureClient.stop();
-                else
-                    client.stop();
-                currentHost = "";
-            }
-
-            // Follow Location (may be absolute URL)
-            currentUrl = location;
-            redirects++;
-            continue;
-        }
-
-        if (statusCode < 200 || statusCode >= 300)
-        {
-            result = "HTTP status " + String(statusCode);
-            if (connClose)
-            {
-                if (currentIsTLS)
-                    secureClient.stop();
-                else
-                    client.stop();
-                currentHost = "";
-            }
-            return MemoryBuffer::empty();
-        }
-
-        if (contentLength == 0)
-        {
-            result = "Empty response (Content-Length=0)";
-            if (connClose)
-            {
-                if (currentIsTLS)
-                    secureClient.stop();
-                else
-                    client.stop();
-                currentHost = "";
-            }
-            return MemoryBuffer::empty();
-        }
-
-        auto buffer = MemoryBuffer(contentLength);
-        if (!buffer.isAllocated())
-        {
-            result = "Buffer allocation failed";
-            if (connClose)
-            {
-                if (currentIsTLS)
-                    secureClient.stop();
-                else
-                    client.stop();
-                currentHost = "";
-            }
-            return MemoryBuffer::empty();
-        }
-
-        if (!readBody(buffer, contentLength, timeoutMS, result))
-        {
-            // readBody will disconnect on failure
-            return MemoryBuffer::empty();
-        }
-
-        // If server indicated Connection: close, drop socket now so next request will handshake again
-        if (connClose)
-        {
-            if (currentIsTLS)
-                secureClient.stop();
-            else
-                client.stop();
-            currentHost = "";
-            currentPort = 0;
-            currentIsTLS = false;
-        }
-
-        return buffer;
+        disconnect();
+        return MemoryBuffer::empty();
     }
 
-    result = "Too many redirects";
-    return MemoryBuffer::empty();
+    if (statusCode != 200)
+    {
+        result = "HTTP status " + String(statusCode);
+        disconnect();
+        return MemoryBuffer::empty();
+    }
+
+    if (contentLength == 0)
+    {
+        result = "Empty response (Content-Length=0)";
+        disconnect();
+        return MemoryBuffer::empty();
+    }
+
+    auto buffer = MemoryBuffer(contentLength);
+    if (!buffer.isAllocated())
+    {
+        result = "Buffer allocation failed";
+        disconnect();
+        return MemoryBuffer::empty();
+    }
+
+    if (!readBody(buffer, contentLength, timeoutMS, result))
+    {
+        disconnect();
+        return MemoryBuffer::empty();
+    }
+
+    // Server requested connection close → drop it
+    if (connClose)
+        disconnect();
+
+    return buffer;
 }
 
 bool ReusableTileFetcher::parseUrl(const String &url, String &host, String &path, uint16_t &port, bool &useTLS)
@@ -229,13 +170,10 @@ bool ReusableTileFetcher::ensureConnection(const String &host, uint16_t port, bo
     currentPort = 0;
     currentIsTLS = false;
 
-    // Choose client pointer
     uint32_t connectTimeout = timeoutMS > 0 ? timeoutMS : OSM_DEFAULT_TIMEOUT_MS;
 
     if (useTLS)
     {
-        // Optionally: secureClient.setInsecure(); or setCACert(...)
-        // Do not recreate secureClient — reuse same object so mbedTLS can reuse the session.
         secureClient.setInsecure();
         if (!secureClient.connect(host.c_str(), port, connectTimeout))
         {
@@ -271,32 +209,23 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
 
     uint32_t headerTimeout = timeoutMS > 0 ? timeoutMS : OSM_DEFAULT_TIMEOUT_MS;
 
-    // Stream *s = currentIsTLS ? static_cast<Stream *>(&secureClient) : static_cast<Stream *>(&client);
-
     while ((currentIsTLS ? secureClient.connected() : client.connected()))
     {
         if (!readLineWithTimeout(line, headerTimeout))
         {
             result = "Header timeout";
-            // disconnect
-            if (currentIsTLS)
-                secureClient.stop();
-            else
-                client.stop();
             return false;
         }
 
         line.trim();
+
+        log_d("read: %s", line.c_str());
+
         if (start)
         {
-            // Example: HTTP/1.1 200 OK
             if (!line.startsWith("HTTP/1."))
             {
                 result = "Bad HTTP response: " + line;
-                if (currentIsTLS)
-                    secureClient.stop();
-                else
-                    client.stop();
                 return false;
             }
             // Extract status code
@@ -317,20 +246,22 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
         if (line.length() == 0)
             break; // End of headers
 
-        if (line.startsWith("Content-Length:"))
+        line.toLowerCase();
+
+        if (line.startsWith("content-length:"))
         {
-            String val = line.substring(String("Content-Length:").length());
+            String val = line.substring(String("content-length:").length());
             val.trim();
             contentLength = val.toInt();
         }
-        else if (line.startsWith("Location:"))
+        else if (line.startsWith("location:"))
         {
-            outLocation = line.substring(String("Location:").length());
+            outLocation = line.substring(String("location:").length());
             outLocation.trim();
         }
-        else if (line.startsWith("Connection:"))
+        else if (line.startsWith("connection:"))
         {
-            String val = line.substring(String("Connection:").length());
+            String val = line.substring(String("connection:").length());
             val.trim();
             if (val.equalsIgnoreCase("close"))
                 outConnectionClose = true;
@@ -351,8 +282,6 @@ bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, u
 
     const unsigned long maxStall = timeoutMS > 0 ? timeoutMS : OSM_DEFAULT_TIMEOUT_MS;
 
-    // Stream *s = currentIsTLS ? static_cast<Stream *>(&secureClient) : static_cast<Stream *>(&client);
-
     while (readSize < contentLength)
     {
         size_t availableData = (currentIsTLS ? secureClient.available() : client.available());
@@ -361,14 +290,6 @@ bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, u
             if (millis() - lastReadTime >= maxStall)
             {
                 result = "Body read stalled for " + String(maxStall) + " ms";
-                // disconnect underlying client
-                if (currentIsTLS)
-                    secureClient.stop();
-                else
-                    client.stop();
-                currentHost = "";
-                currentPort = 0;
-                currentIsTLS = false;
                 return false;
             }
             taskYIELD();

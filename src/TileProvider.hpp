@@ -46,7 +46,7 @@ const TileProvider osmStandard = {
 
 const TileProvider ThunderTransportDark256 = {
     "Thunderforest Transport Dark 256px",
-    "http://tile.thunderforest.com/transport-dark/{z}/{x}/{y}.png?apikey={apiKey}",
+    "https://tile.thunderforest.com/transport-dark/{z}/{x}/{y}.png?apikey={apiKey}",
     "© Thunderforest, OpenStreetMap contributors",
     true,
     "YOUR_THUNDERFOREST_KEY",
@@ -54,7 +54,7 @@ const TileProvider ThunderTransportDark256 = {
 
 const TileProvider ThunderForestCycle512 = {
     "Thunderforest Cycle 512px",
-    "http://tile.thunderforest.com/cycle/{z}/{x}/{y}@2x.png?apikey={apiKey}",
+    "https://tile.thunderforest.com/cycle/{z}/{x}/{y}@2x.png?apikey={apiKey}",
     "© Thunderforest, OpenStreetMap contributors",
     true,
     "YOUR_THUNDERFOREST_KEY",
@@ -62,7 +62,7 @@ const TileProvider ThunderForestCycle512 = {
 
 const TileProvider ThunderForestCycle256 = {
     "Thunderforest Cycle 256px",
-    "http://tile.thunderforest.com/cycle/{z}/{x}/{y}.png?apikey={apiKey}",
+    "https://tile.thunderforest.com/cycle/{z}/{x}/{y}.png?apikey={apiKey}",
     "© Thunderforest, OpenStreetMap contributors",
     true,
     "YOUR_THUNDERFOREST_KEY",
@@ -72,12 +72,12 @@ const TileProvider ThunderForestCycle256 = {
 // and uncomment one of the following line to use Thunderforest tiles
 
 // const TileProvider tileProviders[] = {osmStandard, ThunderTransportDark256, ThunderForestCycle512, ThunderForestCycle256};
-// const TileProvider tileProviders[] = {ThunderTransportDark256};
+const TileProvider tileProviders[] = {ThunderTransportDark256};
 // const TileProvider tileProviders[] = {ThunderForestCycle512};
 // const TileProvider tileProviders[] = {ThunderForestCycle256};
 
 // If one of the above definitions is used, the following line should be commented out
-const TileProvider tileProviders[] = {osmStandard};
+//const TileProvider tileProviders[] = {osmStandard};
 
 constexpr int OSM_TILEPROVIDERS = sizeof(tileProviders) / sizeof(TileProvider);
 
