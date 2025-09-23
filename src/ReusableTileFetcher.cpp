@@ -107,9 +107,6 @@ MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &resul
 
 bool ReusableTileFetcher::parseUrl(const String &url, String &host, String &path, uint16_t &port, bool &useTLS)
 {
-    useTLS = false;
-    port = 80;
-
     if (url.startsWith("https://"))
     {
         useTLS = true;
@@ -121,19 +118,12 @@ bool ReusableTileFetcher::parseUrl(const String &url, String &host, String &path
         port = 80;
     }
     else
-    {
         return false;
-    }
 
-    int idxHostStart = useTLS ? 8 : 7; // length of "https://" : "http://"
+    int idxHostStart = useTLS ? 8 : 7; // skip scheme
     int idxPath = url.indexOf('/', idxHostStart);
     if (idxPath == -1)
-    {
-        // allow bare host (no path) by setting path to "/"
-        host = url.substring(idxHostStart);
-        path = "/";
-        return true;
-    }
+        return false;
 
     host = url.substring(idxHostStart, idxPath);
     path = url.substring(idxPath);
