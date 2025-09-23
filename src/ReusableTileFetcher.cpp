@@ -68,19 +68,11 @@ MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &resul
     sendHttpRequest(host, path);
 
     size_t contentLength = 0;
-    int statusCode = 0;
     String location;
     bool connClose = false;
 
-    if (!readHttpHeaders(contentLength, timeoutMS, result, statusCode, connClose))
+    if (!readHttpHeaders(contentLength, timeoutMS, result, connClose))
     {
-        disconnect();
-        return MemoryBuffer::empty();
-    }
-
-    if (statusCode != 200)
-    {
-        result = "HTTP status " + String(statusCode);
         disconnect();
         return MemoryBuffer::empty();
     }
@@ -194,14 +186,14 @@ bool ReusableTileFetcher::ensureConnection(const String &host, uint16_t port, bo
     return true;
 }
 
-bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long timeoutMS, String &result, int &statusCode, bool &connectionClose)
+bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long timeoutMS, String &result, bool &connectionClose)
 {
     String line;
     line.reserve(OSM_MAX_HEADERLENGTH);
     contentLength = 0;
     bool start = true;
     connectionClose = false;
-    statusCode = 0;
+    bool pngFound = false;
 
     uint32_t headerTimeout = timeoutMS > 0 ? timeoutMS : OSM_DEFAULT_TIMEOUT_MS;
 
@@ -214,7 +206,6 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
         }
 
         line.trim();
-
         log_d("read header: %s", line.c_str());
 
         if (start)
@@ -225,16 +216,19 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
                 return false;
             }
             // Extract status code
+            int statusCode;
             int sp1 = line.indexOf(' ');
             if (sp1 >= 0)
             {
                 int sp2 = line.indexOf(' ', sp1 + 1);
-                String codeStr;
-                if (sp2 > sp1)
-                    codeStr = line.substring(sp1 + 1, sp2);
-                else
-                    codeStr = line.substring(sp1 + 1);
+                String codeStr = (sp2 > sp1) ? line.substring(sp1 + 1, sp2)
+                                             : line.substring(sp1 + 1);
                 statusCode = codeStr.toInt();
+            }
+            if (statusCode != 200)
+            {
+                result = "HTTP error " + String(statusCode);
+                return false;
             }
             start = false;
         }
@@ -245,25 +239,36 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
         line.toLowerCase();
 
         static const char *CONTENT_LENGTH = "content-length:";
+        static const char *CONTENT_TYPE = "content-type:";
         static const char *CONNECTION = "connection:";
 
         if (line.startsWith(CONTENT_LENGTH))
         {
-            String val = line.substring(String(CONTENT_LENGTH).length());
+            String val = line.substring(strlen(CONTENT_LENGTH));
             val.trim();
             contentLength = val.toInt();
         }
         else if (line.startsWith(CONNECTION))
         {
-            String val = line.substring(String(CONNECTION).length());
+            String val = line.substring(strlen(CONNECTION));
             val.trim();
-            if (val.equalsIgnoreCase("close"))
+            if (val.equals("close"))
                 connectionClose = true;
+        }
+        else if (line.startsWith(CONTENT_TYPE))
+        {
+            String val = line.substring(strlen(CONTENT_TYPE));
+            val.trim();
+            if (val.equals("image/png"))
+                pngFound = true;
         }
     }
 
-    if (contentLength == 0)
-        log_w("Content-Length = 0");
+    if (!pngFound)
+    {
+        result = "Content-Type not PNG";
+        return false;
+    }
 
     return true;
 }
