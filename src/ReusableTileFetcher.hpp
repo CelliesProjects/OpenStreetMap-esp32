@@ -46,14 +46,14 @@ public:
 private:
     WiFiClient client;
     WiFiClientSecure secureClient;
-    bool currentIsTLS = false;       // true if secureClient is the active connection
+    bool currentIsTLS = false;
     String currentHost;
     uint16_t currentPort = 80;
 
     bool parseUrl(const String &url, String &host, String &path, uint16_t &port, bool &useTLS);
     bool ensureConnection(const String &host, uint16_t port, bool useTLS, unsigned long timeoutMS, String &result);
     void sendHttpRequest(const String &host, const String &path);
-    bool readHttpHeaders(size_t &contentLength, unsigned long timeoutMS, String &result, int &statusCode, String &outLocation, bool &outConnectionClose);
+    bool readHttpHeaders(size_t &contentLength, unsigned long timeoutMS, String &result, int &statusCode, bool &connectionClose);
     bool readBody(MemoryBuffer &buffer, size_t contentLength, unsigned long timeoutMS, String &result);
     bool readLineWithTimeout(String &line, uint32_t timeoutMs);
 };

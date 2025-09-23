@@ -44,6 +44,8 @@ void ReusableTileFetcher::disconnect()
     else
         client.stop();
     currentHost = "";
+    currentPort = 0;
+    currentIsTLS = false;
 }
 
 MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &result, unsigned long timeoutMS)
@@ -52,7 +54,7 @@ MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &resul
     uint16_t port;
     bool useTLS;
 
-    log_i("url: %s", url.c_str());
+    log_d("url: %s", url.c_str());
 
     if (!parseUrl(url, host, path, port, useTLS))
     {
@@ -70,7 +72,7 @@ MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &resul
     String location;
     bool connClose = false;
 
-    if (!readHttpHeaders(contentLength, timeoutMS, result, statusCode, location, connClose))
+    if (!readHttpHeaders(contentLength, timeoutMS, result, statusCode, connClose))
     {
         disconnect();
         return MemoryBuffer::empty();
@@ -157,15 +159,10 @@ bool ReusableTileFetcher::ensureConnection(const String &host, uint16_t port, bo
 
     // Not connected or different target: close previous
     if (currentIsTLS)
-    {
-        if (secureClient)
-            secureClient.stop();
-    }
+        secureClient.stop();
     else
-    {
-        if (client)
-            client.stop();
-    }
+        client.stop();
+
     currentHost = "";
     currentPort = 0;
     currentIsTLS = false;
@@ -197,14 +194,13 @@ bool ReusableTileFetcher::ensureConnection(const String &host, uint16_t port, bo
     return true;
 }
 
-bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long timeoutMS, String &result, int &statusCode, String &outLocation, bool &outConnectionClose)
+bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long timeoutMS, String &result, int &statusCode, bool &connectionClose)
 {
     String line;
     line.reserve(OSM_MAX_HEADERLENGTH);
     contentLength = 0;
     bool start = true;
-    outLocation = "";
-    outConnectionClose = false;
+    connectionClose = false;
     statusCode = 0;
 
     uint32_t headerTimeout = timeoutMS > 0 ? timeoutMS : OSM_DEFAULT_TIMEOUT_MS;
@@ -219,7 +215,7 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
 
         line.trim();
 
-        log_d("read: %s", line.c_str());
+        log_d("read header: %s", line.c_str());
 
         if (start)
         {
@@ -248,28 +244,26 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
 
         line.toLowerCase();
 
-        if (line.startsWith("content-length:"))
+        static const char *CONTENT_LENGTH = "content-length:";
+        static const char *CONNECTION = "connection:";
+
+        if (line.startsWith(CONTENT_LENGTH))
         {
-            String val = line.substring(String("content-length:").length());
+            String val = line.substring(String(CONTENT_LENGTH).length());
             val.trim();
             contentLength = val.toInt();
         }
-        else if (line.startsWith("location:"))
+        else if (line.startsWith(CONNECTION))
         {
-            outLocation = line.substring(String("location:").length());
-            outLocation.trim();
-        }
-        else if (line.startsWith("connection:"))
-        {
-            String val = line.substring(String("connection:").length());
+            String val = line.substring(String(CONNECTION).length());
             val.trim();
             if (val.equalsIgnoreCase("close"))
-                outConnectionClose = true;
+                connectionClose = true;
         }
     }
 
     if (contentLength == 0)
-        log_w("Content-Length = 0 (valid empty body or chunked not supported)");
+        log_w("Content-Length = 0");
 
     return true;
 }
@@ -282,14 +276,20 @@ bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, u
 
     const unsigned long maxStall = timeoutMS > 0 ? timeoutMS : OSM_DEFAULT_TIMEOUT_MS;
 
+    if (currentIsTLS)
+        secureClient.setTimeout(maxStall);
+    else
+        client.setTimeout(maxStall);
+
     while (readSize < contentLength)
     {
-        size_t availableData = (currentIsTLS ? secureClient.available() : client.available());
+        size_t availableData = currentIsTLS ? secureClient.available() : client.available();
         if (availableData == 0)
         {
             if (millis() - lastReadTime >= maxStall)
             {
-                result = "Body read stalled for " + String(maxStall) + " ms";
+                result = "Timeout: body read stalled for " + String(maxStall) + " ms";
+                disconnect();
                 return false;
             }
             taskYIELD();
@@ -299,7 +299,10 @@ bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, u
         size_t remaining = contentLength - readSize;
         size_t toRead = std::min(availableData, remaining);
 
-        int bytesRead = (currentIsTLS ? secureClient.readBytes(dest + readSize, toRead) : client.readBytes(dest + readSize, toRead));
+        int bytesRead = currentIsTLS
+                            ? secureClient.readBytes(dest + readSize, toRead)
+                            : client.readBytes(dest + readSize, toRead);
+
         if (bytesRead > 0)
         {
             readSize += bytesRead;
