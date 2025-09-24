@@ -178,15 +178,6 @@ bool ReusableTileFetcher::ensureConnection(const String &host, uint16_t port, bo
 
 bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long timeoutMS, String &result, bool &connectionClose)
 {
-    static constexpr const char CONTENT_LENGTH[] = "content-length:";
-    static constexpr size_t CONTENT_LENGTH_LEN = sizeof(CONTENT_LENGTH) - 1;
-
-    static constexpr const char CONTENT_TYPE[] = "content-type:";
-    static constexpr size_t CONTENT_TYPE_LEN = sizeof(CONTENT_TYPE) - 1;
-
-    static constexpr const char CONNECTION[] = "connection:";
-    static constexpr size_t CONNECTION_LEN = sizeof(CONNECTION) - 1;
-
     String &line = headerLine;
     line = "";
     contentLength = 0;
@@ -255,6 +246,15 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
 
         if (line.length() == 0)
             break; // End of headers
+
+        static constexpr const char CONTENT_LENGTH[] = "content-length:";
+        static constexpr size_t CONTENT_LENGTH_LEN = sizeof(CONTENT_LENGTH) - 1;
+
+        static constexpr const char CONTENT_TYPE[] = "content-type:";
+        static constexpr size_t CONTENT_TYPE_LEN = sizeof(CONTENT_TYPE) - 1;
+
+        static constexpr const char CONNECTION[] = "connection:";
+        static constexpr size_t CONNECTION_LEN = sizeof(CONNECTION) - 1;
 
         const char *raw = line.c_str();
         if (strncasecmp(raw, CONTENT_LENGTH, CONTENT_LENGTH_LEN) == 0)
