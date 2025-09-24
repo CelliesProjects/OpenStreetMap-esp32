@@ -23,7 +23,7 @@
 
 #include "ReusableTileFetcher.hpp"
 
-ReusableTileFetcher::ReusableTileFetcher() {}
+ReusableTileFetcher::ReusableTileFetcher() { headerLine.reserve(OSM_MAX_HEADERLENGTH); }
 ReusableTileFetcher::~ReusableTileFetcher() { disconnect(); }
 
 void ReusableTileFetcher::sendHttpRequest(const String &host, const String &path)
@@ -178,15 +178,6 @@ bool ReusableTileFetcher::ensureConnection(const String &host, uint16_t port, bo
 
 bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long timeoutMS, String &result, bool &connectionClose)
 {
-    String line;
-    line.reserve(OSM_MAX_HEADERLENGTH);
-    contentLength = 0;
-    bool start = true;
-    connectionClose = false;
-    bool pngFound = false;
-
-    uint32_t headerTimeout = timeoutMS > 0 ? timeoutMS : OSM_DEFAULT_TIMEOUT_MS;
-
     static constexpr const char CONTENT_LENGTH[] = "content-length:";
     static constexpr size_t CONTENT_LENGTH_LEN = sizeof(CONTENT_LENGTH) - 1;
 
@@ -195,6 +186,15 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
 
     static constexpr const char CONNECTION[] = "connection:";
     static constexpr size_t CONNECTION_LEN = sizeof(CONNECTION) - 1;
+
+    String &line = headerLine;
+    line = "";
+    contentLength = 0;
+    bool start = true;
+    connectionClose = false;
+    bool pngFound = false;
+
+    uint32_t headerTimeout = timeoutMS > 0 ? timeoutMS : OSM_DEFAULT_TIMEOUT_MS;
 
     while ((currentIsTLS ? secureClient.connected() : client.connected()))
     {
@@ -214,21 +214,42 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
                 result = "Bad HTTP response: " + line;
                 return false;
             }
-            // Extract status code
+
             int statusCode = 0;
-            int sp1 = line.indexOf(' ');
-            if (sp1 >= 0)
+            const char *reasonPhrase = "";
+
+            const char *buf = line.c_str();
+            const char *sp1 = strchr(buf, ' ');
+            if (sp1)
             {
-                int sp2 = line.indexOf(' ', sp1 + 1);
-                String codeStr = (sp2 > sp1) ? line.substring(sp1 + 1, sp2)
-                                             : line.substring(sp1 + 1);
-                statusCode = codeStr.toInt();
+                // parse up to 3 digits after first space
+                const char *p = sp1 + 1;
+                while (*p && isspace((unsigned char)*p))
+                    p++; // skip extra spaces
+
+                while (*p && isdigit((unsigned char)*p))
+                {
+                    statusCode = statusCode * 10 + (*p - '0');
+                    p++;
+                }
+
+                // skip a single space to get to reason phrase
+                if (*p == ' ')
+                    reasonPhrase = p + 1;
             }
+
             if (statusCode != 200)
             {
                 result = "HTTP error " + String(statusCode);
+                if (*reasonPhrase)
+                {
+                    result += " (";
+                    result += reasonPhrase;
+                    result += ")";
+                }
                 return false;
             }
+
             start = false;
         }
 

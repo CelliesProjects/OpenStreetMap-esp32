@@ -49,6 +49,7 @@ private:
     bool currentIsTLS = false;
     String currentHost;
     uint16_t currentPort = 80;
+    String headerLine;
 
     bool parseUrl(const String &url, String &host, String &path, uint16_t &port, bool &useTLS);
     bool ensureConnection(const String &host, uint16_t port, bool useTLS, unsigned long timeoutMS, String &result);
