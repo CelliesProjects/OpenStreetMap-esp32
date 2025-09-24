@@ -187,6 +187,15 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
 
     uint32_t headerTimeout = timeoutMS > 0 ? timeoutMS : OSM_DEFAULT_TIMEOUT_MS;
 
+    static constexpr const char CONTENT_LENGTH[] = "content-length:";
+    static constexpr size_t CONTENT_LENGTH_LEN = sizeof(CONTENT_LENGTH) - 1;
+
+    static constexpr const char CONTENT_TYPE[] = "content-type:";
+    static constexpr size_t CONTENT_TYPE_LEN = sizeof(CONTENT_TYPE) - 1;
+
+    static constexpr const char CONNECTION[] = "connection:";
+    static constexpr size_t CONNECTION_LEN = sizeof(CONNECTION) - 1;
+
     while ((currentIsTLS ? secureClient.connected() : client.connected()))
     {
         if (!readLineWithTimeout(line, headerTimeout))
@@ -206,7 +215,7 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
                 return false;
             }
             // Extract status code
-            int statusCode;
+            int statusCode = 0;
             int sp1 = line.indexOf(' ');
             if (sp1 >= 0)
             {
@@ -226,30 +235,28 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
         if (line.length() == 0)
             break; // End of headers
 
-        line.toLowerCase();
-
-        static const char *CONTENT_LENGTH = "content-length:";
-        static const char *CONTENT_TYPE = "content-type:";
-        static const char *CONNECTION = "connection:";
-
-        if (line.startsWith(CONTENT_LENGTH))
+        const char *raw = line.c_str();
+        if (strncasecmp(raw, CONTENT_LENGTH, CONTENT_LENGTH_LEN) == 0)
         {
-            String val = line.substring(strlen(CONTENT_LENGTH));
-            val.trim();
-            contentLength = val.toInt();
+            const char *val = raw + CONTENT_LENGTH_LEN;
+            while (*val == ' ' || *val == '\t')
+                val++; // trim left
+            contentLength = atoi(val);
         }
-        else if (line.startsWith(CONNECTION))
+        else if (strncasecmp(raw, CONNECTION, CONNECTION_LEN) == 0)
         {
-            String val = line.substring(strlen(CONNECTION));
-            val.trim();
-            if (val.equals("close"))
+            const char *val = raw + CONNECTION_LEN;
+            while (*val == ' ' || *val == '\t')
+                val++;
+            if (strcasecmp(val, "close") == 0)
                 connectionClose = true;
         }
-        else if (line.startsWith(CONTENT_TYPE))
+        else if (strncasecmp(raw, CONTENT_TYPE, CONTENT_TYPE_LEN) == 0)
         {
-            String val = line.substring(strlen(CONTENT_TYPE));
-            val.trim();
-            if (val.equals("image/png"))
+            const char *val = raw + CONTENT_TYPE_LEN;
+            while (*val == ' ' || *val == '\t')
+                val++;
+            if (strcasecmp(val, "image/png") == 0)
                 pngFound = true;
         }
     }
