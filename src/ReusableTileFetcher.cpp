@@ -245,8 +245,9 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
         }
 
         if (line.length() == 0)
-            break; // End of headers
+            break;
 
+        // start parsing
         static constexpr const char CONTENT_LENGTH[] = "content-length:";
         static constexpr size_t CONTENT_LENGTH_LEN = sizeof(CONTENT_LENGTH) - 1;
 
