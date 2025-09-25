@@ -26,15 +26,14 @@
 ReusableTileFetcher::ReusableTileFetcher() { headerLine.reserve(OSM_MAX_HEADERLENGTH); }
 ReusableTileFetcher::~ReusableTileFetcher() { disconnect(); }
 
-void ReusableTileFetcher::sendHttpRequest(const String &host, const String &path)
+void ReusableTileFetcher::sendHttpRequest(const char *host, const char *path)
 {
     Stream *s = currentIsTLS ? static_cast<Stream *>(&secureClient) : static_cast<Stream *>(&client);
 
-    s->print(String("GET ") + path + " HTTP/1.1\r\n");
-    s->print(String("Host: ") + host + "\r\n");
-    s->print("User-Agent: OpenStreetMap-esp32/1.0 (+https://github.com/CelliesProjects/OpenStreetMap-esp32)\r\n");
-    s->print("Connection: keep-alive\r\n");
-    s->print("\r\n");
+    char buf[256];
+    snprintf(buf, sizeof(buf), "GET %s HTTP/1.1\r\nHost: %s\r\n", path, host);
+    s->print(buf);
+    s->print("User-Agent: OpenStreetMap-esp32/1.0 (+https://github.com/CelliesProjects/OpenStreetMap-esp32)\r\nConnection: keep-alive\r\n\r\n");
 }
 
 void ReusableTileFetcher::disconnect()
@@ -50,22 +49,23 @@ void ReusableTileFetcher::disconnect()
 
 MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &result, unsigned long timeoutMS)
 {
-    String host, path;
-    uint16_t port;
+    char currentHost[128];
+    char currentPath[128];
+    uint16_t currentPort;
     bool useTLS;
 
     log_d("url: %s", url.c_str());
 
-    if (!parseUrl(url, host, path, port, useTLS))
+    if (!parseUrl(url, currentHost, currentPath, currentPort, useTLS))
     {
         result = "Invalid URL";
         return MemoryBuffer::empty();
     }
 
-    if (!ensureConnection(host, port, useTLS, timeoutMS, result))
+    if (!ensureConnection(currentHost, currentPort, useTLS, timeoutMS, result))
         return MemoryBuffer::empty();
 
-    sendHttpRequest(host, path);
+    sendHttpRequest(currentHost, currentPath);
 
     size_t contentLength = 0;
     bool connClose = false;
@@ -104,7 +104,7 @@ MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &resul
     return buffer;
 }
 
-bool ReusableTileFetcher::parseUrl(const String &url, String &host, String &path, uint16_t &port, bool &useTLS)
+bool ReusableTileFetcher::parseUrl(const String &url, char *host, char *path, uint16_t &port, bool &useTLS)
 {
     if (url.startsWith("https://"))
     {
@@ -124,8 +124,22 @@ bool ReusableTileFetcher::parseUrl(const String &url, String &host, String &path
     if (idxPath == -1)
         return false;
 
-    host = url.substring(idxHostStart, idxPath);
-    path = url.substring(idxPath);
+    // Copy host substring into buffer
+    int hostLen = idxPath - idxHostStart;
+    if (hostLen <= 0 || hostLen >= OSM_MAX_HOST_LEN)
+        return false; // too long for buffer
+
+    strncpy(host, url.c_str() + idxHostStart, hostLen);
+    host[hostLen] = '\0';
+
+    // Copy path substring into buffer
+    int pathLen = url.length() - idxPath;
+    if (pathLen <= 0 || pathLen >= OSM_MAX_PATH_LEN)
+        return false; // too long for buffer
+
+    strncpy(path, url.c_str() + idxPath, pathLen);
+    path[pathLen] = '\0';
+
     return true;
 }
 

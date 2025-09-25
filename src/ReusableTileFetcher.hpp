@@ -29,6 +29,8 @@
 #include "MemoryBuffer.hpp"
 
 constexpr int OSM_MAX_HEADERLENGTH = 256;
+constexpr int OSM_MAX_HOST_LEN = 128;
+constexpr int OSM_MAX_PATH_LEN = 128;
 constexpr int OSM_DEFAULT_TIMEOUT_MS = 5000;
 
 class ReusableTileFetcher
@@ -51,9 +53,9 @@ private:
     uint16_t currentPort = 80;
     String headerLine;
 
-    bool parseUrl(const String &url, String &host, String &path, uint16_t &port, bool &useTLS);
+    bool parseUrl(const String &url, char *host, char *path, uint16_t &port, bool &useTLS);
     bool ensureConnection(const String &host, uint16_t port, bool useTLS, unsigned long timeoutMS, String &result);
-    void sendHttpRequest(const String &host, const String &path);
+    void sendHttpRequest(const char *host, const char *path);
     bool readHttpHeaders(size_t &contentLength, unsigned long timeoutMS, String &result, bool &connectionClose);
     bool readBody(MemoryBuffer &buffer, size_t contentLength, unsigned long timeoutMS, String &result);
     bool readLineWithTimeout(String &line, uint32_t timeoutMs);
