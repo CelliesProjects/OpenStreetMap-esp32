@@ -68,7 +68,6 @@ MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &resul
     sendHttpRequest(host, path);
 
     size_t contentLength = 0;
-    String location;
     bool connClose = false;
 
     if (!readHttpHeaders(contentLength, timeoutMS, result, connClose))
