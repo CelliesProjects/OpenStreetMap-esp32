@@ -140,14 +140,7 @@ bool ReusableTileFetcher::ensureConnection(const String &host, uint16_t port, bo
     }
 
     // Not connected or different target: close previous
-    if (currentIsTLS)
-        secureClient.stop();
-    else
-        client.stop();
-
-    currentHost = "";
-    currentPort = 0;
-    currentIsTLS = false;
+    disconnect();
 
     uint32_t connectTimeout = timeoutMS > 0 ? timeoutMS : OSM_DEFAULT_TIMEOUT_MS;
 
@@ -195,7 +188,6 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
             return false;
         }
 
-        line.trim();
         log_d("read header: %s", line.c_str());
 
         if (start)
