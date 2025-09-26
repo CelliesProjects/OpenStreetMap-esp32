@@ -49,8 +49,8 @@ void ReusableTileFetcher::disconnect()
 
 MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &result, unsigned long timeoutMS)
 {
-    char currentHost[128];
-    char currentPath[128];
+    char currentHost[OSM_MAX_HOST_LEN];
+    char currentPath[OSM_MAX_PATH_LEN];
     uint16_t currentPort;
     bool useTLS;
 
@@ -124,21 +124,17 @@ bool ReusableTileFetcher::parseUrl(const String &url, char *host, char *path, ui
     if (idxPath == -1)
         return false;
 
-    // Copy host substring into buffer
     int hostLen = idxPath - idxHostStart;
     if (hostLen <= 0 || hostLen >= OSM_MAX_HOST_LEN)
         return false; // too long for buffer
 
-    strncpy(host, url.c_str() + idxHostStart, hostLen);
-    host[hostLen] = '\0';
+    snprintf(host, OSM_MAX_HOST_LEN, "%.*s", hostLen, url.c_str() + idxHostStart);
 
-    // Copy path substring into buffer
     int pathLen = url.length() - idxPath;
     if (pathLen <= 0 || pathLen >= OSM_MAX_PATH_LEN)
         return false; // too long for buffer
 
-    strncpy(path, url.c_str() + idxPath, pathLen);
-    path[pathLen] = '\0';
+    snprintf(path, OSM_MAX_PATH_LEN, "%.*s", pathLen, url.c_str() + idxPath);
 
     return true;
 }
@@ -152,7 +148,6 @@ bool ReusableTileFetcher::ensureConnection(const String &host, uint16_t port, bo
         return true;
     }
 
-    // Not connected or different target: close previous
     disconnect();
 
     uint32_t connectTimeout = timeoutMS > 0 ? timeoutMS : OSM_DEFAULT_TIMEOUT_MS;
