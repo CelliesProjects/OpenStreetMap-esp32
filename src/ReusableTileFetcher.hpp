@@ -42,19 +42,19 @@ public:
     ReusableTileFetcher(const ReusableTileFetcher &) = delete;
     ReusableTileFetcher &operator=(const ReusableTileFetcher &) = delete;
 
-    MemoryBuffer fetchToBuffer(const String &url, String &result, unsigned long timeoutMS);
+    MemoryBuffer fetchToBuffer(const char *url, String &result, unsigned long timeoutMS);
     void disconnect();
 
 private:
     WiFiClient client;
     WiFiClientSecure secureClient;
     bool currentIsTLS = false;
-    String currentHost;
-    uint16_t currentPort = 80;
+    char currentHost[OSM_MAX_HOST_LEN] = {0};
+    uint16_t currentPort = 0;
     String headerLine;
 
-    bool parseUrl(const String &url, char *host, char *path, uint16_t &port, bool &useTLS);
-    bool ensureConnection(const String &host, uint16_t port, bool useTLS, unsigned long timeoutMS, String &result);
+    bool parseUrl(const char *url, char *host, char *path, uint16_t &port, bool &useTLS);
+    bool ensureConnection(const char *host, uint16_t port, bool useTLS, unsigned long timeoutMS, String &result);
     void sendHttpRequest(const char *host, const char *path);
     bool readHttpHeaders(size_t &contentLength, unsigned long timeoutMS, String &result, bool &connectionClose);
     bool readBody(MemoryBuffer &buffer, size_t contentLength, unsigned long timeoutMS, String &result);

@@ -42,30 +42,30 @@ void ReusableTileFetcher::disconnect()
         secureClient.stop();
     else
         client.stop();
-    currentHost = "";
+    currentHost[0] = 0;
     currentPort = 0;
     currentIsTLS = false;
 }
 
-MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &result, unsigned long timeoutMS)
+MemoryBuffer ReusableTileFetcher::fetchToBuffer(const char *url, String &result, unsigned long timeoutMS)
 {
-    char currentHost[OSM_MAX_HOST_LEN];
-    char currentPath[OSM_MAX_PATH_LEN];
-    uint16_t currentPort;
+    char host[OSM_MAX_HOST_LEN];
+    char path[OSM_MAX_PATH_LEN];
+    uint16_t port;
     bool useTLS;
 
-    log_d("url: %s", url.c_str());
+    log_d("url: %s", url);
 
-    if (!parseUrl(url, currentHost, currentPath, currentPort, useTLS))
+    if (!parseUrl(url, host, path, port, useTLS))
     {
         result = "Invalid URL";
         return MemoryBuffer::empty();
     }
 
-    if (!ensureConnection(currentHost, currentPort, useTLS, timeoutMS, result))
+    if (!ensureConnection(host, port, useTLS, timeoutMS, result))
         return MemoryBuffer::empty();
 
-    sendHttpRequest(currentHost, currentPath);
+    sendHttpRequest(host, path);
 
     size_t contentLength = 0;
     bool connClose = false;
@@ -104,14 +104,17 @@ MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &resul
     return buffer;
 }
 
-bool ReusableTileFetcher::parseUrl(const String &url, char *host, char *path, uint16_t &port, bool &useTLS)
+bool ReusableTileFetcher::parseUrl(const char *url, char *host, char *path, uint16_t &port, bool &useTLS)
 {
-    if (url.startsWith("https://"))
+    if (!url)
+        return false;
+
+    if (strncmp(url, "https://", 8) == 0)
     {
         useTLS = true;
         port = 443;
     }
-    else if (url.startsWith("http://"))
+    else if (strncmp(url, "http://", 7) == 0)
     {
         useTLS = false;
         port = 80;
@@ -120,29 +123,29 @@ bool ReusableTileFetcher::parseUrl(const String &url, char *host, char *path, ui
         return false;
 
     int idxHostStart = useTLS ? 8 : 7; // skip scheme
-    int idxPath = url.indexOf('/', idxHostStart);
-    if (idxPath == -1)
-        return false;
+    const char *pathPtr = strchr(url + idxHostStart, '/');
+    if (!pathPtr)
+        return false; // no '/' → invalid
 
-    int hostLen = idxPath - idxHostStart;
+    int hostLen = pathPtr - (url + idxHostStart);
     if (hostLen <= 0 || hostLen >= OSM_MAX_HOST_LEN)
         return false; // too long for buffer
 
-    snprintf(host, OSM_MAX_HOST_LEN, "%.*s", hostLen, url.c_str() + idxHostStart);
+    snprintf(host, OSM_MAX_HOST_LEN, "%.*s", hostLen, url + idxHostStart);
 
-    int pathLen = url.length() - idxPath;
+    int pathLen = strlen(pathPtr);
     if (pathLen <= 0 || pathLen >= OSM_MAX_PATH_LEN)
         return false; // too long for buffer
 
-    snprintf(path, OSM_MAX_PATH_LEN, "%.*s", pathLen, url.c_str() + idxPath);
+    snprintf(path, OSM_MAX_PATH_LEN, "%s", pathPtr);
 
     return true;
 }
 
-bool ReusableTileFetcher::ensureConnection(const String &host, uint16_t port, bool useTLS, unsigned long timeoutMS, String &result)
+bool ReusableTileFetcher::ensureConnection(const char *host, uint16_t port, bool useTLS, unsigned long timeoutMS, String &result)
 {
     // If we already have a connection to exact host/port/scheme and it's connected, keep it.
-    if ((useTLS == currentIsTLS) && (host == currentHost) && (port == currentPort) &&
+    if ((useTLS == currentIsTLS) && !strcmp(host, currentHost) && (port == currentPort) &&
         ((useTLS && secureClient.connected()) || (!useTLS && client.connected())))
     {
         return true;
@@ -155,25 +158,25 @@ bool ReusableTileFetcher::ensureConnection(const String &host, uint16_t port, bo
     if (useTLS)
     {
         secureClient.setInsecure();
-        if (!secureClient.connect(host.c_str(), port, connectTimeout))
+        if (!secureClient.connect(host, port, connectTimeout))
         {
-            result = "TLS connect failed to " + host;
+            result = "TLS connect failed to " + String(host);
             return false;
         }
         currentIsTLS = true;
     }
     else
     {
-        if (!client.connect(host.c_str(), port, connectTimeout))
+        if (!client.connect(host, port, connectTimeout))
         {
-            result = "TCP connect failed to " + host;
+            result = "TCP connect failed to " + String(host);
             return false;
         }
         currentIsTLS = false;
     }
-    currentHost = host;
+    snprintf(currentHost, sizeof(currentHost), "%s", host);
     currentPort = port;
-    log_i("(Re)connected on core %i to %s:%u (TLS=%d) (timeout=%lu ms)", xPortGetCoreID(), host.c_str(), port, useTLS ? 1 : 0, connectTimeout);
+    log_i("(Re)connected on core %i to %s:%u (TLS=%d) (timeout=%lu ms)", xPortGetCoreID(), host, port, useTLS ? 1 : 0, connectTimeout);
     return true;
 }
 
