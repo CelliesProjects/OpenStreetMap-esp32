@@ -133,7 +133,7 @@ bool ReusableTileFetcher::parseUrl(const char *url, char *host, char *path, uint
 
     snprintf(host, OSM_MAX_HOST_LEN, "%.*s", hostLen, url + idxHostStart);
 
-    int pathLen = strlen(pathPtr);
+    int pathLen = strnlen(pathPtr, OSM_MAX_PATH_LEN);
     if (pathLen <= 0 || pathLen >= OSM_MAX_PATH_LEN)
         return false; // too long for buffer
 
