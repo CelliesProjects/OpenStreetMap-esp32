@@ -205,7 +205,7 @@ void OpenStreetMap::updateCache(const tileList &requiredTiles, uint8_t zoom, Til
     if (!jobs.empty())
     {
         runJobs(jobs);
-        log_d("Finished %i jobs in %lu ms - %i ms/job", jobs.size(), millis() - startMS, (millis() - startMS) / jobs.size());
+        log_i("Finished %i jobs in %lu ms - %i ms/job", jobs.size(), millis() - startMS, (millis() - startMS) / jobs.size());
     }
 }
 
@@ -360,12 +360,19 @@ void OpenStreetMap::PNGDraw(PNGDRAW *pDraw)
 
 bool OpenStreetMap::fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, uint32_t x, uint32_t y, uint8_t zoom, String &result, unsigned long timeout)
 {
-    String url = currentProvider->urlTemplate;
-    url.replace("{x}", String(x));
-    url.replace("{y}", String(y));
-    url.replace("{z}", String(zoom));
-    if (currentProvider->requiresApiKey && strstr(url.c_str(), "{apiKey}"))
-        url.replace("{apiKey}", currentProvider->apiKey);
+    char url[256];
+    if (currentProvider->requiresApiKey)
+    {
+        snprintf(url, sizeof(url),
+                 currentProvider->urlTemplate,
+                 zoom, x, y, currentProvider->apiKey);
+    }
+    else
+    {
+        snprintf(url, sizeof(url),
+                 currentProvider->urlTemplate,
+                 zoom, x, y);
+    }
 
     MemoryBuffer buffer = fetcher.fetchToBuffer(url, result, timeout);
     if (!buffer.isAllocated())
@@ -390,7 +397,7 @@ bool OpenStreetMap::fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, ui
     const int decodeResult = png->decode(0, PNG_FAST_PALETTE);
     if (decodeResult != PNG_SUCCESS)
     {
-        result = "Decoding " + url + " failed with code: " + String(decodeResult);
+        result = "Decoding " + String(url) + " failed with code: " + String(decodeResult);
         return false;
     }
 
