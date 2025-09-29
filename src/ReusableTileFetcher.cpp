@@ -160,7 +160,8 @@ bool ReusableTileFetcher::ensureConnection(const char *host, uint16_t port, bool
         secureClient.setInsecure();
         if (!secureClient.connect(host, port, connectTimeout))
         {
-            result = "TLS connect failed to " + String(host);
+            result = "TLS connect failed to ";
+            result += host;
             return false;
         }
         currentIsTLS = true;
@@ -169,7 +170,8 @@ bool ReusableTileFetcher::ensureConnection(const char *host, uint16_t port, bool
     {
         if (!client.connect(host, port, connectTimeout))
         {
-            result = "TCP connect failed to " + String(host);
+            result = "TCP connect failed to ";
+            result += host;
             return false;
         }
         currentIsTLS = false;
@@ -203,7 +205,8 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
         {
             if (strncmp(headerLine, "HTTP/1.", 7) != 0)
             {
-                result = String("Bad HTTP response: ") + headerLine;
+                result = "Bad HTTP response: ";
+                result += headerLine;
                 return false;
             }
 
@@ -227,7 +230,8 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
 
             if (statusCode != 200)
             {
-                result = "HTTP error " + String(statusCode);
+                result = "HTTP error ";
+                result += statusCode;
                 if (*reasonPhrase)
                 {
                     result += " (";
@@ -298,7 +302,9 @@ bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, u
         {
             if (millis() - lastReadTime >= maxStall)
             {
-                result = "Timeout: body read stalled for " + String(maxStall) + " ms";
+                result = "Timeout: body read stalled for ";
+                result += maxStall;
+                result += " ms";
                 disconnect();
                 return false;
             }
