@@ -23,7 +23,7 @@
 
 #include "ReusableTileFetcher.hpp"
 
-ReusableTileFetcher::ReusableTileFetcher() { headerLine.reserve(OSM_MAX_HEADERLENGTH); }
+ReusableTileFetcher::ReusableTileFetcher() {}
 ReusableTileFetcher::~ReusableTileFetcher() { disconnect(); }
 
 void ReusableTileFetcher::sendHttpRequest(const char *host, const char *path)
@@ -182,8 +182,6 @@ bool ReusableTileFetcher::ensureConnection(const char *host, uint16_t port, bool
 
 bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long timeoutMS, String &result, bool &connectionClose)
 {
-    String &line = headerLine;
-    line = "";
     contentLength = 0;
     bool start = true;
     connectionClose = false;
@@ -193,41 +191,36 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
 
     while ((currentIsTLS ? secureClient.connected() : client.connected()))
     {
-        if (!readLineWithTimeout(line, headerTimeout))
+        if (!readLineWithTimeout(headerLine, sizeof(headerLine), headerTimeout))
         {
             result = "Header timeout";
             return false;
         }
 
-        log_d("read header: %s", line.c_str());
+        log_d("read header: %s", headerLine);
 
         if (start)
         {
-            if (!line.startsWith("HTTP/1."))
+            if (strncmp(headerLine, "HTTP/1.", 7) != 0)
             {
-                result = "Bad HTTP response: " + line;
+                result = String("Bad HTTP response: ") + headerLine;
                 return false;
             }
 
+            // parse status code
             int statusCode = 0;
             const char *reasonPhrase = "";
-
-            const char *buf = line.c_str();
-            const char *sp1 = strchr(buf, ' ');
+            const char *sp1 = strchr(headerLine, ' ');
             if (sp1)
             {
-                // parse up to 3 digits after first space
                 const char *p = sp1 + 1;
                 while (*p && isspace((unsigned char)*p))
-                    p++; // skip extra spaces
-
+                    p++;
                 while (*p && isdigit((unsigned char)*p))
                 {
                     statusCode = statusCode * 10 + (*p - '0');
                     p++;
                 }
-
-                // skip a single space to get to reason phrase
                 if (*p == ' ')
                     reasonPhrase = p + 1;
             }
@@ -247,38 +240,28 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
             start = false;
         }
 
-        if (line.length() == 0)
+        if (headerLine[0] == '\0') // empty line = end of headers
             break;
 
-        // start parsing
-        static constexpr const char CONTENT_LENGTH[] = "content-length:";
-        static constexpr size_t CONTENT_LENGTH_LEN = sizeof(CONTENT_LENGTH) - 1;
-
-        static constexpr const char CONTENT_TYPE[] = "content-type:";
-        static constexpr size_t CONTENT_TYPE_LEN = sizeof(CONTENT_TYPE) - 1;
-
-        static constexpr const char CONNECTION[] = "connection:";
-        static constexpr size_t CONNECTION_LEN = sizeof(CONNECTION) - 1;
-
-        const char *raw = line.c_str();
-        if (strncasecmp(raw, CONTENT_LENGTH, CONTENT_LENGTH_LEN) == 0)
+        // parse headers
+        if (strncasecmp(headerLine, "content-length:", 15) == 0)
         {
-            const char *val = raw + CONTENT_LENGTH_LEN;
+            const char *val = headerLine + 15;
             while (*val == ' ' || *val == '\t')
-                val++; // trim left
+                val++;
             contentLength = atoi(val);
         }
-        else if (strncasecmp(raw, CONNECTION, CONNECTION_LEN) == 0)
+        else if (strncasecmp(headerLine, "connection:", 11) == 0)
         {
-            const char *val = raw + CONNECTION_LEN;
+            const char *val = headerLine + 11;
             while (*val == ' ' || *val == '\t')
                 val++;
             if (strcasecmp(val, "close") == 0)
                 connectionClose = true;
         }
-        else if (strncasecmp(raw, CONTENT_TYPE, CONTENT_TYPE_LEN) == 0)
+        else if (strncasecmp(headerLine, "content-type:", 13) == 0)
         {
-            const char *val = raw + CONTENT_TYPE_LEN;
+            const char *val = headerLine + 13;
             while (*val == ' ' || *val == '\t')
                 val++;
             if (strcasecmp(val, "image/png") == 0)
@@ -341,27 +324,32 @@ bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, u
     return true;
 }
 
-bool ReusableTileFetcher::readLineWithTimeout(String &line, uint32_t timeoutMs)
+bool ReusableTileFetcher::readLineWithTimeout(char *lineBuf, size_t bufSize, uint32_t timeoutMs)
 {
-    line = "";
+    size_t len = 0;
     const uint32_t start = millis();
 
     while ((millis() - start) < timeoutMs)
     {
-        int availableData = (currentIsTLS ? secureClient.available() : client.available());
+        int availableData = currentIsTLS ? secureClient.available() : client.available();
         if (availableData)
         {
-            const char c = (currentIsTLS ? secureClient.read() : client.read());
+            char c = currentIsTLS ? secureClient.read() : client.read();
             if (c == '\r')
                 continue;
             if (c == '\n')
+            {
+                lineBuf[len] = '\0'; // terminate
                 return true;
-            if (line.length() >= OSM_MAX_HEADERLENGTH - 1)
+            }
+            if (len >= bufSize - 1) // prevent overflow
                 return false;
-            line += c;
+            lineBuf[len++] = c;
         }
         else
+        {
             taskYIELD();
+        }
     }
     return false; // Timed out
 }

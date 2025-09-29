@@ -50,13 +50,13 @@ private:
     WiFiClientSecure secureClient;
     bool currentIsTLS = false;
     char currentHost[OSM_MAX_HOST_LEN] = {0};
+    char headerLine[OSM_MAX_HEADERLENGTH] = {0};
     uint16_t currentPort = 0;
-    String headerLine;
 
     bool parseUrl(const char *url, char *host, char *path, uint16_t &port, bool &useTLS);
     bool ensureConnection(const char *host, uint16_t port, bool useTLS, unsigned long timeoutMS, String &result);
     void sendHttpRequest(const char *host, const char *path);
     bool readHttpHeaders(size_t &contentLength, unsigned long timeoutMS, String &result, bool &connectionClose);
     bool readBody(MemoryBuffer &buffer, size_t contentLength, unsigned long timeoutMS, String &result);
-    bool readLineWithTimeout(String &line, uint32_t timeoutMs);
+    bool readLineWithTimeout(char *lineBuf, size_t bufSize, uint32_t timeoutMs);
 };
