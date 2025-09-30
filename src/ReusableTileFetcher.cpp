@@ -56,6 +56,8 @@ MemoryBuffer ReusableTileFetcher::fetchToBuffer(const char *url, String &result,
 
     log_d("url: %s", url);
 
+    [[maybe_unused]] const unsigned long startMS = millis();
+
     if (!parseUrl(url, host, path, port, useTLS))
     {
         result = "Invalid URL";
@@ -86,7 +88,7 @@ MemoryBuffer ReusableTileFetcher::fetchToBuffer(const char *url, String &result,
     auto buffer = MemoryBuffer(contentLength);
     if (!buffer.isAllocated())
     {
-        result = "Buffer allocation failed";
+        result = "Download buffer allocation failed";
         disconnect();
         return MemoryBuffer::empty();
     }
@@ -96,6 +98,8 @@ MemoryBuffer ReusableTileFetcher::fetchToBuffer(const char *url, String &result,
         disconnect();
         return MemoryBuffer::empty();
     }
+
+    log_d("fetching %s took %lu ms", url, millis() - startMS);
 
     // Server requested connection close → drop it
     if (connClose)
@@ -193,7 +197,7 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
 
     while ((currentIsTLS ? secureClient.connected() : client.connected()))
     {
-        if (!readLineWithTimeout(headerLine, sizeof(headerLine), headerTimeout))
+        if (!readLineWithTimeout(headerTimeout))
         {
             result = "Header timeout";
             return false;
@@ -330,10 +334,11 @@ bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, u
     return true;
 }
 
-bool ReusableTileFetcher::readLineWithTimeout(char *lineBuf, size_t bufSize, uint32_t timeoutMs)
+bool ReusableTileFetcher::readLineWithTimeout(uint32_t timeoutMs)
 {
     size_t len = 0;
     const uint32_t start = millis();
+    bool skipping = false;
 
     while ((millis() - start) < timeoutMs)
     {
@@ -343,19 +348,38 @@ bool ReusableTileFetcher::readLineWithTimeout(char *lineBuf, size_t bufSize, uin
             char c = currentIsTLS ? secureClient.read() : client.read();
             if (c == '\r')
                 continue;
+
             if (c == '\n')
             {
-                lineBuf[len] = '\0'; // terminate
-                return true;
+                if (skipping)
+                {
+                    // We were discarding an oversized line → reset and keep going
+                    len = 0;
+                    skipping = false;
+                    continue; // stay in loop, keep reading next line
+                }
+
+                headerLine[len] = '\0';
+                return true; // got a usable line
             }
-            if (len >= bufSize - 1) // prevent overflow
-                return false;
-            lineBuf[len++] = c;
+
+            if (!skipping)
+            {
+                if (len < sizeof(headerLine) - 1)
+                {
+                    headerLine[len++] = c;
+                }
+                else
+                {
+                    // buffer too small → switch to skipping mode
+                    skipping = true;
+                    len = 0; // clear partial junk
+                }
+            }
         }
         else
-        {
             taskYIELD();
-        }
     }
-    return false; // Timed out
+
+    return false; // timeout
 }

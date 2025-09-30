@@ -28,7 +28,7 @@
 #include <memory>
 #include "MemoryBuffer.hpp"
 
-constexpr int OSM_MAX_HEADERLENGTH = 256;
+constexpr int OSM_MAX_HEADERLENGTH = 64;
 constexpr int OSM_MAX_HOST_LEN = 128;
 constexpr int OSM_MAX_PATH_LEN = 128;
 constexpr int OSM_DEFAULT_TIMEOUT_MS = 5000;
@@ -57,6 +57,6 @@ private:
     bool ensureConnection(const char *host, uint16_t port, bool useTLS, unsigned long timeoutMS, String &result);
     void sendHttpRequest(const char *host, const char *path);
     bool readHttpHeaders(size_t &contentLength, unsigned long timeoutMS, String &result, bool &connectionClose);
+    bool readLineWithTimeout(uint32_t timeoutMs);
     bool readBody(MemoryBuffer &buffer, size_t contentLength, unsigned long timeoutMS, String &result);
-    bool readLineWithTimeout(char *lineBuf, size_t bufSize, uint32_t timeoutMs);
 };

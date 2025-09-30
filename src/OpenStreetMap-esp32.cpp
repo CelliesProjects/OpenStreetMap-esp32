@@ -378,6 +378,8 @@ bool OpenStreetMap::fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, ui
     if (!buffer.isAllocated())
         return false;
 
+    [[maybe_unused]] const unsigned long startMS = millis();
+
     PNG *png = getPNGCurrentCore();
     const int16_t rc = png->openRAM(buffer.get(), buffer.size(), PNGDraw);
     if (rc != PNG_SUCCESS)
@@ -400,6 +402,8 @@ bool OpenStreetMap::fetchTile(ReusableTileFetcher &fetcher, CachedTile &tile, ui
         result = "Decoding " + String(url) + " failed with code: " + String(decodeResult);
         return false;
     }
+
+    log_d("decoding %s took %lu ms on core %i", url, millis() - startMS, xPortGetCoreID());
 
     tile.x = x;
     tile.y = y;
