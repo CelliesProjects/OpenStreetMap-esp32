@@ -24,6 +24,15 @@ OSM tiles are quite large at 128kB or insane large at 512kB per tile, so psram i
 You can switch provider and tile format at runtime, or set up a different default tile provider if you want.  
 This library can do it all and is very easy to configure and use.  
 
+### TLS validation note
+
+This project currently uses `setInsecure()` for `WiFiClientSecure` connections.  
+This means server certificates are **not** validated. The trade-offs are:
+
+- ❌ No TLS validation → potential API key leakage or manipulated tiles (low risk in practice).
+- ✅ Much simpler setup → supports multiple tileservers without managing CA bundles.
+
+
 ## How to use
 
 This library is **PlatformIO only** due to use of modern C++ features. The Arduino IDE is **not** supported.  
