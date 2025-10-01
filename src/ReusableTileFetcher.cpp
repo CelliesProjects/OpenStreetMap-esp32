@@ -26,141 +26,270 @@
 ReusableTileFetcher::ReusableTileFetcher() {}
 ReusableTileFetcher::~ReusableTileFetcher() { disconnect(); }
 
-void ReusableTileFetcher::sendHttpRequest(const String &host, const String &path)
+void ReusableTileFetcher::sendHttpRequest(const char *host, const char *path)
 {
-    client.print(String("GET ") + path + " HTTP/1.1\r\n");
-    client.print(String("Host: ") + host + "\r\n");
-    client.print("User-Agent: OpenStreetMap-esp32/1.0 (+https://github.com/CelliesProjects/OpenStreetMap-esp32)\r\n");
-    client.print("Connection: keep-alive\r\n");
-    client.print("\r\n");
+    Stream *s = currentIsTLS ? static_cast<Stream *>(&secureClient) : static_cast<Stream *>(&client);
+
+    char buf[256];
+    snprintf(buf, sizeof(buf), "GET %s HTTP/1.1\r\nHost: %s\r\n", path, host);
+    s->print(buf);
+    s->print("User-Agent: OpenStreetMap-esp32/1.0 (+https://github.com/CelliesProjects/OpenStreetMap-esp32)\r\nConnection: keep-alive\r\n\r\n");
 }
 
 void ReusableTileFetcher::disconnect()
 {
-    client.stop();
-    currentHost = "";
-    currentPort = 80;
+    if (currentIsTLS)
+        secureClient.stop();
+    else
+        client.stop();
+    currentHost[0] = 0;
+    currentPort = 0;
+    currentIsTLS = false;
 }
 
-MemoryBuffer ReusableTileFetcher::fetchToBuffer(const String &url, String &result, unsigned long timeoutMS)
+MemoryBuffer ReusableTileFetcher::fetchToBuffer(const char *url, String &result, unsigned long timeoutMS)
 {
-    String host, path;
+    char host[OSM_MAX_HOST_LEN];
+    char path[OSM_MAX_PATH_LEN];
     uint16_t port;
-    if (!parseUrl(url, host, path, port))
+    bool useTLS;
+
+    log_d("url: %s", url);
+
+    [[maybe_unused]] const unsigned long startMS = millis();
+
+    if (!parseUrl(url, host, path, port, useTLS))
     {
         result = "Invalid URL";
         return MemoryBuffer::empty();
     }
 
-    if (!ensureConnection(host, port, timeoutMS, result))
+    if (!ensureConnection(host, port, useTLS, timeoutMS, result))
         return MemoryBuffer::empty();
 
     sendHttpRequest(host, path);
+
     size_t contentLength = 0;
-    if (!readHttpHeaders(contentLength, timeoutMS, result))
+    bool connClose = false;
+
+    if (!readHttpHeaders(contentLength, timeoutMS, result, connClose))
+    {
+        disconnect();
         return MemoryBuffer::empty();
+    }
 
     if (contentLength == 0)
     {
         result = "Empty response (Content-Length=0)";
+        disconnect();
         return MemoryBuffer::empty();
     }
 
     auto buffer = MemoryBuffer(contentLength);
     if (!buffer.isAllocated())
     {
-        result = "Buffer allocation failed";
+        result = "Download buffer allocation failed";
+        disconnect();
         return MemoryBuffer::empty();
     }
 
     if (!readBody(buffer, contentLength, timeoutMS, result))
+    {
+        disconnect();
         return MemoryBuffer::empty();
+    }
+
+    log_d("fetching %s took %lu ms", url, millis() - startMS);
+
+    // Server requested connection close → drop it
+    if (connClose)
+        disconnect();
 
     return buffer;
 }
 
-bool ReusableTileFetcher::parseUrl(const String &url, String &host, String &path, uint16_t &port)
+bool ReusableTileFetcher::parseUrl(const char *url, char *host, char *path, uint16_t &port, bool &useTLS)
 {
-    port = 80;
-    if (url.startsWith("https://"))
+    if (!url)
         return false;
 
-    if (!url.startsWith("http://"))
+    if (strncmp(url, "https://", 8) == 0)
+    {
+        useTLS = true;
+        port = 443;
+    }
+    else if (strncmp(url, "http://", 7) == 0)
+    {
+        useTLS = false;
+        port = 80;
+    }
+    else
         return false;
 
-    int idxHostStart = 7; // length of "http://"
-    int idxPath = url.indexOf('/', idxHostStart);
-    if (idxPath == -1)
-        return false;
+    int idxHostStart = useTLS ? 8 : 7; // skip scheme
+    const char *pathPtr = strchr(url + idxHostStart, '/');
+    if (!pathPtr)
+        return false; // no '/' → invalid
 
-    host = url.substring(idxHostStart, idxPath);
-    path = url.substring(idxPath);
+    int hostLen = pathPtr - (url + idxHostStart);
+    if (hostLen <= 0 || hostLen >= OSM_MAX_HOST_LEN)
+        return false; // too long for buffer
+
+    snprintf(host, OSM_MAX_HOST_LEN, "%.*s", hostLen, url + idxHostStart);
+
+    int pathLen = strnlen(pathPtr, OSM_MAX_PATH_LEN);
+    if (pathLen == 0 || pathLen >= OSM_MAX_PATH_LEN)
+        return false; // too long for buffer
+
+    snprintf(path, OSM_MAX_PATH_LEN, "%s", pathPtr);
+
     return true;
 }
 
-bool ReusableTileFetcher::ensureConnection(const String &host, uint16_t port, unsigned long timeoutMS, String &result)
+void ReusableTileFetcher::setSocket(WiFiClient &c)
 {
-    if (!client.connected() || host != currentHost || port != currentPort)
-    {
-        disconnect();
+    c.setNoDelay(true);
+    c.setTimeout(OSM_DEFAULT_TIMEOUT_MS);
+}
 
-        // If caller didn’t set a timeout, fall back to 5000ms
-        uint32_t connectTimeout = timeoutMS > 0 ? timeoutMS : OSM_DEFAULT_TIMEOUT_MS;
-        if (!client.connect(host.c_str(), port, connectTimeout))
+bool ReusableTileFetcher::ensureConnection(const char *host, uint16_t port, bool useTLS, unsigned long timeoutMS, String &result)
+{
+    // If we already have a connection to exact host/port/scheme and it's connected, keep it.
+    if ((useTLS == currentIsTLS) && !strcmp(host, currentHost) && (port == currentPort) &&
+        ((useTLS && secureClient.connected()) || (!useTLS && client.connected())))
+    {
+        return true;
+    }
+
+    disconnect();
+
+    uint32_t connectTimeout = timeoutMS > 0 ? timeoutMS : OSM_DEFAULT_TIMEOUT_MS;
+
+    if (useTLS)
+    {
+        secureClient.setInsecure();
+        if (!secureClient.connect(host, port, connectTimeout))
         {
-            result = "Connection failed to " + host;
+            result = "TLS connect failed to ";
+            result += host;
             return false;
         }
-        currentHost = host;
-        currentPort = port;
-        log_i("(Re)connected on core %i (timeout=%lu ms)", xPortGetCoreID(), connectTimeout);
+        setSocket(secureClient);
+        currentIsTLS = true;
     }
+    else
+    {
+        if (!client.connect(host, port, connectTimeout))
+        {
+            result = "TCP connect failed to ";
+            result += host;
+            return false;
+        }
+        setSocket(client);
+        currentIsTLS = false;
+    }
+    snprintf(currentHost, sizeof(currentHost), "%s", host);
+    currentPort = port;
+    log_i("(Re)connected on core %i to %s:%u (TLS=%d) (timeout=%lu ms)", xPortGetCoreID(), host, port, useTLS ? 1 : 0, connectTimeout);
     return true;
 }
 
-bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long timeoutMS, String &result)
+bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long timeoutMS, String &result, bool &connectionClose)
 {
-    String line;
-    line.reserve(OSM_MAX_HEADERLENGTH);
     contentLength = 0;
     bool start = true;
+    connectionClose = false;
+    bool pngFound = false;
 
     uint32_t headerTimeout = timeoutMS > 0 ? timeoutMS : OSM_DEFAULT_TIMEOUT_MS;
 
-    while (client.connected())
+    while ((currentIsTLS ? secureClient.connected() : client.connected()))
     {
-        if (!readLineWithTimeout(line, headerTimeout))
+        if (!readLineWithTimeout(headerTimeout))
         {
-            result = "Header timeout";
-            disconnect();
+            result = "Header error or timeout";
             return false;
         }
 
-        line.trim();
+        log_d("read header: %s", headerLine);
+
         if (start)
         {
-            if (!line.startsWith("HTTP/1."))
+            if (strncmp(headerLine, "HTTP/1.", 7) != 0)
             {
-                result = "Bad HTTP response: " + line;
-                disconnect();
+                result = "Bad HTTP response: ";
+                result += headerLine;
                 return false;
             }
+
+            // parse status code
+            int statusCode = 0;
+            const char *reasonPhrase = "";
+            const char *sp1 = strchr(headerLine, ' ');
+            if (sp1)
+            {
+                const char *p = sp1 + 1;
+                while (*p && isspace((unsigned char)*p))
+                    p++;
+                while (*p && isdigit((unsigned char)*p))
+                {
+                    statusCode = statusCode * 10 + (*p - '0');
+                    p++;
+                }
+                if (*p == ' ')
+                    reasonPhrase = p + 1;
+            }
+
+            if (statusCode != 200)
+            {
+                result = "HTTP error ";
+                result += statusCode;
+                if (*reasonPhrase)
+                {
+                    result += " (";
+                    result += reasonPhrase;
+                    result += ")";
+                }
+                return false;
+            }
+
             start = false;
         }
 
-        if (line.length() == 0)
-            break; // End of headers
+        if (headerLine[0] == '\0') // empty line = end of headers
+            break;
 
-        if (line.startsWith("Content-Length:"))
+        // parse headers
+        if (strncasecmp(headerLine, "content-length:", 15) == 0)
         {
-            String val = line.substring(15);
-            val.trim();
-            contentLength = val.toInt();
+            const char *val = headerLine + 15;
+            while (*val == ' ' || *val == '\t')
+                val++;
+            contentLength = atoi(val);
+        }
+        else if (strncasecmp(headerLine, "connection:", 11) == 0)
+        {
+            const char *val = headerLine + 11;
+            while (*val == ' ' || *val == '\t')
+                val++;
+            if (strcasecmp(val, "close") == 0)
+                connectionClose = true;
+        }
+        else if (strncasecmp(headerLine, "content-type:", 13) == 0)
+        {
+            const char *val = headerLine + 13;
+            while (*val == ' ' || *val == '\t')
+                val++;
+            if (strcasecmp(val, "image/png") == 0)
+                pngFound = true;
         }
     }
 
-    if (contentLength == 0)
-        log_w("Content-Length = 0 (valid empty body)");
+    if (!pngFound)
+    {
+        result = "Content-Type not PNG";
+        return false;
+    }
 
     return true;
 }
@@ -171,17 +300,23 @@ bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, u
     size_t readSize = 0;
     unsigned long lastReadTime = millis();
 
-    // Respect caller’s remaining budget, default to 5000ms if none
     const unsigned long maxStall = timeoutMS > 0 ? timeoutMS : OSM_DEFAULT_TIMEOUT_MS;
+
+    if (currentIsTLS)
+        secureClient.setTimeout(maxStall);
+    else
+        client.setTimeout(maxStall);
 
     while (readSize < contentLength)
     {
-        size_t availableData = client.available();
+        size_t availableData = currentIsTLS ? secureClient.available() : client.available();
         if (availableData == 0)
         {
             if (millis() - lastReadTime >= maxStall)
             {
-                result = "Body read stalled for " + String(maxStall) + " ms";
+                result = "Timeout: body read stalled for ";
+                result += maxStall;
+                result += " ms";
                 disconnect();
                 return false;
             }
@@ -192,7 +327,10 @@ bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, u
         size_t remaining = contentLength - readSize;
         size_t toRead = std::min(availableData, remaining);
 
-        int bytesRead = client.readBytes(dest + readSize, toRead);
+        int bytesRead = currentIsTLS
+                            ? secureClient.readBytes(dest + readSize, toRead)
+                            : client.readBytes(dest + readSize, toRead);
+
         if (bytesRead > 0)
         {
             readSize += bytesRead;
@@ -204,29 +342,52 @@ bool ReusableTileFetcher::readBody(MemoryBuffer &buffer, size_t contentLength, u
     return true;
 }
 
-bool ReusableTileFetcher::readLineWithTimeout(String &line, uint32_t timeoutMs)
+bool ReusableTileFetcher::readLineWithTimeout(uint32_t timeoutMs)
 {
-    line = "";
+    size_t len = 0;
     const uint32_t start = millis();
+    bool skipping = false;
 
     while ((millis() - start) < timeoutMs)
     {
-        if (client.available())
+        int availableData = currentIsTLS ? secureClient.available() : client.available();
+        if (availableData)
         {
-            const char c = client.read();
+            char c = currentIsTLS ? secureClient.read() : client.read();
             if (c == '\r')
                 continue;
 
             if (c == '\n')
-                return true;
+            {
+                if (skipping)
+                {
+                    // We were discarding an oversized line → reset and keep going
+                    len = 0;
+                    skipping = false;
+                    continue; // stay in loop, keep reading next line
+                }
 
-            if (line.length() >= OSM_MAX_HEADERLENGTH - 1)
-                return false;
+                headerLine[len] = '\0';
+                return true; // got a usable line
+            }
 
-            line += c;
+            if (!skipping)
+            {
+                if (len < sizeof(headerLine) - 1)
+                {
+                    headerLine[len++] = c;
+                }
+                else
+                {
+                    // buffer too small → switch to skipping mode
+                    skipping = true;
+                    len = 0; // clear partial junk
+                }
+            }
         }
         else
             taskYIELD();
     }
-    return false; // Timed out
+
+    return false; // timeout
 }

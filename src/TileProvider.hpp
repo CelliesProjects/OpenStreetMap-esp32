@@ -38,7 +38,7 @@ struct TileProvider
 
 const TileProvider osmStandard = {
     "OSM Standard",
-    "http://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    "https://tile.openstreetmap.org/%d/%d/%d.png",
     "© OpenStreetMap contributors",
     false,
     "",
@@ -46,7 +46,7 @@ const TileProvider osmStandard = {
 
 const TileProvider ThunderTransportDark256 = {
     "Thunderforest Transport Dark 256px",
-    "http://tile.thunderforest.com/transport-dark/{z}/{x}/{y}.png?apikey={apiKey}",
+    "https://tile.thunderforest.com/transport-dark/%d/%d/%d.png?apikey=%s",
     "© Thunderforest, OpenStreetMap contributors",
     true,
     "YOUR_THUNDERFOREST_KEY",
@@ -54,7 +54,7 @@ const TileProvider ThunderTransportDark256 = {
 
 const TileProvider ThunderForestCycle512 = {
     "Thunderforest Cycle 512px",
-    "http://tile.thunderforest.com/cycle/{z}/{x}/{y}@2x.png?apikey={apiKey}",
+    "https://tile.thunderforest.com/transport-dark/%d/%d/%d@2x.png?apikey=%s",
     "© Thunderforest, OpenStreetMap contributors",
     true,
     "YOUR_THUNDERFOREST_KEY",
@@ -62,13 +62,13 @@ const TileProvider ThunderForestCycle512 = {
 
 const TileProvider ThunderForestCycle256 = {
     "Thunderforest Cycle 256px",
-    "http://tile.thunderforest.com/cycle/{z}/{x}/{y}.png?apikey={apiKey}",
+    "https://tile.thunderforest.com/cycle/%d/%d/%d.png?apikey=%s",
     "© Thunderforest, OpenStreetMap contributors",
     true,
     "YOUR_THUNDERFOREST_KEY",
     22, 0, 256};
 
-// Replace 'YOUR_THUNDERFOREST_KEY' above with a -free- Thunderforest API key 
+// Replace 'YOUR_THUNDERFOREST_KEY' above with a -free- Thunderforest API key
 // and uncomment one of the following line to use Thunderforest tiles
 
 // const TileProvider tileProviders[] = {osmStandard, ThunderTransportDark256, ThunderForestCycle512, ThunderForestCycle256};

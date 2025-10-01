@@ -41,7 +41,7 @@
 
 constexpr uint16_t OSM_BGCOLOR = lgfx::color565(32, 32, 128);
 constexpr UBaseType_t OSM_TASK_PRIORITY = 1;
-constexpr uint32_t OSM_TASK_STACKSIZE = 5120;
+constexpr uint32_t OSM_TASK_STACKSIZE = 6144;
 constexpr uint32_t OSM_JOB_QUEUE_SIZE = 50;
 constexpr bool OSM_FORCE_SINGLECORE = false;
 constexpr int OSM_SINGLECORE_NUMBER = 1;

@@ -24,6 +24,18 @@ OSM tiles are quite large at 128kB or insane large at 512kB per tile, so psram i
 You can switch provider and tile format at runtime, or set up a different default tile provider if you want.  
 This library can do it all and is very easy to configure and use.  
 
+### TLS validation note
+
+This project currently uses `setInsecure()` for `WiFiClientSecure` connections, which disables certificate validation.
+
+- Risk: Without TLS validation, responses could in theory be intercepted or altered.  
+This matters most if requests carry secrets (e.g. API keys).
+
+- Practical impact: Standard OpenStreetMap tile servers do not require API keys or credentials.  
+In this case, the main risk is limited to someone tampering with map images.
+
+- Benefit: Simplifies setup and supports multiple tile providers without needing to manage CA certificates.
+
 ## How to use
 
 This library is **PlatformIO only** due to use of modern C++ features. The Arduino IDE is **not** supported.  

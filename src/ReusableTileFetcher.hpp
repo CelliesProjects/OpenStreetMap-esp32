@@ -24,10 +24,13 @@
 #pragma once
 
 #include <WiFiClient.h>
+#include <WiFiClientSecure.h>
 #include <memory>
 #include "MemoryBuffer.hpp"
 
-constexpr int OSM_MAX_HEADERLENGTH = 256;
+constexpr int OSM_MAX_HEADERLENGTH = 64;
+constexpr int OSM_MAX_HOST_LEN = 128;
+constexpr int OSM_MAX_PATH_LEN = 128;
 constexpr int OSM_DEFAULT_TIMEOUT_MS = 5000;
 
 class ReusableTileFetcher
@@ -39,18 +42,22 @@ public:
     ReusableTileFetcher(const ReusableTileFetcher &) = delete;
     ReusableTileFetcher &operator=(const ReusableTileFetcher &) = delete;
 
-    MemoryBuffer fetchToBuffer(const String &url, String &result, unsigned long timeoutMS);
+    MemoryBuffer fetchToBuffer(const char *url, String &result, unsigned long timeoutMS);
     void disconnect();
 
 private:
     WiFiClient client;
-    String currentHost;
-    uint16_t currentPort = 80;
+    WiFiClientSecure secureClient;
+    bool currentIsTLS = false;
+    char currentHost[OSM_MAX_HOST_LEN] = {0};
+    char headerLine[OSM_MAX_HEADERLENGTH] = {0};
+    uint16_t currentPort = 0;
+    void setSocket(WiFiClient &c);
 
-    bool parseUrl(const String &url, String &host, String &path, uint16_t &port);
-    bool ensureConnection(const String &host, uint16_t port, unsigned long timeoutMS, String &result);
-    void sendHttpRequest(const String &host, const String &path);
-    bool readHttpHeaders(size_t &contentLength, unsigned long timeoutMS, String &result);
+    bool parseUrl(const char *url, char *host, char *path, uint16_t &port, bool &useTLS);
+    bool ensureConnection(const char *host, uint16_t port, bool useTLS, unsigned long timeoutMS, String &result);
+    void sendHttpRequest(const char *host, const char *path);
+    bool readHttpHeaders(size_t &contentLength, unsigned long timeoutMS, String &result, bool &connectionClose);
+    bool readLineWithTimeout(uint32_t timeoutMs);
     bool readBody(MemoryBuffer &buffer, size_t contentLength, unsigned long timeoutMS, String &result);
-    bool readLineWithTimeout(String &line, uint32_t timeoutMs);
 };
