@@ -146,6 +146,12 @@ bool ReusableTileFetcher::parseUrl(const char *url, char *host, char *path, uint
     return true;
 }
 
+void ReusableTileFetcher::setSocket(WiFiClient &c)
+{
+    c.setNoDelay(true);
+    c.setTimeout(OSM_DEFAULT_TIMEOUT_MS);
+}
+
 bool ReusableTileFetcher::ensureConnection(const char *host, uint16_t port, bool useTLS, unsigned long timeoutMS, String &result)
 {
     // If we already have a connection to exact host/port/scheme and it's connected, keep it.
@@ -168,6 +174,7 @@ bool ReusableTileFetcher::ensureConnection(const char *host, uint16_t port, bool
             result += host;
             return false;
         }
+        setSocket(secureClient);
         currentIsTLS = true;
     }
     else
@@ -178,6 +185,7 @@ bool ReusableTileFetcher::ensureConnection(const char *host, uint16_t port, bool
             result += host;
             return false;
         }
+        setSocket(client);
         currentIsTLS = false;
     }
     snprintf(currentHost, sizeof(currentHost), "%s", host);
@@ -199,7 +207,7 @@ bool ReusableTileFetcher::readHttpHeaders(size_t &contentLength, unsigned long t
     {
         if (!readLineWithTimeout(headerTimeout))
         {
-            result = "Header timeout";
+            result = "Header error or timeout";
             return false;
         }
 

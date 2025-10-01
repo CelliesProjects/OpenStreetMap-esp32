@@ -52,6 +52,7 @@ private:
     char currentHost[OSM_MAX_HOST_LEN] = {0};
     char headerLine[OSM_MAX_HEADERLENGTH] = {0};
     uint16_t currentPort = 0;
+    void setSocket(WiFiClient &c);
 
     bool parseUrl(const char *url, char *host, char *path, uint16_t &port, bool &useTLS);
     bool ensureConnection(const char *host, uint16_t port, bool useTLS, unsigned long timeoutMS, String &result);
