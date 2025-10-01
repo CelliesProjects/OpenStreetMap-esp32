@@ -26,12 +26,15 @@ This library can do it all and is very easy to configure and use.
 
 ### TLS validation note
 
-This project currently uses `setInsecure()` for `WiFiClientSecure` connections.  
-This means server certificates are **not** validated. The trade-offs are:
+This project currently uses `setInsecure()` for `WiFiClientSecure` connections, which disables certificate validation.
 
-- ❌ No TLS validation → potential API key leakage or manipulated tiles (low risk in practice).
-- ✅ Much simpler setup → supports multiple tileservers without managing CA bundles.
+- Risk: Without TLS validation, responses could in theory be intercepted or altered.  
+This matters most if requests carry secrets (e.g. API keys).
 
+- Practical impact: Standard OpenStreetMap tile servers do not require API keys or credentials.  
+In this case, the main risk is limited to someone tampering with map images.
+
+- Benefit: Simplifies setup and supports multiple tile providers without needing to manage CA certificates.
 
 ## How to use
 
