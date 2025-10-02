@@ -255,7 +255,7 @@ void OpenStreetMap::runJobs(const std::vector<TileJob> &jobs)
     pendingJobs.store(jobs.size());
     startJobsMS = millis();
     for (const TileJob &job : jobs)
-        if (xQueueSend(jobQueue, &job, portMAX_DELAY) != pdPASS)
+        if (xQueueSend(jobQueue, &job, 0) != pdPASS)
         {
             log_e("Failed to enqueue TileJob");
             --pendingJobs;
