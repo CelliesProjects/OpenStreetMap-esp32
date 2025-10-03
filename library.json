@@ -38,7 +38,7 @@
         },
         {
             "name": "PNGdec",
-            "version": "https://github.com/bitbank2/PNGdec.git#28b221d"
+            "version": "https://github.com/bitbank2/PNGdec.git#1.1.3"
         }
     ],
     "build": {
