@@ -49,7 +49,7 @@ These settings use `Arduino Release v3.2.0 based on ESP-IDF v5.4.1` from pioardu
 
 ```bash
 [env]
-platform = https://github.com/pioarduino/platform-espressif32/releases/download/53.03.20/platform-espressif32.zip
+platform = https://github.com/pioarduino/platform-espressif32/releases/download/54.03.20/platform-espressif32.zip
 framework = arduino
 
 lib_deps =
